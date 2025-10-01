@@ -30,7 +30,7 @@ const Auth = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/auth`,
           data: {
             full_name: fullName,
             role: selectedRole,
@@ -38,9 +38,23 @@ const Auth = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check for specific error types
+        if (error.message.includes("already registered")) {
+          toast.error("This email is already registered. Please sign in instead.");
+        } else {
+          toast.error(error.message);
+        }
+        return;
+      }
 
       if (data.user) {
+        // Check if email confirmation is required
+        if (data.user.identities && data.user.identities.length === 0) {
+          toast.success("Please check your email to confirm your account.");
+          return;
+        }
+
         // Create profile
         const { error: profileError } = await supabase.from("profiles").insert({
           id: data.user.id,
@@ -49,13 +63,21 @@ const Auth = () => {
           role: selectedRole,
         });
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error("Profile creation error:", profileError);
+          // Don't throw error if profile already exists
+          if (!profileError.message.includes("duplicate key")) {
+            toast.error("Error creating profile. Please contact support.");
+            return;
+          }
+        }
 
         toast.success("Account created successfully!");
         navigate(selectedRole === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
       }
     } catch (error: any) {
-      toast.error(error.message);
+      console.error("Signup error:", error);
+      toast.error(error.message || "An error occurred during signup");
     } finally {
       setLoading(false);
     }
@@ -75,9 +97,18 @@ const Auth = () => {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          toast.error("Invalid email or password. Please try again.");
+        } else if (error.message.includes("Email not confirmed")) {
+          toast.error("Please confirm your email before signing in.");
+        } else {
+          toast.error(error.message);
+        }
+        return;
+      }
 
-      if (data.user) {
+      if (data.user && data.session) {
         // Fetch user profile to get role
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
@@ -85,13 +116,18 @@ const Auth = () => {
           .eq("id", data.user.id)
           .single();
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error("Profile fetch error:", profileError);
+          toast.error("Error loading profile. Please try again.");
+          return;
+        }
 
         toast.success("Signed in successfully!");
         navigate(profile.role === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
       }
     } catch (error: any) {
-      toast.error(error.message);
+      console.error("Signin error:", error);
+      toast.error(error.message || "An error occurred during sign in");
     } finally {
       setLoading(false);
     }
