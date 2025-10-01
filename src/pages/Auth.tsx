@@ -55,23 +55,7 @@ const Auth = () => {
           return;
         }
 
-        // Create profile
-        const { error: profileError } = await supabase.from("profiles").insert({
-          id: data.user.id,
-          email: data.user.email!,
-          full_name: fullName,
-          role: selectedRole,
-        });
-
-        if (profileError) {
-          console.error("Profile creation error:", profileError);
-          // Don't throw error if profile already exists
-          if (!profileError.message.includes("duplicate key")) {
-            toast.error("Error creating profile. Please contact support.");
-            return;
-          }
-        }
-
+        // Profile is automatically created by database trigger
         toast.success("Account created successfully!");
         navigate(selectedRole === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
       }
