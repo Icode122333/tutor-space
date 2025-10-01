@@ -51,7 +51,7 @@ const Auth = () => {
       if (data.user) {
         // Check if email confirmation is required
         if (data.user.identities && data.user.identities.length === 0) {
-          toast.success("Please check your email to confirm your account.");
+          navigate("/verify-email");
           return;
         }
 
