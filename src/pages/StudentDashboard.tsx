@@ -3,13 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, LogOut } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Search, ShoppingCart, Bell, Star, MoreVertical, FileText, BookOpen } from "lucide-react";
 import { toast } from "sonner";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { StudentSidebar } from "@/components/StudentSidebar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  const [date, setDate] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
     checkUser();
@@ -46,11 +53,6 @@ const StudentDashboard = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -60,70 +62,216 @@ const StudentDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold">DataPlus Learning</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              Welcome, {profile?.full_name}
-            </span>
-            <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <StudentSidebar />
+        
+        <div className="flex-1 flex flex-col">
+          <header className="border-b bg-card px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger />
+                <div>
+                  <h1 className="text-2xl font-bold">Welcome Back, {profile?.full_name || 'Peter'}!</h1>
+                  <p className="text-sm text-muted-foreground">Let's boost your knowledge today and learn a new things</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon">
+                  <Search className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <ShoppingCart className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <Bell className="h-5 w-5" />
+                </Button>
+                <Avatar>
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {profile?.full_name?.charAt(0) || 'P'}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 p-6 overflow-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+              <div className="lg:col-span-2 space-y-6">
+                {/* Premium Banner */}
+                <Card className="border-0 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground overflow-hidden relative">
+                  <CardContent className="p-8">
+                    <div className="relative z-10">
+                      <h2 className="text-3xl font-bold mb-2">Unlock premium access</h2>
+                      <div className="flex gap-1 mb-4">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="h-5 w-5 fill-accent text-accent" />
+                        ))}
+                      </div>
+                      <p className="mb-6 opacity-90">to a world of knowledge at your fingertips!</p>
+                      <Button variant="secondary" size="lg">Get Premium</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* My Courses */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold">My Courses</h2>
+                    <Button variant="link">See all</Button>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="mb-4">
+                          <span className="text-3xl font-bold text-primary">IBM</span>
+                        </div>
+                        <h3 className="font-semibold mb-4">IBM Mastery: Build a Passive Income from...</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">3.2 hours taken</span>
+                            <span className="text-muted-foreground">/ 10 hours</span>
+                          </div>
+                          <Progress value={32} />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="mb-4">
+                          <span className="text-3xl font-bold" style={{ color: '#4285F4' }}>Google</span>
+                        </div>
+                        <h3 className="font-semibold mb-4">Mastering Git & Vercel App Become Pro...</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">2.5 hours taken</span>
+                            <span className="text-muted-foreground">/ 6 hours</span>
+                          </div>
+                          <Progress value={42} className="[&>div]:bg-orange-500" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* Lesson */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold">Lesson</h2>
+                    <Button variant="link">See all</Button>
+                  </div>
+                  <div className="space-y-3">
+                    <Card>
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <FileText className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold mb-1">Essay: Write an essay on design principles</h3>
+                            <div className="flex gap-2 text-sm text-muted-foreground">
+                              <span>Mastering Git & Vercel</span>
+                              <span>•</span>
+                              <span>Ms. Gynda</span>
+                              <span>•</span>
+                              <Badge variant="secondary">Theory</Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <Button variant="outline">Start</Button>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <BookOpen className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold mb-1">CSS Selector</h3>
+                            <div className="flex gap-2 text-sm text-muted-foreground">
+                              <span>HTML/CSS Mastery</span>
+                              <span>•</span>
+                              <span>Mr. Reynold</span>
+                              <span>•</span>
+                              <Badge variant="secondary">Theory</Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Progress value={80} className="w-16" />
+                          <span className="text-sm font-medium text-primary">80%</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <FileText className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold mb-1">Quiz: Autolayout Figma Test</h3>
+                            <div className="flex gap-2 text-sm text-muted-foreground">
+                              <span>Mastering Figma</span>
+                              <span>•</span>
+                              <span>Ms. Dyana</span>
+                              <span>•</span>
+                              <Badge variant="secondary">Theory</Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <Badge className="bg-green-500 text-white">Done</Badge>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Sidebar */}
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Class Schedule</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={setDate}
+                      className="rounded-md border-0"
+                    />
+                    <div className="mt-4 space-y-2">
+                      <div className="text-sm text-muted-foreground">09:00 AM</div>
+                      <div className="text-sm text-muted-foreground">10:00 AM</div>
+                      <Card className="bg-accent/10 border-l-4 border-l-accent">
+                        <CardContent className="p-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <Badge className="bg-accent text-accent-foreground mb-2">Live Class</Badge>
+                              <h4 className="font-semibold text-sm">CSS Foundation</h4>
+                              <p className="text-xs text-muted-foreground">04:00 PM - 06:00 PM</p>
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <div className="text-sm text-muted-foreground">11:00 AM</div>
+                      <div className="text-sm text-muted-foreground">12:00 PM</div>
+                      <div className="text-sm text-muted-foreground">01:00 PM</div>
+                      <div className="text-sm text-muted-foreground">02:00 PM</div>
+                      <div className="text-sm text-muted-foreground">03:00 PM</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </main>
         </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Student Dashboard</h2>
-          <p className="text-muted-foreground">
-            Browse courses and manage your learning journey
-          </p>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Available Courses</CardTitle>
-              <CardDescription>Browse and enroll in courses</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                No courses available yet.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>My Courses</CardTitle>
-              <CardDescription>Your enrolled courses</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                You haven't enrolled in any courses yet.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Assignments</CardTitle>
-              <CardDescription>Pending assignments</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">No assignments yet.</p>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 };
 
