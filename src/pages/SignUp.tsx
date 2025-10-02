@@ -5,19 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
+import { GraduationCap, Users, Eye, EyeOff } from "lucide-react";
 
-const Auth = () => {
+type UserRole = "student" | "teacher";
+
+const SignUp = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<UserRole>("student");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleGoogleAuth = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?role=${selectedRole}`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -33,50 +37,56 @@ const Auth = () => {
     }
   };
 
-  const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
+    const fullName = formData.get("fullName") as string;
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`,
+          data: {
+            full_name: fullName,
+            role: selectedRole,
+          },
+        },
       });
 
       if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          toast.error("Invalid email or password. Please try again.");
-        } else if (error.message.includes("Email not confirmed")) {
-          toast.error("Please confirm your email before signing in.");
+        if (error.message.includes("already registered")) {
+          toast.error("This email is already registered. Please sign in instead.");
         } else {
           toast.error(error.message);
         }
         return;
       }
 
-      if (data.user && data.session) {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.user.id)
-          .single();
-
-        if (profileError) {
-          console.error("Profile fetch error:", profileError);
-          toast.error("Error loading profile. Please try again.");
+      if (data.user) {
+        if (data.user.identities && data.user.identities.length === 0) {
+          navigate("/verify-email");
           return;
         }
 
-        toast.success("Signed in successfully!");
-        navigate(profile.role === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
+        toast.success("Account created successfully!");
+        navigate(selectedRole === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
       }
     } catch (error: any) {
-      console.error("Signin error:", error);
-      toast.error(error.message || "An error occurred during sign in");
+      console.error("Signup error:", error);
+      toast.error(error.message || "An error occurred during signup");
     } finally {
       setLoading(false);
     }
@@ -97,8 +107,30 @@ const Auth = () => {
 
           {/* Header */}
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
             <p className="text-gray-600">Let's get started with filling the form below</p>
+          </div>
+
+          {/* Role Selection */}
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              type="button"
+              variant={selectedRole === "student" ? "default" : "outline"}
+              onClick={() => setSelectedRole("student")}
+              className="w-full h-12 text-sm font-medium"
+            >
+              <GraduationCap className="mr-2 h-4 w-4" />
+              Student
+            </Button>
+            <Button
+              type="button"
+              variant={selectedRole === "teacher" ? "default" : "outline"}
+              onClick={() => setSelectedRole("teacher")}
+              className="w-full h-12 text-sm font-medium"
+            >
+              <Users className="mr-2 h-4 w-4" />
+              Teacher
+            </Button>
           </div>
 
           {/* Google Auth Button */}
@@ -123,12 +155,26 @@ const Auth = () => {
               <span className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">or sign in with email</span>
+              <span className="px-2 bg-white text-gray-500">or sign up with email</span>
             </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSignIn} className="space-y-6">
+          <form onSubmit={handleSignUp} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
+                Full Name
+              </Label>
+              <Input
+                id="fullName"
+                name="fullName"
+                type="text"
+                placeholder="Peter Park"
+                required
+                className="h-12 px-4 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700">
                 Email
@@ -167,24 +213,48 @@ const Auth = () => {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                Confirm Password
+              </Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  className="h-12 px-4 pr-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+
             <Button
               type="submit"
               disabled={loading}
               className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
             >
-              {loading ? "Signing In..." : "Sign In"}
+              {loading ? "Creating Account..." : "Sign Up"}
             </Button>
           </form>
 
           {/* Footer */}
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{" "}
+              Already have an account?{" "}
               <button
-                onClick={() => navigate("/signup")}
+                onClick={() => navigate("/auth")}
                 className="text-blue-600 hover:text-blue-700 font-medium"
               >
-                Sign Up
+                Sign In
               </button>
             </p>
           </div>
@@ -214,4 +284,4 @@ const Auth = () => {
   );
 };
 
-export default Auth;
+export default SignUp;
