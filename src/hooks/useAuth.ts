@@ -10,6 +10,31 @@ export const useAuth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let mounted = true;
+
+    // Listen for auth changes FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
+        
+        if (!mounted) return;
+        
+        if (session?.user) {
+          setUser(session.user);
+          // Defer Supabase calls to prevent deadlock
+          setTimeout(() => {
+            if (mounted) {
+              fetchProfile(session.user.id);
+            }
+          }, 0);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setProfile(null);
+          navigate('/auth');
+        }
+      }
+    );
+
     // Get initial session
     const getInitialSession = async () => {
       try {
@@ -21,41 +46,23 @@ export const useAuth = () => {
           return;
         }
 
-        if (session?.user) {
+        if (session?.user && mounted) {
           setUser(session.user);
           await fetchProfile(session.user.id);
         }
       } catch (error) {
         console.error('Error getting session:', error);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          setUser(session.user);
-          // Defer Supabase calls to prevent deadlock
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-          }, 0);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setProfile(null);
-          navigate('/auth');
-        }
-        
-        setLoading(false);
-      }
-    );
 
     getInitialSession();
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);

@@ -19,29 +19,31 @@ const TeacherDashboard = () => {
   useEffect(() => {
     if (!loading) {
       if (!user) {
+        console.log('No user found, redirecting to auth');
         navigate("/auth");
         return;
       }
 
       if (profile && profile.role !== "teacher") {
+        console.log('User is not a teacher, redirecting to student dashboard');
         navigate("/student/dashboard");
         return;
       }
     }
   }, [user, profile, loading, navigate]);
 
-  if (loading) {
+  if (loading || !profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
-  if (!user || !profile) {
+  if (!user) {
     return null;
   }
 
