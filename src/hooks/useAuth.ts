@@ -34,12 +34,15 @@ export const useAuth = () => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
         
         if (event === 'SIGNED_IN' && session?.user) {
           setUser(session.user);
-          await fetchProfile(session.user.id);
+          // Defer Supabase calls to prevent deadlock
+          setTimeout(() => {
+            fetchProfile(session.user.id);
+          }, 0);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
           setProfile(null);
