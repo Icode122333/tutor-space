@@ -121,7 +121,10 @@ const StudentDashboard = () => {
                     <Button variant="link">See all</Button>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
-                    <Card>
+                    <Card 
+                      className="cursor-pointer hover:shadow-lg transition-shadow"
+                      onClick={() => navigate("/course/1")}
+                    >
                       <CardContent className="p-6">
                         <div className="mb-4">
                           <span className="text-3xl font-bold text-primary">IBM</span>
@@ -136,7 +139,10 @@ const StudentDashboard = () => {
                         </div>
                       </CardContent>
                     </Card>
-                    <Card>
+                    <Card 
+                      className="cursor-pointer hover:shadow-lg transition-shadow"
+                      onClick={() => navigate("/course/2")}
+                    >
                       <CardContent className="p-6">
                         <div className="mb-4">
                           <span className="text-3xl font-bold" style={{ color: '#4285F4' }}>Google</span>
