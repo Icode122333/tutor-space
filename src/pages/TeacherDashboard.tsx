@@ -147,7 +147,7 @@ const TeacherDashboard = () => {
                           <h3 className="text-lg font-semibold mb-1">Ready to create a new course?</h3>
                           <p className="text-sm text-muted-foreground">Share your knowledge with students worldwide</p>
                         </div>
-                        <Button size="lg" className="gap-2">
+                        <Button size="lg" className="gap-2" onClick={() => navigate("/create-course")}>
                           <Plus className="h-4 w-4" />
                           Create Course
                         </Button>

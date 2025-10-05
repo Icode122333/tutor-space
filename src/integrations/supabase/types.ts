@@ -142,6 +142,44 @@ export type Database = {
           },
         ]
       }
+      course_chapters: {
+        Row: {
+          course_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          order_index: number
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          course_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          order_index?: number
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          course_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          order_index?: number
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_chapters_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_enrollments: {
         Row: {
           course_id: string
@@ -174,6 +212,53 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_lessons: {
+        Row: {
+          chapter_id: string
+          content_type: string
+          content_url: string
+          created_at: string | null
+          description: string | null
+          duration: number | null
+          id: string
+          order_index: number
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          chapter_id: string
+          content_type: string
+          content_url: string
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string
+          order_index?: number
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          chapter_id?: string
+          content_type?: string
+          content_url?: string
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string
+          order_index?: number
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_lessons_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "course_chapters"
             referencedColumns: ["id"]
           },
         ]
@@ -221,6 +306,8 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          price: number | null
+          requirements: string | null
           teacher_id: string
           thumbnail_url: string | null
           title: string
@@ -230,6 +317,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          price?: number | null
+          requirements?: string | null
           teacher_id: string
           thumbnail_url?: string | null
           title: string
@@ -239,6 +328,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          price?: number | null
+          requirements?: string | null
           teacher_id?: string
           thumbnail_url?: string | null
           title?: string
