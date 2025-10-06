@@ -85,18 +85,20 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex" style={{ fontFamily: 'Montserrat, sans-serif' }}>
       {/* Left Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md space-y-8">
+      <div className="flex-1 flex items-center justify-center p-6 bg-white">
+        <div className="w-full max-w-md space-y-6">
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
-              <span className="text-white font-bold text-sm">D</span>
-            </div>
+          <div className="flex items-center gap-3 mb-6">
+            <img 
+              src="/images/dataplus_logggg-removebg-preview.png" 
+              alt="DataPlus Logo" 
+              className="w-8 h-8 object-contain"
+            />
             <span className="text-xl font-bold text-gray-900">DataPlus.</span>
           </div>
 
           {/* Header */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
             <p className="text-gray-600">Let's get started with filling the form below</p>
           </div>
@@ -106,9 +108,9 @@ const Auth = () => {
             type="button"
             variant="outline"
             onClick={handleGoogleAuth}
-            className="w-full h-12 text-sm font-medium border-gray-300 hover:bg-gray-50"
+            className="w-full h-10 text-sm font-medium border-gray-300 hover:bg-gray-50"
           >
-            <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">
+            <svg className="mr-3 h-4 w-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -128,8 +130,8 @@ const Auth = () => {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSignIn} className="space-y-6">
-            <div className="space-y-2">
+          <form onSubmit={handleSignIn} className="space-y-4">
+            <div className="space-y-1">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700">
                 Email
               </Label>
@@ -139,11 +141,11 @@ const Auth = () => {
                 type="email"
                 placeholder="peterparker@rwanda.com"
                 required
-                className="h-12 px-4 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                className="h-10 px-4 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                 Password
               </Label>
@@ -155,7 +157,7 @@ const Auth = () => {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  className="h-12 px-4 pr-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="h-10 px-4 pr-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
                 <button
                   type="button"
@@ -170,7 +172,7 @@ const Auth = () => {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
+              className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
             >
               {loading ? "Signing In..." : "Sign In"}
             </Button>
@@ -203,9 +205,9 @@ const Auth = () => {
           </p>
           <div className="mt-8">
             <img 
-              src="/images/picture auth.webp" 
+              src="/images/web.webp" 
               alt="Learning Dashboard" 
-              className="w-full max-w-md mx-auto rounded-lg shadow-2xl"
+              className="w-80 h-60 mx-auto rounded-lg shadow-2xl object-cover object-center"
             />
           </div>
         </div>
