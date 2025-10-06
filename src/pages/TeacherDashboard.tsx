@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Bell, ShoppingCart, Plus, Users, BookOpen, ClipboardList, TrendingUp, Calendar as CalendarIcon } from "lucide-react";
+import { Search, Bell, ShoppingCart, Plus, Users, BookOpen, ClipboardList, TrendingUp, Calendar as CalendarIcon, Video } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,11 +10,25 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
   const { user, profile, loading } = useAuth();
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const [courses, setCourses] = useState<any[]>([]);
+  const [scheduleForm, setScheduleForm] = useState({
+    course_id: "",
+    title: "",
+    description: "",
+    scheduled_time: "",
+    meet_link: "",
+  });
 
   useEffect(() => {
     if (!loading) {
@@ -29,8 +43,61 @@ const TeacherDashboard = () => {
         navigate("/student/dashboard");
         return;
       }
+
+      // Fetch teacher's courses
+      fetchCourses();
     }
   }, [user, profile, loading, navigate]);
+
+  const fetchCourses = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("courses")
+      .select("*")
+      .eq("teacher_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching courses:", error);
+    } else {
+      setCourses(data || []);
+    }
+  };
+
+  const handleScheduleClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!user || !scheduleForm.course_id || !scheduleForm.title || !scheduleForm.scheduled_time || !scheduleForm.meet_link) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("scheduled_classes")
+      .insert({
+        course_id: scheduleForm.course_id,
+        teacher_id: user.id,
+        title: scheduleForm.title,
+        description: scheduleForm.description,
+        scheduled_time: scheduleForm.scheduled_time,
+        meet_link: scheduleForm.meet_link,
+      });
+
+    if (error) {
+      toast.error("Failed to schedule class");
+      console.error(error);
+    } else {
+      toast.success("Class scheduled successfully!");
+      setScheduleForm({
+        course_id: "",
+        title: "",
+        description: "",
+        scheduled_time: "",
+        meet_link: "",
+      });
+    }
+  };
 
   if (loading || !profile) {
     return (
@@ -152,6 +219,88 @@ const TeacherDashboard = () => {
                           Create Course
                         </Button>
                       </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Schedule Class Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Video className="h-5 w-5" />
+                        Schedule Online Class
+                      </CardTitle>
+                      <CardDescription>Schedule a live class with Google Meet</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleScheduleClass} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="course">Select Course *</Label>
+                          <Select
+                            value={scheduleForm.course_id}
+                            onValueChange={(value) => setScheduleForm({ ...scheduleForm, course_id: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose a course" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {courses.map((course) => (
+                                <SelectItem key={course.id} value={course.id}>
+                                  {course.title}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="title">Class Title *</Label>
+                          <Input
+                            id="title"
+                            value={scheduleForm.title}
+                            onChange={(e) => setScheduleForm({ ...scheduleForm, title: e.target.value })}
+                            placeholder="e.g., Introduction to React Hooks"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="description">Description</Label>
+                          <Textarea
+                            id="description"
+                            value={scheduleForm.description}
+                            onChange={(e) => setScheduleForm({ ...scheduleForm, description: e.target.value })}
+                            placeholder="Describe what will be covered in this class"
+                            rows={3}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="scheduled_time">Date & Time *</Label>
+                          <Input
+                            id="scheduled_time"
+                            type="datetime-local"
+                            value={scheduleForm.scheduled_time}
+                            onChange={(e) => setScheduleForm({ ...scheduleForm, scheduled_time: e.target.value })}
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="meet_link">Google Meet Link *</Label>
+                          <Input
+                            id="meet_link"
+                            type="url"
+                            value={scheduleForm.meet_link}
+                            onChange={(e) => setScheduleForm({ ...scheduleForm, meet_link: e.target.value })}
+                            placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                            required
+                          />
+                        </div>
+
+                        <Button type="submit" className="w-full">
+                          Schedule Class
+                        </Button>
+                      </form>
                     </CardContent>
                   </Card>
 

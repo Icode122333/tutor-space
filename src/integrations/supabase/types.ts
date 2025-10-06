@@ -528,6 +528,42 @@ export type Database = {
           },
         ]
       }
+      scheduled_classes: {
+        Row: {
+          course_id: string
+          created_at: string
+          description: string | null
+          id: string
+          meet_link: string
+          scheduled_time: string
+          teacher_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          meet_link: string
+          scheduled_time: string
+          teacher_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          meet_link?: string
+          scheduled_time?: string
+          teacher_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

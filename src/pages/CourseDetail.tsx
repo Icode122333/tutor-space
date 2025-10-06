@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users, Star, PlayCircle, FileText, Video, ArrowLeft } from "lucide-react";
+import { Clock, Users, Star, PlayCircle, FileText, Video, ArrowLeft, Calendar as CalendarIcon } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -53,6 +53,7 @@ export default function CourseDetail() {
   const [loading, setLoading] = useState(true);
   const [openChapters, setOpenChapters] = useState<Set<string>>(new Set());
   const [enrolledCount, setEnrolledCount] = useState(0);
+  const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -119,10 +120,26 @@ export default function CourseDetail() {
       setEnrolledCount(count || 0);
     };
 
+    const fetchScheduledClasses = async () => {
+      const { data, error } = await supabase
+        .from("scheduled_classes")
+        .select("*")
+        .eq("course_id", id)
+        .gte("scheduled_time", new Date().toISOString())
+        .order("scheduled_time", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching scheduled classes:", error);
+      } else {
+        setScheduledClasses(data || []);
+      }
+    };
+
     if (id) {
       fetchCourse();
       fetchChapters();
       fetchEnrolledCount();
+      fetchScheduledClasses();
     }
     
     setLoading(false);
@@ -327,6 +344,55 @@ export default function CourseDetail() {
                           </li>
                         ))}
                       </ul>
+                    </Card>
+                  )}
+
+                  {/* Scheduled Classes */}
+                  {scheduledClasses.length > 0 && (
+                    <Card className="p-6">
+                      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <Video className="h-6 w-6" />
+                        Upcoming Live Classes
+                      </h2>
+                      <div className="space-y-3">
+                        {scheduledClasses.map((scheduledClass) => {
+                          const classDate = new Date(scheduledClass.scheduled_time);
+                          
+                          return (
+                            <Card key={scheduledClass.id} className="p-4 bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <CalendarIcon className="h-4 w-4 text-primary" />
+                                    <Badge variant="secondary">
+                                      {classDate.toLocaleDateString('en-US', { 
+                                        month: 'short', 
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                      })} at {classDate.toLocaleTimeString('en-US', { 
+                                        hour: '2-digit', 
+                                        minute: '2-digit',
+                                        hour12: true 
+                                      })}
+                                    </Badge>
+                                  </div>
+                                  <h3 className="font-semibold text-lg mb-2">{scheduledClass.title}</h3>
+                                  {scheduledClass.description && (
+                                    <p className="text-sm text-muted-foreground mb-3">{scheduledClass.description}</p>
+                                  )}
+                                </div>
+                                <Button 
+                                  className="gap-2"
+                                  onClick={() => window.open(scheduledClass.meet_link, '_blank')}
+                                >
+                                  <Video className="h-4 w-4" />
+                                  Join Meeting
+                                </Button>
+                              </div>
+                            </Card>
+                          );
+                        })}
+                      </div>
                     </Card>
                   )}
 
