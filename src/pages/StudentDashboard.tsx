@@ -17,10 +17,47 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
 
   useEffect(() => {
     checkUser();
   }, []);
+
+  useEffect(() => {
+    if (profile) {
+      fetchScheduledClasses();
+    }
+  }, [profile]);
+
+  const fetchScheduledClasses = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("scheduled_classes")
+      .select(`
+        *,
+        courses (
+          title
+        )
+      `)
+      .gte("scheduled_time", new Date().toISOString())
+      .order("scheduled_time", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching scheduled classes:", error);
+    } else {
+      // Filter to only show classes for enrolled courses
+      const { data: enrollments } = await supabase
+        .from("course_enrollments")
+        .select("course_id")
+        .eq("student_id", user.id);
+
+      const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
+      const filteredClasses = data?.filter(c => enrolledCourseIds.includes(c.course_id)) || [];
+      setScheduledClasses(filteredClasses);
+    }
+  };
 
   const checkUser = async () => {
     try {
@@ -121,7 +158,10 @@ const StudentDashboard = () => {
                     <Button variant="link">See all</Button>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
-                    <Card>
+                    <Card 
+                      className="cursor-pointer hover:shadow-lg transition-shadow"
+                      onClick={() => navigate("/course/1")}
+                    >
                       <CardContent className="p-6">
                         <div className="mb-4">
                           <span className="text-3xl font-bold text-primary">IBM</span>
@@ -136,7 +176,10 @@ const StudentDashboard = () => {
                         </div>
                       </CardContent>
                     </Card>
-                    <Card>
+                    <Card 
+                      className="cursor-pointer hover:shadow-lg transition-shadow"
+                      onClick={() => navigate("/course/2")}
+                    >
                       <CardContent className="p-6">
                         <div className="mb-4">
                           <span className="text-3xl font-bold" style={{ color: '#4285F4' }}>Google</span>
@@ -242,27 +285,50 @@ const StudentDashboard = () => {
                       className="rounded-md border-0"
                     />
                     <div className="mt-4 space-y-2">
-                      <div className="text-sm text-muted-foreground">09:00 AM</div>
-                      <div className="text-sm text-muted-foreground">10:00 AM</div>
-                      <Card className="bg-accent/10 border-l-4 border-l-accent">
-                        <CardContent className="p-3">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <Badge className="bg-accent text-accent-foreground mb-2">Live Class</Badge>
-                              <h4 className="font-semibold text-sm">CSS Foundation</h4>
-                              <p className="text-xs text-muted-foreground">04:00 PM - 06:00 PM</p>
-                            </div>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <div className="text-sm text-muted-foreground">11:00 AM</div>
-                      <div className="text-sm text-muted-foreground">12:00 PM</div>
-                      <div className="text-sm text-muted-foreground">01:00 PM</div>
-                      <div className="text-sm text-muted-foreground">02:00 PM</div>
-                      <div className="text-sm text-muted-foreground">03:00 PM</div>
+                      {scheduledClasses.length > 0 ? (
+                        scheduledClasses.map((scheduledClass) => {
+                          const classDate = new Date(scheduledClass.scheduled_time);
+                          const timeString = classDate.toLocaleTimeString('en-US', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: true 
+                          });
+
+                          return (
+                            <Card key={scheduledClass.id} className="bg-accent/10 border-l-4 border-l-accent">
+                              <CardContent className="p-3">
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <Badge className="bg-accent text-accent-foreground mb-2">Live Class</Badge>
+                                    <h4 className="font-semibold text-sm">{scheduledClass.title}</h4>
+                                    <p className="text-xs text-muted-foreground mb-1">
+                                      {scheduledClass.courses?.title}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {classDate.toLocaleDateString('en-US', { 
+                                        month: 'short', 
+                                        day: 'numeric' 
+                                      })} at {timeString}
+                                    </p>
+                                  </div>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6"
+                                    onClick={() => window.open(scheduledClass.meet_link, '_blank')}
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground text-sm">
+                          No upcoming classes scheduled
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
