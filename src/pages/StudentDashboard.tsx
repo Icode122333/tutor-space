@@ -33,6 +33,8 @@ const StudentDashboard = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    console.log("Fetching scheduled classes for user:", user.id);
+
     const { data, error } = await supabase
       .from("scheduled_classes")
       .select(`
@@ -44,17 +46,25 @@ const StudentDashboard = () => {
       .gte("scheduled_time", new Date().toISOString())
       .order("scheduled_time", { ascending: true });
 
+    console.log("Scheduled classes query result:", { data, error });
+
     if (error) {
       console.error("Error fetching scheduled classes:", error);
     } else {
       // Filter to only show classes for enrolled courses
-      const { data: enrollments } = await supabase
+      const { data: enrollments, error: enrollError } = await supabase
         .from("course_enrollments")
         .select("course_id")
         .eq("student_id", user.id);
 
+      console.log("Enrollments:", { enrollments, enrollError });
+
       const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
+      console.log("Enrolled course IDs:", enrolledCourseIds);
+      
       const filteredClasses = data?.filter(c => enrolledCourseIds.includes(c.course_id)) || [];
+      console.log("Filtered scheduled classes:", filteredClasses);
+      
       setScheduledClasses(filteredClasses);
     }
   };
