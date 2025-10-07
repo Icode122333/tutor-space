@@ -294,52 +294,59 @@ const StudentDashboard = () => {
                       onSelect={setDate}
                       className="rounded-md border-0"
                     />
-                    <div className="mt-4 space-y-2">
-                      {scheduledClasses.length > 0 ? (
-                        scheduledClasses.map((scheduledClass) => {
-                          const classDate = new Date(scheduledClass.scheduled_time);
-                          const timeString = classDate.toLocaleTimeString('en-US', { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: true 
-                          });
+                  </CardContent>
+                </Card>
 
-                          return (
-                            <Card key={scheduledClass.id} className="bg-accent/10 border-l-4 border-l-accent">
-                              <CardContent className="p-3">
-                                <div className="flex items-start justify-between">
-                                  <div>
-                                    <Badge className="bg-accent text-accent-foreground mb-2">Live Class</Badge>
-                                    <h4 className="font-semibold text-sm">{scheduledClass.title}</h4>
-                                    <p className="text-xs text-muted-foreground mb-1">
-                                      {scheduledClass.courses?.title}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {classDate.toLocaleDateString('en-US', { 
-                                        month: 'short', 
-                                        day: 'numeric' 
-                                      })} at {timeString}
-                                    </p>
-                                  </div>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-6 w-6"
-                                    onClick={() => window.open(scheduledClass.meet_link, '_blank')}
-                                  >
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground text-sm">
-                          No upcoming classes scheduled
-                        </div>
-                      )}
-                    </div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Upcoming Classes</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {scheduledClasses.length > 0 ? (
+                      scheduledClasses.map((scheduledClass) => {
+                        const classDate = new Date(scheduledClass.scheduled_time);
+                        const dayName = classDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+                        const dayNumber = classDate.getDate();
+                        const timeString = classDate.toLocaleTimeString('en-US', { 
+                          hour: 'numeric', 
+                          minute: '2-digit',
+                          hour12: true 
+                        });
+                        const endTime = new Date(classDate.getTime() + 90 * 60000);
+                        const endTimeString = endTime.toLocaleTimeString('en-US', { 
+                          hour: 'numeric', 
+                          minute: '2-digit',
+                          hour12: true 
+                        });
+
+                        return (
+                          <Button
+                            key={scheduledClass.id}
+                            variant="outline"
+                            className="w-full h-auto p-4 flex items-center justify-start gap-4 bg-orange-100 hover:bg-orange-200 border-orange-200"
+                            onClick={() => window.open(scheduledClass.meet_link, '_blank')}
+                          >
+                            <div className="flex flex-col items-center min-w-[50px]">
+                              <span className="text-xs text-muted-foreground">{dayName}</span>
+                              <span className="text-2xl font-bold">{dayNumber}</span>
+                            </div>
+                            <div className="flex-1 text-left">
+                              <div className="font-semibold mb-1">
+                                {scheduledClass.courses?.title} - {scheduledClass.title}
+                              </div>
+                              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {timeString} - {endTimeString}
+                              </div>
+                            </div>
+                          </Button>
+                        );
+                      })
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground text-sm">
+                        No upcoming classes scheduled
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
