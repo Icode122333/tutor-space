@@ -172,134 +172,47 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features Section - Bento Grid */}
-      <section className="py-20 bg-muted/30">
+      {/* Features Section */}
+      <section className="py-20 bg-gray-50/50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-foreground" style={{ fontFamily: 'Inter, Poppins, Manrope, sans-serif' }}>
-              Platform Features
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Everything you need for modern online learning and skill development
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4 text-black" style={{ fontFamily: 'Inter, Poppins, Manrope, sans-serif' }}>Platform Features</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Everything you need for modern online learning
             </p>
           </div>
-          
-          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-auto">
-            {/* Course Management - Tall Card */}
-            <Card className="lg:row-span-2 group hover:shadow-2xl transition-all duration-300 border-border bg-card overflow-hidden">
-              <CardContent className="p-8 h-full flex flex-col justify-between relative">
-                <div>
-                  <div className="inline-flex p-4 rounded-2xl bg-primary/10 mb-6 group-hover:scale-110 transition-transform duration-300">
-                    <BookOpen className="h-10 w-10 text-primary" />
-                  </div>
-                  <h3 className="font-bold mb-3 text-2xl text-card-foreground">Course Management</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Create, organize, and deliver engaging course content with our intuitive course builder. Structure your curriculum with chapters and lessons.
-                  </p>
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <Card className="text-center hover:shadow-lg transition-shadow border-gray-200 bg-white">
+              <CardContent className="pt-6">
+                <div className="inline-flex p-4 rounded-full bg-[#6BDB4A]/10 mb-4">
+                  <BookOpen className="h-8 w-8 text-[#6BDB4A]" />
                 </div>
-                <div className="mt-8 opacity-20 group-hover:opacity-30 transition-opacity">
-                  <div className="w-full h-32 bg-gradient-to-br from-primary/20 to-transparent rounded-xl"></div>
-                </div>
+                <h3 className="font-semibold mb-2 text-lg text-black">Course Management</h3>
+                <p className="text-sm text-gray-600">
+                  Create, organize, and deliver engaging course content with ease
+                </p>
               </CardContent>
             </Card>
-
-            {/* Assignments & Quizzes */}
-            <Card className="lg:col-span-2 group hover:shadow-2xl transition-all duration-300 border-border bg-card overflow-hidden">
-              <CardContent className="p-8 relative">
-                <div className="flex items-start gap-6">
-                  <div className="inline-flex p-4 rounded-2xl bg-accent/10 group-hover:scale-110 transition-transform duration-300">
-                    <FileText className="h-10 w-10 text-accent" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold mb-3 text-2xl text-card-foreground">Assignments & Quizzes</h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      Interactive assessments with automated grading and instant feedback. Track student progress in real-time.
-                    </p>
-                  </div>
+            <Card className="text-center hover:shadow-lg transition-shadow border-gray-200 bg-white">
+              <CardContent className="pt-6">
+                <div className="inline-flex p-4 rounded-full bg-[#6BDB4A]/10 mb-4">
+                  <FileText className="h-8 w-8 text-[#6BDB4A]" />
                 </div>
-                <div className="absolute bottom-4 right-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <div className="w-32 h-32 bg-gradient-to-br from-accent/30 to-transparent rounded-full"></div>
-                </div>
+                <h3 className="font-semibold mb-2 text-lg text-black">Assignments & Quizzes</h3>
+                <p className="text-sm text-gray-600">
+                  Interactive assessments with automated grading and feedback
+                </p>
               </CardContent>
             </Card>
-
-            {/* Real-time Communication */}
-            <Card className="group hover:shadow-2xl transition-all duration-300 border-border bg-card overflow-hidden">
-              <CardContent className="p-8 h-full flex flex-col justify-between">
-                <div>
-                  <div className="inline-flex p-4 rounded-2xl bg-primary/10 mb-6 group-hover:scale-110 transition-transform duration-300">
-                    <MessageSquare className="h-10 w-10 text-primary" />
-                  </div>
-                  <h3 className="font-bold mb-3 text-xl text-card-foreground">Real-time Chat</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    Connect with peers and instructors through group chats and live discussions.
-                  </p>
+            <Card className="text-center hover:shadow-lg transition-shadow border-gray-200 bg-white">
+              <CardContent className="pt-6">
+                <div className="inline-flex p-4 rounded-full bg-[#6BDB4A]/10 mb-4">
+                  <MessageSquare className="h-8 w-8 text-[#6BDB4A]" />
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Capstone Projects - Featured Large Card */}
-            <Card className="lg:col-span-2 lg:row-span-2 group hover:shadow-2xl transition-all duration-300 border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5 overflow-hidden relative">
-              <CardContent className="p-10 h-full flex flex-col justify-between">
-                <div>
-                  <div className="inline-flex p-5 rounded-2xl bg-primary/20 mb-6 group-hover:scale-110 transition-transform duration-300">
-                    <GraduationCap className="h-12 w-12 text-primary" />
-                  </div>
-                  <h3 className="font-bold mb-4 text-3xl text-card-foreground">Capstone Projects</h3>
-                  <p className="text-muted-foreground text-lg leading-relaxed mb-6">
-                    Apply your learning through real-world capstone projects. Build a professional portfolio that showcases your skills to potential employers.
-                  </p>
-                  <ul className="space-y-3 text-muted-foreground">
-                    <li className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      <span>Industry-relevant projects</span>
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      <span>Expert mentorship & guidance</span>
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      <span>Portfolio-ready deliverables</span>
-                    </li>
-                  </ul>
-                </div>
-                <div className="absolute bottom-0 right-0 w-48 h-48 bg-gradient-to-tl from-primary/10 to-transparent rounded-tl-full opacity-50"></div>
-              </CardContent>
-            </Card>
-
-            {/* Interactive Learning */}
-            <Card className="lg:col-span-2 group hover:shadow-2xl transition-all duration-300 border-border bg-card overflow-hidden">
-              <CardContent className="p-8 relative">
-                <div className="flex items-start gap-6">
-                  <div className="inline-flex p-4 rounded-2xl bg-accent/10 group-hover:scale-110 transition-transform duration-300">
-                    <BookOpenCheck className="h-10 w-10 text-accent" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold mb-3 text-2xl text-card-foreground">Interactive Learning</h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      Engage with video lessons, PDFs, and interactive content. Learn at your own pace with scheduled live classes.
-                    </p>
-                  </div>
-                </div>
-                <div className="absolute top-4 right-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <div className="w-24 h-24 border-4 border-accent/30 rounded-2xl rotate-12"></div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Progress Tracking */}
-            <Card className="group hover:shadow-2xl transition-all duration-300 border-border bg-card overflow-hidden">
-              <CardContent className="p-8 h-full flex flex-col justify-between">
-                <div>
-                  <div className="inline-flex p-4 rounded-2xl bg-primary/10 mb-6 group-hover:scale-110 transition-transform duration-300">
-                    <Star className="h-10 w-10 text-primary" />
-                  </div>
-                  <h3 className="font-bold mb-3 text-xl text-card-foreground">Progress Tracking</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    Monitor your learning journey with detailed analytics and achievement badges.
-                  </p>
-                </div>
+                <h3 className="font-semibold mb-2 text-lg text-black">Real-time Communication</h3>
+                <p className="text-sm text-gray-600">
+                  Connect with peers and instructors through group chats
+                </p>
               </CardContent>
             </Card>
           </div>
