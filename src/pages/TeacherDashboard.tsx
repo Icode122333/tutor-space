@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Bell, ShoppingCart, Plus, Users, BookOpen, ClipboardList, TrendingUp, Calendar as CalendarIcon } from "lucide-react";
+import { Search, Bell, Plus, Users, BookOpen, ClipboardList, TrendingUp, Calendar as CalendarIcon } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -44,14 +44,22 @@ const TeacherDashboard = () => {
 
     const { data, error } = await supabase
       .from("courses")
-      .select("*")
+      .select(`
+        *,
+        course_enrollments(count)
+      `)
       .eq("teacher_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching courses:", error);
     } else {
-      setCourses(data || []);
+      // Add enrollment count to each course
+      const coursesWithCount = data?.map(course => ({
+        ...course,
+        enrolled_count: course.course_enrollments?.[0]?.count || 0
+      })) || [];
+      setCourses(coursesWithCount);
     }
   };
 
@@ -76,9 +84,9 @@ const TeacherDashboard = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <TeacherSidebar />
-        
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+
+        <div className="flex-1 flex flex-col overflow-hidden p-4">
+          <header className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 mb-4">
             <div className="flex items-center justify-between px-6 py-4">
               <div className="flex items-center gap-4">
                 <SidebarTrigger />
@@ -87,7 +95,7 @@ const TeacherDashboard = () => {
                   <p className="text-sm text-muted-foreground">Here's what's happening with your courses today</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-4">
                 <div className="relative hidden md:block">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -97,10 +105,6 @@ const TeacherDashboard = () => {
                     className="pl-10 pr-4 py-2 rounded-lg border bg-background w-64 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
-                <Button variant="ghost" size="icon" className="relative">
-                  <ShoppingCart className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center">3</span>
-                </Button>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
                   <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] text-destructive-foreground flex items-center justify-center">5</span>
@@ -113,7 +117,7 @@ const TeacherDashboard = () => {
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className="flex-1 overflow-y-auto px-2">
             <div className="max-w-7xl mx-auto space-y-6">
               {/* Stats Cards */}
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -186,74 +190,61 @@ const TeacherDashboard = () => {
                       <CardTitle>My Active Courses</CardTitle>
                       <CardDescription>Courses you're currently teaching</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-4">
-                        <div className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                          <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl">
-                            WD
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <h4 className="font-semibold">Web Development Bootcamp</h4>
-                                <p className="text-sm text-muted-foreground">124 students enrolled</p>
-                              </div>
-                              <Badge>Active</Badge>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Course Progress</span>
-                                <span className="font-medium">78%</span>
-                              </div>
-                              <Progress value={78} />
-                            </div>
-                          </div>
+                    <CardContent>
+                      {courses.length === 0 ? (
+                        <div className="text-center py-12">
+                          <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">No courses yet</h3>
+                          <p className="text-gray-600 mb-6">Create your first course to get started</p>
+                          <Button onClick={() => navigate("/create-course")} className="bg-[#006d2c] hover:bg-[#005523]">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create Course
+                          </Button>
                         </div>
-
-                        <div className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                          <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
-                            DS
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <h4 className="font-semibold">Data Science Fundamentals</h4>
-                                <p className="text-sm text-muted-foreground">89 students enrolled</p>
+                      ) : (
+                        <div className="grid md:grid-cols-2 gap-6">
+                          {courses.map((course) => (
+                            <div
+                              key={course.id}
+                              className="group cursor-pointer"
+                              onClick={() => navigate(`/course/${course.id}`)}
+                            >
+                              <div className="relative overflow-hidden rounded-xl bg-white border-2 border-gray-200 hover:border-[#006d2c] transition-all duration-300 hover:shadow-xl">
+                                <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden">
+                                  {course.thumbnail_url ? (
+                                    <img
+                                      src={course.thumbnail_url}
+                                      alt={course.title}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#006d2c] to-[#004d20]">
+                                      <BookOpen className="h-20 w-20 text-white/30" />
+                                    </div>
+                                  )}
+                                  <div className="absolute top-3 right-3">
+                                    <Badge className="bg-[#006d2c] text-white hover:bg-[#005523]">
+                                      {course.level || 'Beginner'}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <div className="p-5">
+                                  <h4 className="font-bold text-black mb-3 line-clamp-2 text-lg">{course.title}</h4>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                      <Users className="h-4 w-4" />
+                                      <span>{course.enrolled_count || 0} students</span>
+                                    </div>
+                                    {course.price && (
+                                      <span className="text-[#006d2c] font-bold">${course.price}</span>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                              <Badge>Active</Badge>
                             </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Course Progress</span>
-                                <span className="font-medium">56%</span>
-                              </div>
-                              <Progress value={56} />
-                            </div>
-                          </div>
+                          ))}
                         </div>
-
-                        <div className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                          <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold text-xl">
-                            ML
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <h4 className="font-semibold">Machine Learning Basics</h4>
-                                <p className="text-sm text-muted-foreground">67 students enrolled</p>
-                              </div>
-                              <Badge variant="secondary">Draft</Badge>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Course Progress</span>
-                                <span className="font-medium">34%</span>
-                              </div>
-                              <Progress value={34} />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
