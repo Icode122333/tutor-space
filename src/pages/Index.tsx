@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, GraduationCap, Users, BookOpenCheck, MessageSquare, FileText, Star } from "lucide-react";
+import { BookOpen, GraduationCap, Users, BookOpenCheck, MessageSquare, FileText, Star, Menu, X } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen relative">
@@ -52,6 +54,64 @@ const Index = () => {
         </div>
       </nav>
 
+      {/* Floating Hamburger Menu Button (Mobile Only - Top Left) */}
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="md:hidden fixed top-24 left-6 z-50 bg-[#6BDB4A] hover:bg-[#5BC73A] text-black p-3 rounded-full shadow-2xl transition-all duration-300 hover:scale-110"
+      >
+        {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      </button>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)}>
+          <div 
+            className="fixed top-40 left-6 bg-white rounded-2xl shadow-2xl p-6 w-64 animate-in slide-in-from-left-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col gap-4">
+              <a 
+                href="#home" 
+                className="text-base font-medium text-black hover:text-[#6BDB4A] transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Home
+              </a>
+              <a 
+                href="#courses" 
+                className="text-base font-medium text-black hover:text-[#6BDB4A] transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Courses
+              </a>
+              <a 
+                href="#about" 
+                className="text-base font-medium text-black hover:text-[#6BDB4A] transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                About
+              </a>
+              <a 
+                href="#contact" 
+                className="text-base font-medium text-black hover:text-[#6BDB4A] transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Contact
+              </a>
+              <button 
+                onClick={() => {
+                  navigate("/exhibition");
+                  setMobileMenuOpen(false);
+                }} 
+                className="text-base font-medium text-black hover:text-[#6BDB4A] transition-colors py-2 text-left"
+              >
+                Exhibition
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section id="home" className="relative z-10 flex items-center justify-center min-h-[80vh] px-4">
         <div className="text-center max-w-4xl mx-auto">
@@ -88,41 +148,81 @@ const Index = () => {
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <p className="text-center text-sm text-gray-500 mb-12 font-medium">Powered by DataPlus Labs Technology</p>
-          <div className="flex justify-center items-center gap-8 max-w-6xl mx-auto overflow-x-auto">
-            <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-              <img
-                src="/images/dataplus_logggg-removebg-preview.png"
-                alt="DataPlus"
-                className="h-12 w-auto object-contain"
-              />
-            </div>
-            <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-              <img
-                src="/images/dataplus_logggg-removebg-preview.png"
-                alt="DataPlus Analytics"
-                className="h-12 w-auto object-contain"
-              />
-            </div>
-            <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-              <img
-                src="/images/dataplus_logggg-removebg-preview.png"
-                alt="DataPlus Learning"
-                className="h-12 w-auto object-contain"
-              />
-            </div>
-            <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-              <img
-                src="/images/dataplus_logggg-removebg-preview.png"
-                alt="DataPlus Solutions"
-                className="h-12 w-auto object-contain"
-              />
-            </div>
-            <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-              <img
-                src="/images/dataplus_logggg-removebg-preview.png"
-                alt="DataPlus Academy"
-                className="h-12 w-auto object-contain"
-              />
+          <div className="relative overflow-hidden">
+            <div className="flex gap-8 animate-scroll-left">
+              {/* First set of logos */}
+              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
+                <img
+                  src="/images/dataplus_logggg-removebg-preview.png"
+                  alt="DataPlus"
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
+              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
+                <img
+                  src="/images/dataplus_logggg-removebg-preview.png"
+                  alt="DataPlus Analytics"
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
+              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
+                <img
+                  src="/images/dataplus_logggg-removebg-preview.png"
+                  alt="DataPlus Learning"
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
+              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
+                <img
+                  src="/images/dataplus_logggg-removebg-preview.png"
+                  alt="DataPlus Solutions"
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
+              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
+                <img
+                  src="/images/dataplus_logggg-removebg-preview.png"
+                  alt="DataPlus Academy"
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
+              
+              {/* Duplicate set for seamless loop */}
+              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
+                <img
+                  src="/images/dataplus_logggg-removebg-preview.png"
+                  alt="DataPlus"
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
+              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
+                <img
+                  src="/images/dataplus_logggg-removebg-preview.png"
+                  alt="DataPlus Analytics"
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
+              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
+                <img
+                  src="/images/dataplus_logggg-removebg-preview.png"
+                  alt="DataPlus Learning"
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
+              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
+                <img
+                  src="/images/dataplus_logggg-removebg-preview.png"
+                  alt="DataPlus Solutions"
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
+              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
+                <img
+                  src="/images/dataplus_logggg-removebg-preview.png"
+                  alt="DataPlus Academy"
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
             </div>
           </div>
         </div>
