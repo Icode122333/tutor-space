@@ -97,7 +97,7 @@ const Exhibition = () => {
             </div>
             <Button
               onClick={() => navigate("/")}
-              className="bg-[#6BDB4A] hover:bg-[#5BC73A] text-black font-medium"
+              className="bg-[#006d2c] hover:bg-[#006d2c] text-black font-medium"
             >
               Back to Home
             </Button>
@@ -118,22 +118,22 @@ const Exhibition = () => {
           {/* Stats Bar */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mb-12">
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-              <Trophy className="w-8 h-8 text-[#6BDB4A] mx-auto mb-2" />
+              <Trophy className="w-8 h-8 text-[#006d2c] mx-auto mb-2" />
               <div className="text-3xl font-bold text-black mb-1">150+</div>
               <div className="text-sm text-gray-600">Projects Completed</div>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-              <Award className="w-8 h-8 text-[#6BDB4A] mx-auto mb-2" />
+              <Award className="w-8 h-8 text-[#006d2c] mx-auto mb-2" />
               <div className="text-3xl font-bold text-black mb-1">92%</div>
               <div className="text-sm text-gray-600">Average Score</div>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-              <GraduationCap className="w-8 h-8 text-[#6BDB4A] mx-auto mb-2" />
+              <GraduationCap className="w-8 h-8 text-[#006d2c] mx-auto mb-2" />
               <div className="text-3xl font-bold text-black mb-1">500+</div>
               <div className="text-sm text-gray-600">Graduates</div>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-              <Trophy className="w-8 h-8 text-[#6BDB4A] mx-auto mb-2" />
+              <Trophy className="w-8 h-8 text-[#006d2c] mx-auto mb-2" />
               <div className="text-3xl font-bold text-black mb-1">50+</div>
               <div className="text-sm text-gray-600">Awards Won</div>
             </div>
@@ -148,11 +148,11 @@ const Exhibition = () => {
             {studentProjects.map((project) => (
               <Card 
                 key={project.id}
-                className="bg-white border-2 border-gray-200 hover:border-[#6BDB4A] transition-all duration-300 hover:shadow-xl overflow-hidden"
+                className="bg-white border-2 border-gray-200 hover:border-[#006d2c] transition-all duration-300 hover:shadow-xl overflow-hidden"
               >
                 <CardContent className="p-0">
                   {/* Header with Profile */}
-                  <div className="bg-gradient-to-r from-[#6BDB4A] to-[#5BC73A] p-6">
+                  <div className="bg-gradient-to-r from-[#006d2c] to-[#006d2c] p-6">
                     <div className="flex items-center gap-4 mb-4">
                       <img
                         src={project.profileImage}
@@ -191,7 +191,7 @@ const Exhibition = () => {
                         {project.technologies.map((tech, idx) => (
                           <span
                             key={idx}
-                            className="px-3 py-1 bg-green-50 border border-[#6BDB4A]/30 rounded-full text-xs text-black font-medium"
+                            className="px-3 py-1 bg-green-50 border border-[#006d2c]/30 rounded-full text-xs text-black font-medium"
                           >
                             {tech}
                           </span>
@@ -205,7 +205,7 @@ const Exhibition = () => {
                       <div className="space-y-2">
                         {project.achievements.map((achievement, idx) => (
                           <div key={idx} className="flex items-center gap-2">
-                            <Award className="w-4 h-4 text-[#6BDB4A]" />
+                            <Award className="w-4 h-4 text-[#006d2c]" />
                             <span className="text-sm text-gray-700">{achievement}</span>
                           </div>
                         ))}
@@ -215,7 +215,7 @@ const Exhibition = () => {
                     {/* View Project Link */}
                     <Button
                       onClick={() => window.open(project.projectLink, '_blank')}
-                      className="w-full bg-[#6BDB4A] hover:bg-[#5BC73A] text-black font-medium mt-4"
+                      className="w-full bg-[#006d2c] hover:bg-[#006d2c] text-black font-medium mt-4"
                     >
                       <span>View Full Project Details</span>
                       <ExternalLink className="w-4 h-4 ml-2" />
@@ -231,7 +231,7 @@ const Exhibition = () => {
       {/* CTA Section */}
       <section className="py-16 px-4">
         <div className="container mx-auto">
-          <div className="bg-gradient-to-r from-[#6BDB4A] to-[#5BC73A] rounded-3xl p-12 md:p-16 text-center">
+          <div className="bg-gradient-to-r from-[#006d2c] to-[#006d2c] rounded-3xl p-12 md:p-16 text-center">
             <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">
               Ready to Build Your Capstone Project?
             </h2>

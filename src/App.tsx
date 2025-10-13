@@ -12,6 +12,7 @@ import TeacherDashboard from "./pages/TeacherDashboard";
 import CourseDetail from "./pages/CourseDetail";
 import CreateCourse from "./pages/CreateCourse";
 import Exhibition from "./pages/Exhibition";
+import StudentOnboarding from "./pages/StudentOnboarding";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
 import RoleDebugger from "./components/RoleDebugger";
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/course/:id" element={<CourseDetail />} />
           <Route path="/create-course" element={<CreateCourse />} />
           <Route path="/exhibition" element={<Exhibition />} />
+          <Route path="/student/onboarding" element={<StudentOnboarding />} />
           <Route path="/debug" element={<RoleDebugger />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
