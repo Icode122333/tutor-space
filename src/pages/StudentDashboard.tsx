@@ -326,15 +326,25 @@ const StudentDashboard = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Upcoming Classes</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-gray-900">Upcoming Classes</h3>
+                    {scheduledClasses.length > 0 && (
+                      <Badge className="bg-[#006d2c] text-white">
+                        {scheduledClasses.length} {scheduledClasses.length === 1 ? 'class' : 'classes'}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
                     {scheduledClasses.length > 0 ? (
-                      scheduledClasses.map((scheduledClass) => {
+                      scheduledClasses.map((scheduledClass, index) => {
                         const classDate = new Date(scheduledClass.scheduled_time);
+                        const now = new Date();
+                        const isToday = classDate.toDateString() === now.toDateString();
+                        const isTomorrow = classDate.toDateString() === new Date(now.getTime() + 86400000).toDateString();
                         const dayName = classDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+                        const monthName = classDate.toLocaleDateString('en-US', { month: 'short' });
                         const dayNumber = classDate.getDate();
                         const timeString = classDate.toLocaleTimeString('en-US', { 
                           hour: 'numeric', 
@@ -348,36 +358,129 @@ const StudentDashboard = () => {
                           hour12: true 
                         });
 
+                        // Calculate time until class
+                        const timeUntil = classDate.getTime() - now.getTime();
+                        const hoursUntil = Math.floor(timeUntil / (1000 * 60 * 60));
+                        const minutesUntil = Math.floor((timeUntil % (1000 * 60 * 60)) / (1000 * 60));
+                        const isStartingSoon = hoursUntil === 0 && minutesUntil <= 30 && minutesUntil > 0;
+
+                        // Gradient colors based on index
+                        const gradients = [
+                          'from-blue-500 to-purple-600',
+                          'from-green-500 to-teal-600',
+                          'from-orange-500 to-red-600',
+                          'from-pink-500 to-rose-600',
+                          'from-indigo-500 to-blue-600',
+                        ];
+                        const gradient = gradients[index % gradients.length];
+
                         return (
-                          <Button
+                          <div
                             key={scheduledClass.id}
-                            variant="outline"
-                            className="w-full h-auto p-4 flex items-center justify-start gap-4 bg-orange-100 hover:bg-orange-200 border-orange-200"
+                            className="group relative overflow-hidden rounded-2xl bg-white border-2 border-gray-200 hover:border-[#006d2c] transition-all duration-300 hover:shadow-2xl cursor-pointer"
                             onClick={() => window.open(scheduledClass.meet_link, '_blank')}
                           >
-                            <div className="flex flex-col items-center min-w-[50px]">
-                              <span className="text-xs text-muted-foreground">{dayName}</span>
-                              <span className="text-2xl font-bold">{dayNumber}</span>
-                            </div>
-                            <div className="flex-1 text-left">
-                              <div className="font-semibold mb-1">
-                                {scheduledClass.courses?.title} - {scheduledClass.title}
+                            {/* Animated background gradient */}
+                            <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
+                            
+                            {/* Starting soon pulse animation */}
+                            {isStartingSoon && (
+                              <div className="absolute top-3 right-3 z-10">
+                                <div className="relative">
+                                  <Badge className="bg-red-500 text-white animate-pulse">
+                                    Starting Soon!
+                                  </Badge>
+                                  <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-75" />
+                                </div>
                               </div>
-                              <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {timeString} - {endTimeString}
+                            )}
+
+                            {/* Today/Tomorrow badge */}
+                            {(isToday || isTomorrow) && !isStartingSoon && (
+                              <div className="absolute top-3 right-3 z-10">
+                                <Badge className="bg-[#006d2c] text-white">
+                                  {isToday ? 'Today' : 'Tomorrow'}
+                                </Badge>
+                              </div>
+                            )}
+
+                            <div className="relative p-5 flex gap-4">
+                              {/* Date Badge */}
+                              <div className={`flex-shrink-0 w-20 h-20 rounded-xl bg-gradient-to-br ${gradient} flex flex-col items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                                <span className="text-xs font-semibold opacity-90">{monthName}</span>
+                                <span className="text-3xl font-bold leading-none">{dayNumber}</span>
+                                <span className="text-xs font-medium opacity-90">{dayName}</span>
+                              </div>
+
+                              {/* Class Details */}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-bold text-gray-900 mb-1 line-clamp-1 group-hover:text-[#006d2c] transition-colors">
+                                  {scheduledClass.title}
+                                </h4>
+                                <p className="text-sm text-gray-600 mb-3 line-clamp-1">
+                                  {scheduledClass.courses?.title}
+                                </p>
+                                
+                                {/* Time and Duration */}
+                                <div className="flex items-center gap-4 text-sm">
+                                  <div className="flex items-center gap-1.5 text-gray-700">
+                                    <Calendar className="h-4 w-4 text-[#006d2c]" />
+                                    <span className="font-medium">{timeString}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-gray-600">
+                                    <svg className="h-4 w-4 text-[#006d2c]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>90 min</span>
+                                  </div>
+                                </div>
+
+                                {/* Time until class */}
+                                {hoursUntil >= 0 && (
+                                  <div className="mt-2 text-xs text-gray-500">
+                                    {isStartingSoon ? (
+                                      <span className="text-red-600 font-semibold">Starts in {minutesUntil} minutes</span>
+                                    ) : hoursUntil === 0 ? (
+                                      <span>Starts in {minutesUntil} minutes</span>
+                                    ) : hoursUntil < 24 ? (
+                                      <span>Starts in {hoursUntil}h {minutesUntil}m</span>
+                                    ) : (
+                                      <span>In {Math.floor(hoursUntil / 24)} days</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Join Button */}
+                              <div className="flex-shrink-0 flex items-center">
+                                <Button
+                                  size="sm"
+                                  className="bg-[#006d2c] hover:bg-[#005523] text-white shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105"
+                                >
+                                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                  Join
+                                </Button>
                               </div>
                             </div>
-                          </Button>
+
+                            {/* Bottom accent line */}
+                            <div className={`h-1 bg-gradient-to-r ${gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left`} />
+                          </div>
                         );
                       })
                     ) : (
-                      <div className="text-center py-8 text-muted-foreground text-sm">
-                        No upcoming classes scheduled
+                      <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-gray-300">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center">
+                          <Calendar className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <p className="text-gray-600 font-medium mb-1">No upcoming classes</p>
+                        <p className="text-sm text-gray-500">Your schedule is clear for now</p>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
             </div>
           </main>
