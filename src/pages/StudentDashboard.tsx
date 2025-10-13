@@ -114,26 +114,26 @@ const StudentDashboard = () => {
         <StudentSidebar />
         
         <div className="flex-1 flex flex-col">
-          <header className="border-b bg-card px-6 py-4">
+          <header className="border-b bg-card px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
                 <SidebarTrigger />
-                <div>
-                  <h1 className="text-2xl font-bold">Welcome Back, {profile?.full_name || 'Peter'}!</h1>
-                  <p className="text-sm text-muted-foreground">Let's boost your knowledge today and learn a new things</p>
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-lg sm:text-2xl font-bold truncate">Welcome Back, {profile?.full_name || 'Peter'}!</h1>
+                  <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Let's boost your knowledge today and learn a new things</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon">
+              <div className="flex items-center gap-1 sm:gap-4">
+                <Button variant="ghost" size="icon" className="hidden sm:flex">
                   <Search className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="hidden sm:flex">
                   <ShoppingCart className="h-5 w-5" />
                 </Button>
                 <Button variant="ghost" size="icon">
                   <Bell className="h-5 w-5" />
                 </Button>
-                <Avatar>
+                <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
                   <AvatarFallback className="bg-primary text-primary-foreground">
                     {profile?.full_name?.charAt(0) || 'P'}
                   </AvatarFallback>
@@ -142,9 +142,9 @@ const StudentDashboard = () => {
             </div>
           </header>
 
-          <main className="flex-1 p-6 overflow-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-              <div className="lg:col-span-2 space-y-6">
+          <main className="flex-1 p-4 sm:p-6 overflow-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 max-w-7xl mx-auto">
+              <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                 {/* Premium Banner */}
                 <Card className="border-0 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground overflow-hidden relative">
                   <CardContent className="p-8">
@@ -167,7 +167,7 @@ const StudentDashboard = () => {
                     <h2 className="text-2xl font-bold">My Courses</h2>
                     <Button variant="link">See all</Button>
                   </div>
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     {/* Course Card 1 */}
                     <div 
                       className="group cursor-pointer"

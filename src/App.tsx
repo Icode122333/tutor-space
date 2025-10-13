@@ -14,6 +14,8 @@ import CourseDetail from "./pages/CourseDetail";
 import CreateCourse from "./pages/CreateCourse";
 import Exhibition from "./pages/Exhibition";
 import StudentOnboarding from "./pages/StudentOnboarding";
+import TeacherChat from "./pages/TeacherChat";
+import StudentChat from "./pages/StudentChat";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
 import RoleDebugger from "./components/RoleDebugger";
@@ -33,8 +35,10 @@ const App = () => (
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/student/dashboard" element={<StudentDashboard />} />
+          <Route path="/student/chat" element={<StudentChat />} />
           <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
           <Route path="/teacher/schedule" element={<TeacherSchedule />} />
+          <Route path="/teacher/chat" element={<TeacherChat />} />
           <Route path="/course/:id" element={<CourseDetail />} />
           <Route path="/create-course" element={<CreateCourse />} />
           <Route path="/exhibition" element={<Exhibition />} />

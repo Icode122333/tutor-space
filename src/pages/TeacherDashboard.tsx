@@ -120,7 +120,7 @@ const TeacherDashboard = () => {
           <main className="flex-1 overflow-y-auto px-2">
             <div className="max-w-7xl mx-auto space-y-6">
               {/* Stats Cards */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
@@ -166,8 +166,8 @@ const TeacherDashboard = () => {
                 </Card>
               </div>
 
-              <div className="grid gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-2 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                   {/* Create Course Button */}
                   <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-background border-primary/20">
                     <CardContent className="p-6">
@@ -202,7 +202,7 @@ const TeacherDashboard = () => {
                           </Button>
                         </div>
                       ) : (
-                        <div className="grid md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                           {courses.map((course) => (
                             <div
                               key={course.id}
@@ -250,7 +250,7 @@ const TeacherDashboard = () => {
                 </div>
 
                 {/* Right Sidebar */}
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   {/* Calendar */}
                   <Card>
                     <CardHeader>
