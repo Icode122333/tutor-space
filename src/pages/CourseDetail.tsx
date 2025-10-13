@@ -219,37 +219,61 @@ export default function CourseDetail() {
           </header>
 
           <main className="flex-1 overflow-auto">
-            {/* Hero Section */}
-            <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white">
+            {/* Hero Section - Udemy Style */}
+            <div className="bg-[#f9c676]">
               <div className="max-w-7xl mx-auto px-6 py-12">
-                <div className="grid md:grid-cols-2 gap-8 items-start">
+                <div className="grid md:grid-cols-2 gap-8 items-center">
                   <div>
-                    <h1 className="text-4xl font-bold mb-4">{course.title}</h1>
-                    <p className="text-lg mb-6 text-white/90">{course.description}</p>
+                    <h1 className="text-4xl font-bold mb-4 text-gray-900">{course.title}</h1>
+                    <p className="text-lg mb-6 text-gray-700 line-clamp-3">{course.description}</p>
                     
-                    <div className="flex flex-wrap gap-4 mb-6">
+                    <div className="flex flex-wrap items-center gap-6 mb-6 text-gray-900">
                       <div className="flex items-center gap-2">
-                        <Star className="h-5 w-5 fill-current" />
-                        <span className="font-semibold">4.8</span>
-                        <span className="text-white/80">(1,234 ratings)</span>
+                        <Star className="h-5 w-5 fill-yellow-500 text-yellow-500" />
+                        <span className="font-bold">4.7</span>
+                        <span className="text-sm text-gray-700">average course rating</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Users className="h-5 w-5" />
-                        <span>{enrolledCount} students</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-5 w-5" />
-                        <span>{getTotalDuration()} mins total</span>
+                        <span className="font-semibold">{enrolledCount.toLocaleString()}</span>
+                        <span className="text-sm text-gray-700">learners already enrolled</span>
                       </div>
                     </div>
 
-                    <Button 
-                      size="lg" 
-                      className="bg-white text-primary hover:bg-white/90"
-                      onClick={handleEnroll}
-                    >
-                      Enroll Now - ${course.price || 49.99}
-                    </Button>
+                    <div className="flex items-center gap-4 mb-6">
+                      <Button 
+                        size="lg" 
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-8"
+                        onClick={handleEnroll}
+                      >
+                        Get started
+                      </Button>
+                      <span className="text-2xl font-bold text-gray-900">${course.price || 199.97}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                      <Users className="h-4 w-4" />
+                      <span>{enrolledCount.toLocaleString()} learners already enrolled</span>
+                    </div>
+                  </div>
+
+                  {/* Floating Thumbnail */}
+                  <div className="relative">
+                    {course.thumbnail_url ? (
+                      <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+                        <img 
+                          src={course.thumbnail_url} 
+                          alt={course.title}
+                          className="w-full h-auto object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-white p-8">
+                        <div className="aspect-video flex items-center justify-center bg-gradient-to-br from-[#f9c676] to-[#f4b860]">
+                          <PlayCircle className="h-24 w-24 text-white/50" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -258,72 +282,81 @@ export default function CourseDetail() {
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-6 py-8">
               <div className="grid lg:grid-cols-3 gap-8">
-                {/* Left Column - Video Player & Content */}
+                {/* Left Column - Content */}
                 <div className="lg:col-span-2 space-y-6">
-                  {/* Video/PDF Player */}
-                  {selectedLesson && (
-                    <Card className="p-6">
-                      <h3 className="text-xl font-bold mb-4">{selectedLesson.title}</h3>
-                      {selectedLesson.content_type === "video" ? (
-                        <VideoPlayer url={selectedLesson.content_url} title={selectedLesson.title} />
-                      ) : selectedLesson.content_type === "pdf" ? (
-                        <PDFViewer url={selectedLesson.content_url} title={selectedLesson.title} />
-                      ) : (
-                        <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                          <FileText className="h-16 w-16 text-muted-foreground" />
-                        </div>
-                      )}
-                      {selectedLesson.description && (
-                        <p className="mt-4 text-muted-foreground">{selectedLesson.description}</p>
-                      )}
-                    </Card>
-                  )}
-
-                  {/* Course Content */}
+                  {/* Course Content - Udemy Style */}
                   <Card className="p-6">
-                    <h2 className="text-2xl font-bold mb-4">
-                      Course Content ({chapters.length} chapters • {getTotalLessons()} lessons)
-                    </h2>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-bold">Course content</h2>
+                      <Button variant="link" className="text-purple-600">Expand all chapters</Button>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-6">
+                      {chapters.length} chapters • {getTotalLessons()} lectures • {Math.floor(getTotalDuration() / 60)}h {getTotalDuration() % 60}m total length
+                    </p>
                     <div className="space-y-2">
-                      {chapters.map((chapter) => (
+                      {chapters.map((chapter, index) => (
                         <Collapsible
                           key={chapter.id}
                           open={openChapters.has(chapter.id)}
                           onOpenChange={() => toggleChapter(chapter.id)}
+                          className="border rounded-lg"
                         >
-                          <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <PlayCircle className="h-5 w-5" />
-                              <div className="text-left">
-                                <div className="font-semibold">{chapter.title}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {chapter.lessons.length} lectures • {chapter.lessons.reduce((sum, l) => sum + (l.duration || 0), 0)} min
+                          <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors">
+                            <div className="flex items-center gap-3 flex-1">
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={openChapters.has(chapter.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
+                              </svg>
+                              <div className="text-left flex-1">
+                                <div className="font-semibold text-gray-900">
+                                  Chapter {index + 1}: {chapter.title}
                                 </div>
                               </div>
                             </div>
+                            <div className="text-sm text-gray-600">
+                              {chapter.lessons.length} lectures • {chapter.lessons.reduce((sum, l) => sum + (l.duration || 0), 0)}min
+                            </div>
                           </CollapsibleTrigger>
-                          <CollapsibleContent className="px-4 pb-2">
-                            <div className="space-y-1 ml-8">
+                          <CollapsibleContent className="border-t">
+                            <div className="divide-y">
                               {chapter.lessons.map((lesson) => (
-                                <button
-                                  key={lesson.id}
-                                  onClick={() => setSelectedLesson(lesson)}
-                                  className={`flex items-center justify-between w-full p-2 hover:bg-muted/50 rounded ${
-                                    selectedLesson?.id === lesson.id ? "bg-muted" : ""
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    {lesson.content_type === "video" ? (
-                                      <Video className="h-4 w-4" />
-                                    ) : (
-                                      <FileText className="h-4 w-4" />
+                                <div key={lesson.id} className="bg-white">
+                                  <button
+                                    onClick={() => setSelectedLesson(selectedLesson?.id === lesson.id ? null : lesson)}
+                                    className={`flex items-center justify-between w-full p-4 hover:bg-gray-50 transition-colors text-left ${
+                                      selectedLesson?.id === lesson.id ? "bg-gray-100" : ""
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-3 flex-1">
+                                      {lesson.content_type === "video" ? (
+                                        <Video className="h-5 w-5 text-gray-600" />
+                                      ) : (
+                                        <FileText className="h-5 w-5 text-gray-600" />
+                                      )}
+                                      <span className="text-sm text-gray-700">{lesson.title}</span>
+                                    </div>
+                                    {lesson.duration && (
+                                      <span className="text-sm text-gray-600">{String(Math.floor(lesson.duration / 60)).padStart(2, '0')}:{String(lesson.duration % 60).padStart(2, '0')}</span>
                                     )}
-                                    <span className="text-sm">{lesson.title}</span>
-                                  </div>
-                                  {lesson.duration && (
-                                    <span className="text-sm text-muted-foreground">{lesson.duration} min</span>
+                                  </button>
+                                  
+                                  {/* Video/PDF Player inside dropdown */}
+                                  {selectedLesson?.id === lesson.id && (
+                                    <div className="p-6 bg-gray-50 border-t">
+                                      {lesson.content_type === "video" ? (
+                                        <VideoPlayer url={lesson.content_url} title={lesson.title} />
+                                      ) : lesson.content_type === "pdf" ? (
+                                        <PDFViewer url={lesson.content_url} title={lesson.title} />
+                                      ) : (
+                                        <div className="aspect-video bg-white rounded-lg flex items-center justify-center border">
+                                          <FileText className="h-16 w-16 text-gray-400" />
+                                        </div>
+                                      )}
+                                      {lesson.description && (
+                                        <p className="mt-4 text-sm text-gray-600">{lesson.description}</p>
+                                      )}
+                                    </div>
                                   )}
-                                </button>
+                                </div>
                               ))}
                             </div>
                           </CollapsibleContent>
@@ -332,15 +365,15 @@ export default function CourseDetail() {
                     </div>
                   </Card>
 
-                  {/* Requirements */}
+                  {/* Requirements - Udemy Style */}
                   {course.requirements && (
                     <Card className="p-6">
-                      <h2 className="text-2xl font-bold mb-4">Requirements</h2>
-                      <ul className="space-y-2">
+                      <h2 className="text-2xl font-bold mb-6">Requirements</h2>
+                      <ul className="space-y-3">
                         {course.requirements.split('\n').filter(r => r.trim()).map((req, i) => (
-                          <li key={i} className="flex items-start gap-2">
-                            <span className="text-primary mt-1">•</span>
-                            <span>{req}</span>
+                          <li key={i} className="flex items-start gap-3">
+                            <span className="text-gray-900 mt-1 font-bold">•</span>
+                            <span className="text-gray-700">{req}</span>
                           </li>
                         ))}
                       </ul>
@@ -396,10 +429,12 @@ export default function CourseDetail() {
                     </Card>
                   )}
 
-                  {/* Description */}
+                  {/* Description - Udemy Style */}
                   <Card className="p-6">
-                    <h2 className="text-2xl font-bold mb-4">Description</h2>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{course.description}</p>
+                    <h2 className="text-2xl font-bold mb-6">Description</h2>
+                    <div className="prose max-w-none">
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{course.description}</p>
+                    </div>
                   </Card>
                 </div>
 
