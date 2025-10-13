@@ -1,14 +1,24 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, ArrowLeft, ExternalLink } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface Conversation {
   id: string;
@@ -19,8 +29,6 @@ interface Conversation {
   last_message: string | null;
   last_message_at: string | null;
   unread_count: number;
-  created_at: string;
-  updated_at: string;
 }
 
 interface Message {
@@ -31,25 +39,32 @@ interface Message {
   is_read: boolean;
   is_edited: boolean;
   created_at: string;
-  sender?: {
-    full_name: string;
-    role: string;
-  };
+}
+
+interface Course {
+  id: string;
+  title: string;
+  whatsapp_link: string | null;
 }
 
 export default function TeacherChat() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
+  const [whatsappLink, setWhatsappLink] = useState("");
+  const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (user && profile?.role === "teacher") {
+    if (user) {
       fetchConversations();
+      fetchCourses();
     }
-  }, [user, profile]);
+  }, [user]);
 
   useEffect(() => {
     if (selectedConversation) {
@@ -78,9 +93,19 @@ export default function TeacherChat() {
       console.error("Error fetching conversations:", error);
     } else {
       setConversations(data || []);
-      if (data && data.length > 0 && !selectedConversation) {
-        setSelectedConversation(data[0]);
-      }
+    }
+  };
+
+  const fetchCourses = async () => {
+    const { data, error } = await supabase
+      .from("courses")
+      .select("id, title, whatsapp_link")
+      .eq("teacher_id", user?.id);
+
+    if (error) {
+      console.error("Error fetching courses:", error);
+    } else {
+      setCourses(data || []);
     }
   };
 
@@ -89,10 +114,7 @@ export default function TeacherChat() {
 
     const { data, error } = await supabase
       .from("direct_messages")
-      .select(`
-        *,
-        sender:profiles!direct_messages_sender_id_fkey(full_name, role)
-      `)
+      .select("*")
       .eq("conversation_id", selectedConversation.id)
       .order("created_at", { ascending: true });
 
@@ -135,6 +157,29 @@ export default function TeacherChat() {
     }
   };
 
+  const handleUpdateWhatsAppLink = async () => {
+    if (!selectedCourse) {
+      toast.error("Please select a course");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("courses")
+      .update({ whatsapp_link: whatsappLink || null })
+      .eq("id", selectedCourse);
+
+    if (error) {
+      toast.error("Failed to update WhatsApp link");
+      console.error(error);
+    } else {
+      toast.success("WhatsApp link updated!");
+      setShowWhatsAppDialog(false);
+      setWhatsappLink("");
+      setSelectedCourse("");
+      fetchCourses();
+    }
+  };
+
   const getTimeAgo = (date: string) => {
     const now = new Date();
     const messageDate = new Date(date);
@@ -157,8 +202,74 @@ export default function TeacherChat() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <SidebarTrigger />
-                <h1 className="text-2xl font-bold text-black">Student Messages</h1>
+                <div>
+                  <h1 className="text-2xl font-bold text-black">Student Messages</h1>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Manage conversations with your students
+                  </p>
+                </div>
               </div>
+              <Dialog open={showWhatsAppDialog} onOpenChange={setShowWhatsAppDialog}>
+                <DialogTrigger asChild>
+                  <Button className="bg-green-600 hover:bg-green-700 text-white gap-2">
+                    <ExternalLink className="h-4 w-4" />
+                    Manage WhatsApp Links
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Manage WhatsApp Group Links</DialogTitle>
+                    <DialogDescription>
+                      Add or update WhatsApp group links for your courses
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="course">Select Course *</Label>
+                      <select
+                        id="course"
+                        value={selectedCourse}
+                        onChange={(e) => {
+                          setSelectedCourse(e.target.value);
+                          const course = courses.find((c) => c.id === e.target.value);
+                          setWhatsappLink(course?.whatsapp_link || "");
+                        }}
+                        className="w-full px-3 py-2 border rounded-md"
+                      >
+                        <option value="">Choose a course...</option>
+                        {courses.map((course) => (
+                          <option key={course.id} value={course.id}>
+                            {course.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="whatsapp">WhatsApp Group Link</Label>
+                      <Input
+                        id="whatsapp"
+                        placeholder="https://chat.whatsapp.com/..."
+                        value={whatsappLink}
+                        onChange={(e) => setWhatsappLink(e.target.value)}
+                      />
+                      <p className="text-xs text-gray-500">
+                        Leave empty to remove the link
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => setShowWhatsAppDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleUpdateWhatsAppLink}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Update Link
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </header>
 
@@ -172,43 +283,43 @@ export default function TeacherChat() {
               <div className="flex-1 overflow-y-auto">
                 {conversations.length === 0 ? (
                   <div className="p-6 text-center text-gray-500">
-                    <MessageSquare className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                    <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p>No conversations yet</p>
                     <p className="text-sm mt-2">Students will appear here when they message you</p>
                   </div>
                 ) : (
-                  conversations.map((conv) => (
+                  conversations.map((conversation) => (
                     <button
-                      key={conv.id}
-                      onClick={() => setSelectedConversation(conv)}
+                      key={conversation.id}
+                      onClick={() => setSelectedConversation(conversation)}
                       className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b ${
-                        selectedConversation?.id === conv.id ? "bg-gray-100" : ""
+                        selectedConversation?.id === conversation.id ? "bg-gray-100" : ""
                       }`}
                     >
                       <Avatar className="h-12 w-12 flex-shrink-0">
                         <AvatarFallback className="bg-[#006d2c] text-white">
-                          {conv.student_name?.substring(0, 2).toUpperCase() || "ST"}
+                          {conversation.student_name.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0 text-left">
                         <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-semibold text-sm truncate">{conv.student_name}</h3>
-                          {conv.last_message_at && (
+                          <h3 className="font-semibold text-sm truncate">
+                            {conversation.student_name}
+                          </h3>
+                          {conversation.last_message_at && (
                             <span className="text-xs text-gray-500">
-                              {getTimeAgo(conv.last_message_at)}
+                              {getTimeAgo(conversation.last_message_at)}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-gray-600 truncate flex-1">
-                            {conv.last_message || "No messages yet"}
-                          </p>
-                          {conv.unread_count > 0 && (
-                            <Badge className="ml-2 bg-[#006d2c] text-white">
-                              {conv.unread_count}
-                            </Badge>
-                          )}
-                        </div>
+                        <p className="text-xs text-gray-600 truncate">
+                          {conversation.last_message || "No messages yet"}
+                        </p>
+                        {conversation.unread_count > 0 && (
+                          <Badge variant="destructive" className="mt-1">
+                            {conversation.unread_count} new
+                          </Badge>
+                        )}
                       </div>
                     </button>
                   ))
@@ -220,69 +331,64 @@ export default function TeacherChat() {
             {selectedConversation ? (
               <div className="flex-1 flex flex-col bg-gray-50">
                 {/* Chat Header */}
-                <div className="bg-white border-b p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback className="bg-[#006d2c] text-white">
-                        {selectedConversation.student_name?.substring(0, 2).toUpperCase() || "ST"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-semibold">{selectedConversation.student_name}</h3>
-                      <p className="text-sm text-gray-500">Student</p>
-                    </div>
+                <div className="bg-white border-b p-4 flex items-center gap-3">
+                  <Avatar>
+                    <AvatarFallback className="bg-[#006d2c] text-white">
+                      {selectedConversation.student_name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-semibold">{selectedConversation.student_name}</h3>
+                    <p className="text-sm text-gray-500">Student</p>
                   </div>
                 </div>
 
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                  {messages.map((message) => {
-                    const isOwnMessage = message.sender_id === user?.id;
-                    const senderName = message.sender?.full_name || "Unknown";
-
-                    return (
-                      <div
-                        key={message.id}
-                        className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
-                      >
-                        <div className={`max-w-md ${isOwnMessage ? "order-2" : "order-1"}`}>
-                          <div
-                            className={`rounded-2xl px-4 py-3 ${
-                              isOwnMessage
-                                ? "bg-[#006d2c] text-white"
-                                : "bg-white text-gray-900 shadow-sm"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-semibold">
-                                {isOwnMessage ? "You" : senderName}
-                              </span>
-                              {message.is_edited && (
-                                <span className="text-xs opacity-70">(edited)</span>
-                              )}
-                            </div>
-                            <p className="text-sm whitespace-pre-wrap">{message.message_text}</p>
-                            <div className="flex items-center justify-between mt-2">
-                              <span
-                                className={`text-xs ${
-                                  isOwnMessage ? "text-white/70" : "text-gray-500"
-                                }`}
-                              >
-                                {getTimeAgo(message.created_at)}
-                              </span>
+                  {messages.length === 0 ? (
+                    <div className="text-center py-12">
+                      <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No messages yet</p>
+                    </div>
+                  ) : (
+                    messages.map((message) => {
+                      const isOwnMessage = message.sender_id === user?.id;
+                      return (
+                        <div
+                          key={message.id}
+                          className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
+                        >
+                          <div className={`max-w-md ${isOwnMessage ? "order-2" : "order-1"}`}>
+                            <div
+                              className={`rounded-2xl px-4 py-3 ${
+                                isOwnMessage
+                                  ? "bg-[#006d2c] text-white"
+                                  : "bg-white text-gray-900 shadow-sm"
+                              }`}
+                            >
+                              <p className="text-sm whitespace-pre-wrap">{message.message_text}</p>
+                              <div className="flex items-center justify-between mt-2">
+                                <span
+                                  className={`text-xs ${
+                                    isOwnMessage ? "text-white/70" : "text-gray-500"
+                                  }`}
+                                >
+                                  {getTimeAgo(message.created_at)}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
 
                 {/* Input Area */}
                 <div className="bg-white border-t p-4">
-                  <div className="flex items-center gap-3">
-                    <Input
+                  <div className="flex items-end gap-3">
+                    <Textarea
                       placeholder="Write a message..."
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
@@ -292,7 +398,8 @@ export default function TeacherChat() {
                           handleSendMessage();
                         }
                       }}
-                      className="flex-1"
+                      className="flex-1 min-h-[44px] max-h-32 resize-none"
+                      rows={1}
                     />
                     <Button
                       onClick={handleSendMessage}
@@ -308,12 +415,12 @@ export default function TeacherChat() {
             ) : (
               <div className="flex-1 flex items-center justify-center bg-gray-50">
                 <div className="text-center">
-                  <MessageSquare className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                  <MessageSquare className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     No conversation selected
                   </h3>
                   <p className="text-gray-600">
-                    Select a conversation to start messaging with a student
+                    Select a student from the list to start chatting
                   </p>
                 </div>
               </div>
