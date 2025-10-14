@@ -123,23 +123,7 @@ const StudentSchedule = () => {
           <main className="flex-1 p-6 overflow-auto">
             <div className="max-w-7xl mx-auto">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Calendar</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        className="rounded-md border-0"
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 order-2 lg:order-1">
                   <Card>
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -272,6 +256,22 @@ const StudentSchedule = () => {
                           </div>
                         )}
                       </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="lg:col-span-1 order-1 lg:order-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Calendar</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        className="rounded-md border-0"
+                      />
                     </CardContent>
                   </Card>
                 </div>

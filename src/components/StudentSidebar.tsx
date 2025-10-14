@@ -1,4 +1,4 @@
-import { BookOpen, Calendar, MessageSquare, Video, GraduationCap, BookMarked, Settings, CreditCard, Home, Plus } from "lucide-react";
+import { BookOpen, Calendar, MessageSquare, Award, GraduationCap, BookMarked, Settings, CreditCard, Home, Plus } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
@@ -23,7 +23,7 @@ const generalItems = [
   { title: "Dashboard", url: "/student/dashboard", icon: Home },
   { title: "Schedule", url: "/student/schedule", icon: Calendar },
   { title: "Chat Group", url: "/student/chat", icon: MessageSquare },
-  { title: "Live Class", url: "/student/live-class", icon: Video },
+  { title: "Certificates", url: "/student/certificates", icon: Award },
 ];
 
 type Course = {
@@ -122,124 +122,120 @@ export function StudentSidebar() {
   };
 
   return (
-    <Sidebar className={collapsed ? "w-14" : "w-64"} collapsible="icon">
-      <SidebarContent className="pt-6">
-        <div className={`px-6 mb-8 flex items-center gap-2 ${collapsed ? "justify-center px-2" : ""}`}>
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-            <GraduationCap className="h-6 w-6 text-primary-foreground" />
+    <Sidebar collapsible="icon" className="m-4">
+      <div className="h-full bg-[#133223] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+        <SidebarContent className="bg-transparent flex-1 overflow-y-auto scrollbar-hide">
+          <div className="flex items-center gap-2 px-4 py-4">
+            <GraduationCap className="h-7 w-7 text-[#006d2c]" />
+            {!collapsed && <span className="text-lg font-bold text-white">DataPlus Learning</span>}
           </div>
-          {!collapsed && <span className="text-xl font-bold">Rwanda.</span>}
-        </div>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>GENERAL</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {generalItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+          <SidebarGroup className="space-y-1">
+            <SidebarGroupContent className="px-2">
+              <SidebarMenu className="space-y-1">
+                {generalItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end
+                        className={({ isActive }) =>
                           isActive
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-muted-foreground hover:bg-muted/50"
-                        }`
-                      }
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                            ? "bg-[#006d2c] text-white font-medium rounded-xl px-3 py-2.5 flex items-center gap-3"
+                            : "text-gray-300 hover:bg-white/10 hover:text-white rounded-xl px-3 py-2.5 flex items-center gap-3"
+                        }
+                      >
+                        <item.icon className="h-5 w-5 flex-shrink-0" />
+                        {!collapsed && <span className="text-sm">{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
-        {!collapsed && (
-          <>
-            <SidebarGroup>
-              <Collapsible open={allCoursesOpen} onOpenChange={setAllCoursesOpen}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted/50 rounded-lg">
-                  <span>ALL COURSES</span>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${allCoursesOpen ? "" : "-rotate-90"}`} />
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      {allCourses.map((course) => (
-                        <SidebarMenuItem key={course.id}>
-                          <div className="flex items-center justify-between gap-2 px-3 py-2">
-                            <NavLink
-                              to={`/course/${course.id}`}
-                              className="flex items-center gap-2 flex-1 text-sm text-muted-foreground hover:text-primary transition-colors truncate"
-                            >
-                              <BookOpen className="h-4 w-4 flex-shrink-0" />
-                              <span className="truncate">{course.title}</span>
-                            </NavLink>
-                            {!enrolledCourseIds.has(course.id) && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-6 w-6 p-0"
-                                onClick={() => handleEnroll(course.id)}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </SidebarGroup>
-
-            <SidebarGroup>
-              <Collapsible open={myCoursesOpen} onOpenChange={setMyCoursesOpen}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted/50 rounded-lg">
-                  <span>MY COURSES</span>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${myCoursesOpen ? "" : "-rotate-90"}`} />
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      {myCourses.length === 0 ? (
-                        <div className="px-3 py-2 text-xs text-muted-foreground">
-                          No enrolled courses
-                        </div>
-                      ) : (
-                        myCourses.map((course) => (
+          {!collapsed && (
+            <>
+              <SidebarGroup className="mt-4 space-y-1">
+                <Collapsible open={allCoursesOpen} onOpenChange={setAllCoursesOpen}>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:bg-white/5 rounded-lg">
+                    <span>ALL COURSES</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${allCoursesOpen ? "" : "-rotate-90"}`} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarGroupContent className="px-2">
+                      <SidebarMenu className="space-y-1">
+                        {allCourses.map((course) => (
                           <SidebarMenuItem key={course.id}>
-                            <SidebarMenuButton asChild>
+                            <div className="flex items-center justify-between gap-2 px-3 py-2">
                               <NavLink
                                 to={`/course/${course.id}`}
-                                className={({ isActive }) =>
-                                  `flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                                    isActive
-                                      ? "bg-primary/10 text-primary font-medium"
-                                      : "text-muted-foreground hover:bg-muted/50"
-                                  }`
-                                }
+                                className="flex items-center gap-2 flex-1 text-sm text-gray-300 hover:text-white transition-colors truncate"
                               >
-                                <BookMarked className="h-4 w-4" />
+                                <BookOpen className="h-4 w-4 flex-shrink-0" />
                                 <span className="truncate">{course.title}</span>
                               </NavLink>
-                            </SidebarMenuButton>
+                              {!enrolledCourseIds.has(course.id) && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-white/10"
+                                  onClick={() => handleEnroll(course.id)}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </SidebarMenuItem>
-                        ))
+                        ))}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </SidebarGroup>
+
+              <SidebarGroup className="mt-4 space-y-1">
+                <Collapsible open={myCoursesOpen} onOpenChange={setMyCoursesOpen}>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:bg-white/5 rounded-lg">
+                    <span>MY COURSES</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${myCoursesOpen ? "" : "-rotate-90"}`} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarGroupContent className="px-2">
+                      {myCourses.length > 0 ? (
+                        <SidebarMenu className="space-y-1">
+                          {myCourses.map((course) => (
+                            <SidebarMenuItem key={course.id}>
+                              <SidebarMenuButton asChild>
+                                <NavLink
+                                  to={`/course/${course.id}`}
+                                  className={({ isActive }) =>
+                                    isActive
+                                      ? "bg-[#006d2c] text-white font-medium rounded-xl px-3 py-2 flex items-center gap-3"
+                                      : "text-gray-300 hover:bg-white/10 hover:text-white rounded-xl px-3 py-2 flex items-center gap-3"
+                                  }
+                                >
+                                  <BookMarked className="h-4 w-4 flex-shrink-0" />
+                                  <span className="truncate text-sm">{course.title}</span>
+                                </NavLink>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          ))}
+                        </SidebarMenu>
+                      ) : (
+                        <div className="px-3 py-4 text-center">
+                          <BookOpen className="h-8 w-8 text-gray-600 mx-auto mb-2" />
+                          <p className="text-xs text-gray-400">No courses yet</p>
+                          <p className="text-xs text-gray-500 mt-1">Enroll in a course</p>
+                        </div>
                       )}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </SidebarGroup>
-          </>
-        )}
+                    </SidebarGroupContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </SidebarGroup>
+            </>
+          )}
 
         {collapsed && (
           <SidebarGroup>
@@ -265,53 +261,54 @@ export function StudentSidebar() {
           </SidebarGroup>
         )}
 
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>OTHER</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {otherItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+          <SidebarGroup className="mt-4 space-y-1">
+            <SidebarGroupLabel className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              OTHER
+            </SidebarGroupLabel>
+            <SidebarGroupContent className="px-2">
+              <SidebarMenu className="space-y-1">
+                {otherItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end
+                        className={({ isActive }) =>
                           isActive
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-muted-foreground hover:bg-muted/50"
-                        }`
-                      }
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                            ? "bg-[#006d2c] text-white font-medium rounded-xl px-3 py-2.5 flex items-center gap-3"
+                            : "text-gray-300 hover:bg-white/10 hover:text-white rounded-xl px-3 py-2.5 flex items-center gap-3"
+                        }
+                      >
+                        <item.icon className="h-5 w-5 flex-shrink-0" />
+                        {!collapsed && <span className="text-sm">{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
-        {!collapsed && (
-          <div className="mt-auto px-4 pb-6">
-            <Card className="bg-primary text-primary-foreground border-0">
-              <CardContent className="p-6 text-center">
-                <h3 className="font-semibold mb-2">24/7 Support</h3>
-                <p className="text-sm mb-4 opacity-90">for Student Success</p>
-                <div className="flex gap-1 justify-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-accent">★</span>
-                  ))}
-                </div>
-                <Button variant="secondary" size="sm" className="w-full">
-                  Get Premium
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-      </SidebarContent>
+          {!collapsed && (
+            <div className="mt-auto px-4 pb-6">
+              <Card className="bg-[#006d2c] text-white border-0 shadow-lg">
+                <CardContent className="p-6 text-center">
+                  <h3 className="font-semibold mb-2">24/7 Support</h3>
+                  <p className="text-sm mb-4 opacity-90">for Student Success</p>
+                  <div className="flex gap-1 justify-center mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <span key={i} className="text-yellow-400">★</span>
+                    ))}
+                  </div>
+                  <Button variant="secondary" size="sm" className="w-full bg-white text-[#006d2c] hover:bg-gray-100">
+                    Get Premium
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </SidebarContent>
+      </div>
     </Sidebar>
   );
 }

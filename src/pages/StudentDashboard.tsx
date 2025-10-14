@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Search, ShoppingCart, Bell, Star, MoreVertical, FileText, BookOpen } from "lucide-react";
+import { Search, ShoppingCart, Bell, Star, FileText, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
@@ -147,25 +147,25 @@ const StudentDashboard = () => {
               <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                 {/* Premium Banner */}
                 <Card className="border-0 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground overflow-hidden relative">
-                  <CardContent className="p-8">
+                  <CardContent className="p-4 sm:p-8">
                     <div className="relative z-10">
-                      <h2 className="text-3xl font-bold mb-2">Unlock premium access</h2>
-                      <div className="flex gap-1 mb-4">
+                      <h2 className="text-xl sm:text-3xl font-bold mb-2">Unlock premium access</h2>
+                      <div className="flex gap-1 mb-3 sm:mb-4">
                         {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="h-5 w-5 fill-accent text-accent" />
+                          <Star key={i} className="h-4 w-4 sm:h-5 sm:w-5 fill-accent text-accent" />
                         ))}
                       </div>
-                      <p className="mb-6 opacity-90">to a world of knowledge at your fingertips!</p>
-                      <Button variant="secondary" size="lg">Get Premium</Button>
+                      <p className="mb-4 sm:mb-6 opacity-90 text-sm sm:text-base">to a world of knowledge at your fingertips!</p>
+                      <Button variant="secondary" size="sm" className="sm:text-base">Get Premium</Button>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* My Courses */}
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-bold">My Courses</h2>
-                    <Button variant="link">See all</Button>
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <h2 className="text-xl sm:text-2xl font-bold">My Courses</h2>
+                    <Button variant="link" className="text-sm sm:text-base">See all</Button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     {/* Course Card 1 */}
@@ -238,72 +238,77 @@ const StudentDashboard = () => {
 
                 {/* Lesson */}
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-bold">Lesson</h2>
-                    <Button variant="link">See all</Button>
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <h2 className="text-xl sm:text-2xl font-bold">Lesson</h2>
+                    <Button variant="link" className="text-sm sm:text-base">See all</Button>
                   </div>
                   <div className="space-y-3">
                     <Card>
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <FileText className="h-6 w-6 text-primary" />
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-0">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                           </div>
-                          <div>
-                            <h3 className="font-semibold mb-1">Essay: Write an essay on design principles</h3>
-                            <div className="flex gap-2 text-sm text-muted-foreground">
-                              <span>Mastering Git & Vercel</span>
-                              <span>•</span>
-                              <span>Ms. Gynda</span>
-                              <span>•</span>
-                              <Badge variant="secondary">Theory</Badge>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold mb-1 text-sm sm:text-base line-clamp-2">Essay: Write an essay on design principles</h3>
+                            <div className="flex flex-wrap gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-0">
+                              <span className="truncate">Mastering Git & Vercel</span>
+                              <span className="hidden sm:inline">•</span>
+                              <span className="hidden sm:inline">Ms. Gynda</span>
+                              <span className="hidden sm:inline">•</span>
+                              <Badge variant="secondary" className="text-xs">Theory</Badge>
                             </div>
                           </div>
                         </div>
-                        <Button variant="outline">Start</Button>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <BookOpen className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold mb-1">CSS Selector</h3>
-                            <div className="flex gap-2 text-sm text-muted-foreground">
-                              <span>HTML/CSS Mastery</span>
-                              <span>•</span>
-                              <span>Mr. Reynold</span>
-                              <span>•</span>
-                              <Badge variant="secondary">Theory</Badge>
-                            </div>
-                          </div>
+                        <div className="flex justify-end sm:hidden">
+                          <Button variant="outline" size="sm" className="w-full sm:w-auto">Start</Button>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Progress value={80} className="w-16" />
-                          <span className="text-sm font-medium text-primary">80%</span>
+                        <div className="hidden sm:flex justify-end">
+                          <Button variant="outline">Start</Button>
                         </div>
                       </CardContent>
                     </Card>
                     <Card>
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <FileText className="h-6 w-6 text-primary" />
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex items-start gap-3 sm:gap-4">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                           </div>
-                          <div>
-                            <h3 className="font-semibold mb-1">Quiz: Autolayout Figma Test</h3>
-                            <div className="flex gap-2 text-sm text-muted-foreground">
-                              <span>Mastering Figma</span>
-                              <span>•</span>
-                              <span>Ms. Dyana</span>
-                              <span>•</span>
-                              <Badge variant="secondary">Theory</Badge>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold mb-1 text-sm sm:text-base">CSS Selector</h3>
+                            <div className="flex flex-wrap gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground mb-2">
+                              <span className="truncate">HTML/CSS Mastery</span>
+                              <span className="hidden sm:inline">•</span>
+                              <span className="hidden sm:inline">Mr. Reynold</span>
+                              <span className="hidden sm:inline">•</span>
+                              <Badge variant="secondary" className="text-xs">Theory</Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Progress value={80} className="flex-1 sm:w-16" />
+                              <span className="text-xs sm:text-sm font-medium text-primary">80%</span>
                             </div>
                           </div>
                         </div>
-                        <Badge className="bg-green-500 text-white">Done</Badge>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex items-start gap-3 sm:gap-4">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold mb-1 text-sm sm:text-base line-clamp-2">Quiz: Autolayout Figma Test</h3>
+                            <div className="flex flex-wrap gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground items-center">
+                              <span className="truncate">Mastering Figma</span>
+                              <span className="hidden sm:inline">•</span>
+                              <span className="hidden sm:inline">Ms. Dyana</span>
+                              <span className="hidden sm:inline">•</span>
+                              <Badge variant="secondary" className="text-xs">Theory</Badge>
+                            </div>
+                          </div>
+                          <Badge className="bg-green-500 text-white text-xs flex-shrink-0">Done</Badge>
+                        </div>
                       </CardContent>
                     </Card>
                   </div>
@@ -311,24 +316,24 @@ const StudentDashboard = () => {
               </div>
 
               {/* Right Sidebar */}
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Class Schedule</CardTitle>
+                  <CardHeader className="pb-3 sm:pb-6">
+                    <CardTitle className="text-base sm:text-lg">Class Schedule</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Calendar
                       mode="single"
                       selected={date}
                       onSelect={setDate}
-                      className="rounded-md border-0"
+                      className="rounded-md border-0 text-sm sm:text-base"
                     />
                   </CardContent>
                 </Card>
 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-gray-900">Upcoming Classes</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900">Upcoming Classes</h3>
                     {scheduledClasses.length > 0 && (
                       <Badge className="bg-[#006d2c] text-white">
                         {scheduledClasses.length} {scheduledClasses.length === 1 ? 'class' : 'classes'}
@@ -404,31 +409,31 @@ const StudentDashboard = () => {
                               </div>
                             )}
 
-                            <div className="relative p-5 flex gap-4">
+                            <div className="relative p-3 sm:p-5 flex flex-col sm:flex-row gap-3 sm:gap-4">
                               {/* Date Badge */}
-                              <div className={`flex-shrink-0 w-20 h-20 rounded-xl bg-gradient-to-br ${gradient} flex flex-col items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                              <div className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-gradient-to-br ${gradient} flex flex-col items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                                 <span className="text-xs font-semibold opacity-90">{monthName}</span>
-                                <span className="text-3xl font-bold leading-none">{dayNumber}</span>
+                                <span className="text-2xl sm:text-3xl font-bold leading-none">{dayNumber}</span>
                                 <span className="text-xs font-medium opacity-90">{dayName}</span>
                               </div>
 
                               {/* Class Details */}
                               <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-gray-900 mb-1 line-clamp-1 group-hover:text-[#006d2c] transition-colors">
+                                <h4 className="font-bold text-gray-900 mb-1 line-clamp-2 text-sm sm:text-base group-hover:text-[#006d2c] transition-colors">
                                   {scheduledClass.title}
                                 </h4>
-                                <p className="text-sm text-gray-600 mb-3 line-clamp-1">
+                                <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3 line-clamp-1">
                                   {scheduledClass.courses?.title}
                                 </p>
                                 
                                 {/* Time and Duration */}
-                                <div className="flex items-center gap-4 text-sm">
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
                                   <div className="flex items-center gap-1.5 text-gray-700">
-                                    <Calendar className="h-4 w-4 text-[#006d2c]" />
+                                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-[#006d2c]" />
                                     <span className="font-medium">{timeString}</span>
                                   </div>
                                   <div className="flex items-center gap-1.5 text-gray-600">
-                                    <svg className="h-4 w-4 text-[#006d2c]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="h-3 w-3 sm:h-4 sm:w-4 text-[#006d2c]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     <span>90 min</span>
@@ -437,7 +442,7 @@ const StudentDashboard = () => {
 
                                 {/* Time until class */}
                                 {hoursUntil >= 0 && (
-                                  <div className="mt-2 text-xs text-gray-500">
+                                  <div className="mt-1 sm:mt-2 text-xs text-gray-500">
                                     {isStartingSoon ? (
                                       <span className="text-red-600 font-semibold">Starts in {minutesUntil} minutes</span>
                                     ) : hoursUntil === 0 ? (
@@ -452,12 +457,12 @@ const StudentDashboard = () => {
                               </div>
 
                               {/* Join Button */}
-                              <div className="flex-shrink-0 flex items-center">
+                              <div className="flex-shrink-0 flex items-center sm:items-start">
                                 <Button
                                   size="sm"
-                                  className="bg-[#006d2c] hover:bg-[#005523] text-white shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105"
+                                  className="bg-[#006d2c] hover:bg-[#005523] text-white shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105 w-full sm:w-auto text-xs sm:text-sm"
                                 >
-                                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                   </svg>
                                   Join

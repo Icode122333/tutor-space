@@ -17,7 +17,7 @@ import StudentOnboarding from "./pages/StudentOnboarding";
 import TeacherChat from "./pages/TeacherChat";
 import StudentChat from "./pages/StudentChat";
 import StudentSchedule from "./pages/StudentSchedule";
-import StudentLiveClass from "./pages/StudentLiveClass";
+import StudentCertificates from "./pages/StudentCertificates";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
 import RoleDebugger from "./components/RoleDebugger";
@@ -39,7 +39,7 @@ const App = () => (
           <Route path="/student/dashboard" element={<StudentDashboard />} />
           <Route path="/student/chat" element={<StudentChat />} />
           <Route path="/student/schedule" element={<StudentSchedule />} />
-          <Route path="/student/live-class" element={<StudentLiveClass />} />
+          <Route path="/student/certificates" element={<StudentCertificates />} />
           <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
           <Route path="/teacher/schedule" element={<TeacherSchedule />} />
           <Route path="/teacher/chat" element={<TeacherChat />} />
