@@ -1,12 +1,114 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Award, ExternalLink, GraduationCap, Trophy } from "lucide-react";
+import { BookOpen, Users, Clock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+type Course = {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  teacher_id: string;
+  price: number | null;
+  requirements: string | null;
+  created_at: string;
+  profiles: {
+    full_name: string;
+  } | null;
+};
 
 const Exhibition = () => {
   const navigate = useNavigate();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
 
-  const studentProjects = [
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      // Fetch all courses
+      const { data: coursesData, error: coursesError } = await supabase
+        .from("courses")
+        .select(`
+          *,
+          profiles (
+            full_name
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (coursesError) throw coursesError;
+
+      // Check if user is logged in and fetch their enrollments
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: enrollmentsData } = await supabase
+          .from("course_enrollments")
+          .select("course_id")
+          .eq("student_id", user.id);
+
+        const enrolledIds = new Set(enrollmentsData?.map(e => e.course_id) || []);
+        setEnrolledCourseIds(enrolledIds);
+      }
+
+      setCourses(coursesData || []);
+    } catch (error: any) {
+      console.error("Error fetching courses:", error);
+      toast.error("Failed to load courses");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEnroll = async (courseId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Please login to enroll in courses");
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("course_enrollments")
+        .insert({
+          student_id: user.id,
+          course_id: courseId,
+        });
+
+      if (error) throw error;
+
+      toast.success("Successfully enrolled in course!");
+      fetchCourses();
+    } catch (error: any) {
+      toast.error("Failed to enroll in course");
+    }
+  };
+
+  const gradients = [
+    'from-blue-500 to-purple-600',
+    'from-green-500 to-teal-600',
+    'from-orange-500 to-red-600',
+    'from-pink-500 to-rose-600',
+    'from-indigo-500 to-blue-600',
+    'from-yellow-500 to-orange-600',
+  ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-lg">Loading courses...</p>
+      </div>
+    );
+  }
+
+  const oldStudentProjects = [
     {
       id: 1,
       studentName: "Uwimana Aline",
@@ -109,33 +211,28 @@ const Exhibition = () => {
       <section className="py-16 px-4">
         <div className="container mx-auto text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-black mb-4">
-            Student Capstone Projects
+            Browse Our Courses
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Discover the outstanding achievements of our graduates. Real projects, real impact, real success stories.
+            Discover courses designed to help you master data skills and advance your career
           </p>
 
           {/* Stats Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mb-12">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6 max-w-3xl mx-auto mb-12">
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-              <Trophy className="w-8 h-8 text-[#006d2c] mx-auto mb-2" />
-              <div className="text-3xl font-bold text-black mb-1">150+</div>
-              <div className="text-sm text-gray-600">Projects Completed</div>
+              <BookOpen className="w-8 h-8 text-[#006d2c] mx-auto mb-2" />
+              <div className="text-3xl font-bold text-black mb-1">{courses.length}</div>
+              <div className="text-sm text-gray-600">Available Courses</div>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-              <Award className="w-8 h-8 text-[#006d2c] mx-auto mb-2" />
-              <div className="text-3xl font-bold text-black mb-1">92%</div>
-              <div className="text-sm text-gray-600">Average Score</div>
-            </div>
-            <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-              <GraduationCap className="w-8 h-8 text-[#006d2c] mx-auto mb-2" />
+              <Users className="w-8 h-8 text-[#006d2c] mx-auto mb-2" />
               <div className="text-3xl font-bold text-black mb-1">500+</div>
-              <div className="text-sm text-gray-600">Graduates</div>
+              <div className="text-sm text-gray-600">Active Students</div>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-              <Trophy className="w-8 h-8 text-[#006d2c] mx-auto mb-2" />
-              <div className="text-3xl font-bold text-black mb-1">50+</div>
-              <div className="text-sm text-gray-600">Awards Won</div>
+              <Clock className="w-8 h-8 text-[#006d2c] mx-auto mb-2" />
+              <div className="text-3xl font-bold text-black mb-1">24/7</div>
+              <div className="text-sm text-gray-600">Learning Access</div>
             </div>
           </div>
         </div>

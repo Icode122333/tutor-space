@@ -3,10 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar } from "@/components/ui/calendar";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Search, ShoppingCart, Bell, Star, FileText, BookOpen } from "lucide-react";
+import { Search, Bell, BookOpen, CalendarDays, Clock, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
@@ -16,8 +14,9 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
-  const [date, setDate] = useState<Date | undefined>(new Date());
   const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   useEffect(() => {
     checkUser();
@@ -26,8 +25,37 @@ const StudentDashboard = () => {
   useEffect(() => {
     if (profile) {
       fetchScheduledClasses();
+      fetchEnrolledCourses();
     }
   }, [profile]);
+
+  const fetchEnrolledCourses = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("course_enrollments")
+      .select(`
+        *,
+        courses (
+          id,
+          title,
+          description,
+          thumbnail_url,
+          teacher_id,
+          profiles (
+            full_name
+          )
+        )
+      `)
+      .eq("student_id", user.id);
+
+    if (error) {
+      console.error("Error fetching enrolled courses:", error);
+    } else {
+      setEnrolledCourses(data || []);
+    }
+  };
 
   const fetchScheduledClasses = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -110,226 +138,378 @@ const StudentDashboard = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full bg-background gap-4">
         <StudentSidebar />
         
-        <div className="flex-1 flex flex-col">
-          <header className="border-b bg-card px-4 sm:px-6 py-4">
+        <div className="flex-1 flex flex-col py-4 pr-4">
+          <header className="border bg-card px-4 sm:px-6 py-3 rounded-2xl shadow-sm mb-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                 <SidebarTrigger />
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-lg sm:text-2xl font-bold truncate">Welcome Back, {profile?.full_name || 'Peter'}!</h1>
-                  <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Let's boost your knowledge today and learn a new things</p>
+                  <h1 className="text-xl sm:text-2xl font-bold truncate leading-tight">
+                    Hello, {profile?.full_name?.split(' ').pop() || 'Student'} 👋
+                  </h1>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Welcome back!</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1 sm:gap-4">
-                <Button variant="ghost" size="icon" className="hidden sm:flex">
-                  <Search className="h-5 w-5" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="relative hidden sm:block">
+                  <input
+                    type="text"
+                    placeholder="Search"
+                    className="pl-3 pr-10 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006D2C]/20 w-48"
+                  />
+                  <Search className="h-4 w-4 text-[#006D2C] absolute right-3 top-1/2 -translate-y-1/2" />
+                </div>
+                <Button variant="ghost" size="icon" className="hover:bg-[#006D2C]/10">
+                  <Bell className="h-5 w-5 text-[#006D2C]" />
                 </Button>
-                <Button variant="ghost" size="icon" className="hidden sm:flex">
-                  <ShoppingCart className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="hover:bg-[#006D2C]/10">
+                  <User className="h-5 w-5 text-[#006D2C]" />
                 </Button>
-                <Button variant="ghost" size="icon">
-                  <Bell className="h-5 w-5" />
-                </Button>
-                <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {profile?.full_name?.charAt(0) || 'P'}
-                  </AvatarFallback>
-                </Avatar>
               </div>
             </div>
           </header>
 
-          <main className="flex-1 p-4 sm:p-6 overflow-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 max-w-7xl mx-auto">
-              <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-                {/* Premium Banner */}
-                <Card className="border-0 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground overflow-hidden relative">
-                  <CardContent className="p-4 sm:p-8">
-                    <div className="relative z-10">
-                      <h2 className="text-xl sm:text-3xl font-bold mb-2">Unlock premium access</h2>
-                      <div className="flex gap-1 mb-3 sm:mb-4">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="h-4 w-4 sm:h-5 sm:w-5 fill-accent text-accent" />
-                        ))}
-                      </div>
-                      <p className="mb-4 sm:mb-6 opacity-90 text-sm sm:text-base">to a world of knowledge at your fingertips!</p>
-                      <Button variant="secondary" size="sm" className="sm:text-base">Get Premium</Button>
+          <main className="flex-1 overflow-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+              <div className="lg:col-span-2 space-y-6">
+                {/* Cohort Banner */}
+                <div className="relative overflow-hidden rounded-2xl bg-[#006D2C] p-4 sm:p-6">
+                  <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex-1 text-white">
+                      <h2 className="text-xl sm:text-2xl font-bold mb-1 leading-tight tracking-wide">
+                        If you want to go far go with team
+                      </h2>
+                      <p className="text-lg sm:text-xl font-semibold mb-4 tracking-wide">
+                        Start with cohort
+                      </p>
+                      <Button 
+                        onClick={() => navigate("/courses")}
+                        className="bg-white text-[#006D2C] hover:bg-gray-100 font-semibold px-5 py-2 rounded-full flex items-center gap-2 text-sm"
+                      >
+                        Join Now
+                        <div className="w-5 h-5 rounded-full bg-[#006D2C] flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="flex-shrink-0">
+                      <img 
+                        src="/images/main widget.webp" 
+                        alt="Team collaboration" 
+                        className="w-40 sm:w-52 h-auto object-contain"
+                      />
+                    </div>
+                  </div>
+                  {/* Decorative circles */}
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                  <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+                </div>
 
                 {/* My Courses */}
                 <div>
-                  <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <h2 className="text-xl sm:text-2xl font-bold">My Courses</h2>
-                    <Button variant="link" className="text-sm sm:text-base">See all</Button>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold">My Courses</h2>
+                    {enrolledCourses.length > 0 && (
+                      <Badge variant="secondary" className="text-sm">
+                        {enrolledCourses.length} {enrolledCourses.length === 1 ? 'Course' : 'Courses'}
+                      </Badge>
+                    )}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                    {/* Course Card 1 */}
-                    <div 
-                      className="group cursor-pointer"
-                      onClick={() => navigate("/course/1")}
-                    >
-                      <div className="relative overflow-hidden rounded-xl bg-white border-2 border-gray-200 hover:border-[#006d2c] transition-all duration-300 hover:shadow-xl">
-                        <div className="relative h-48 bg-gradient-to-br from-blue-400 to-blue-600 overflow-hidden">
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <BookOpen className="h-20 w-20 text-white/30" />
-                          </div>
-                          <div className="absolute top-3 right-3">
-                            <Badge className="bg-[#006d2c] text-white hover:bg-[#005523]">
-                              Beginner
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="p-5">
-                          <h4 className="font-bold text-black mb-3 line-clamp-2 text-lg">IBM Mastery: Build a Passive Income</h4>
-                          <div className="space-y-2 mb-3">
-                            <div className="flex justify-between text-sm text-gray-600">
-                              <span>3.2 hours taken</span>
-                              <span>/ 10 hours</span>
-                            </div>
-                            <Progress value={32} className="h-2" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">32% Complete</span>
-                            <span className="text-[#006d2c] font-bold text-sm">Continue</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                  
+                  {enrolledCourses.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {enrolledCourses.map((enrollment, index) => {
+                        const course = enrollment.courses;
+                        const gradients = [
+                          'from-blue-500 to-purple-600',
+                          'from-green-500 to-teal-600',
+                          'from-orange-500 to-red-600',
+                          'from-pink-500 to-rose-600',
+                          'from-indigo-500 to-blue-600',
+                          'from-yellow-500 to-orange-600',
+                        ];
+                        const gradient = gradients[index % gradients.length];
+                        const levels = ["Beginner", "Intermediate", "Advanced"];
+                        const level = levels[index % levels.length];
 
-                    {/* Course Card 2 */}
-                    <div 
-                      className="group cursor-pointer"
-                      onClick={() => navigate("/course/2")}
-                    >
-                      <div className="relative overflow-hidden rounded-xl bg-white border-2 border-gray-200 hover:border-[#006d2c] transition-all duration-300 hover:shadow-xl">
-                        <div className="relative h-48 bg-gradient-to-br from-orange-400 to-orange-600 overflow-hidden">
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <BookOpen className="h-20 w-20 text-white/30" />
-                          </div>
-                          <div className="absolute top-3 right-3">
-                            <Badge className="bg-[#006d2c] text-white hover:bg-[#005523]">
-                              Intermediate
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="p-5">
-                          <h4 className="font-bold text-black mb-3 line-clamp-2 text-lg">Mastering Git & Vercel App Become Pro</h4>
-                          <div className="space-y-2 mb-3">
-                            <div className="flex justify-between text-sm text-gray-600">
-                              <span>2.5 hours taken</span>
-                              <span>/ 6 hours</span>
-                            </div>
-                            <Progress value={42} className="h-2" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">42% Complete</span>
-                            <span className="text-[#006d2c] font-bold text-sm">Continue</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                        return (
+                          <Card
+                            key={course.id}
+                            className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-[#006d2c] cursor-pointer rounded-2xl"
+                            onClick={() => navigate(`/course/${course.id}`)}
+                          >
+                            <CardContent className="p-4">
+                              {/* Course Image */}
+                              <div className={`relative h-48 bg-gradient-to-br ${gradient} overflow-hidden rounded-2xl mb-4 shadow-md`}>
+                                {course.thumbnail_url ? (
+                                  <img
+                                    src={course.thumbnail_url}
+                                    alt={course.title}
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl"
+                                  />
+                                ) : (
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <BookOpen className="h-16 w-16 text-white/30" />
+                                  </div>
+                                )}
+                                {/* Bookmark Icon */}
+                                <div className="absolute top-3 right-3">
+                                  <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm">
+                                    <svg
+                                      className="w-4 h-4 text-gray-700"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                                      />
+                                    </svg>
+                                  </div>
+                                </div>
+                              </div>
 
-                {/* Lesson */}
-                <div>
-                  <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <h2 className="text-xl sm:text-2xl font-bold">Lesson</h2>
-                    <Button variant="link" className="text-sm sm:text-base">See all</Button>
-                  </div>
-                  <div className="space-y-3">
-                    <Card>
-                      <CardContent className="p-3 sm:p-4">
-                        <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-0">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold mb-1 text-sm sm:text-base line-clamp-2">Essay: Write an essay on design principles</h3>
-                            <div className="flex flex-wrap gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-0">
-                              <span className="truncate">Mastering Git & Vercel</span>
-                              <span className="hidden sm:inline">•</span>
-                              <span className="hidden sm:inline">Ms. Gynda</span>
-                              <span className="hidden sm:inline">•</span>
-                              <Badge variant="secondary" className="text-xs">Theory</Badge>
-                            </div>
-                          </div>
+                              {/* Course Info */}
+                              <div>
+                                {/* Level */}
+                                <div className="flex items-center justify-between mb-3">
+                                  <span
+                                    className={`text-sm font-semibold ${
+                                      level === "Beginner"
+                                        ? "text-green-600"
+                                        : level === "Intermediate"
+                                        ? "text-yellow-600"
+                                        : "text-red-600"
+                                    }`}
+                                  >
+                                    {level}
+                                  </span>
+                                  <span className="text-xs text-gray-500">Enrolled</span>
+                                </div>
+
+                                {/* Course Title */}
+                                <h3 className="font-bold text-gray-900 mb-4 line-clamp-2 min-h-[3rem] text-base">
+                                  {course.title}
+                                </h3>
+
+                                {/* View Button */}
+                                <Button
+                                  className="w-full bg-[#006D2C] hover:bg-[#005523] text-white rounded-full font-medium"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/course/${course.id}`);
+                                  }}
+                                >
+                                  View
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <Card className="border-2 border-dashed">
+                      <CardContent className="flex flex-col items-center justify-center py-12">
+                        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                          <BookOpen className="h-8 w-8 text-gray-400" />
                         </div>
-                        <div className="flex justify-end sm:hidden">
-                          <Button variant="outline" size="sm" className="w-full sm:w-auto">Start</Button>
-                        </div>
-                        <div className="hidden sm:flex justify-end">
-                          <Button variant="outline">Start</Button>
-                        </div>
+                        <h3 className="text-lg font-semibold mb-2">No Courses Yet</h3>
+                        <p className="text-sm text-gray-600 text-center mb-4">
+                          You haven't enrolled in any courses yet. Start learning today!
+                        </p>
+                        <Button onClick={() => navigate("/courses")} className="bg-[#006d2c] hover:bg-[#005523]">
+                          Browse Courses
+                        </Button>
                       </CardContent>
                     </Card>
-                    <Card>
-                      <CardContent className="p-3 sm:p-4">
-                        <div className="flex items-start gap-3 sm:gap-4">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold mb-1 text-sm sm:text-base">CSS Selector</h3>
-                            <div className="flex flex-wrap gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground mb-2">
-                              <span className="truncate">HTML/CSS Mastery</span>
-                              <span className="hidden sm:inline">•</span>
-                              <span className="hidden sm:inline">Mr. Reynold</span>
-                              <span className="hidden sm:inline">•</span>
-                              <Badge variant="secondary" className="text-xs">Theory</Badge>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Progress value={80} className="flex-1 sm:w-16" />
-                              <span className="text-xs sm:text-sm font-medium text-primary">80%</span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-3 sm:p-4">
-                        <div className="flex items-start gap-3 sm:gap-4">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold mb-1 text-sm sm:text-base line-clamp-2">Quiz: Autolayout Figma Test</h3>
-                            <div className="flex flex-wrap gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground items-center">
-                              <span className="truncate">Mastering Figma</span>
-                              <span className="hidden sm:inline">•</span>
-                              <span className="hidden sm:inline">Ms. Dyana</span>
-                              <span className="hidden sm:inline">•</span>
-                              <Badge variant="secondary" className="text-xs">Theory</Badge>
-                            </div>
-                          </div>
-                          <Badge className="bg-green-500 text-white text-xs flex-shrink-0">Done</Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                  )}
                 </div>
               </div>
 
-              {/* Right Sidebar */}
-              <div className="space-y-4 sm:space-y-6">
-                <Card>
-                  <CardHeader className="pb-3 sm:pb-6">
-                    <CardTitle className="text-base sm:text-lg">Class Schedule</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      className="rounded-md border-0 text-sm sm:text-base"
-                    />
+              {/* Right Sidebar - Calendar Widget */}
+              <div className="space-y-4">
+                {/* Calendar Card - One Week View */}
+                <Card className="border-2">
+                  <CardContent className="p-4">
+                    {/* Calendar Header */}
+                    <div className="flex items-center justify-between mb-4">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const newDate = new Date(currentMonth);
+                          newDate.setDate(newDate.getDate() - 7);
+                          setCurrentMonth(newDate);
+                        }}
+                        className="h-7 w-7"
+                      >
+                        <ChevronLeft className="h-4 w-4 text-gray-600" />
+                      </Button>
+                      
+                      <div className="flex items-center gap-1.5">
+                        <CalendarDays className="h-4 w-4 text-gray-600" />
+                        <span className="font-semibold text-sm text-gray-900">
+                          {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </span>
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const newDate = new Date(currentMonth);
+                          newDate.setDate(newDate.getDate() + 7);
+                          setCurrentMonth(newDate);
+                        }}
+                        className="h-7 w-7"
+                      >
+                        <ChevronRight className="h-4 w-4 text-gray-600" />
+                      </Button>
+                    </div>
+
+                    {/* Calendar Grid - One Week */}
+                    <div className="space-y-2">
+                      {/* Day Headers */}
+                      <div className="grid grid-cols-7 gap-1">
+                        {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sat', 'Su'].map((day) => (
+                          <div key={day} className="text-center text-xs font-medium text-gray-500">
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Week Days */}
+                      <div className="grid grid-cols-7 gap-1">
+                        {(() => {
+                          const today = new Date();
+                          const currentDay = currentMonth.getDay();
+                          const monday = new Date(currentMonth);
+                          monday.setDate(currentMonth.getDate() - ((currentDay + 6) % 7));
+                          
+                          const weekDays = [];
+                          
+                          for (let i = 0; i < 7; i++) {
+                            const date = new Date(monday);
+                            date.setDate(monday.getDate() + i);
+                            const isToday = date.toDateString() === today.toDateString();
+                            
+                            // Check if this date has scheduled classes from database
+                            const classesOnDate = scheduledClasses.filter(sc => {
+                              const classDate = new Date(sc.scheduled_time);
+                              return classDate.toDateString() === date.toDateString();
+                            });
+                            
+                            const hasClasses = classesOnDate.length > 0;
+                            
+                            weekDays.push(
+                              <div key={i} className="flex flex-col items-center">
+                                <div
+                                  className={`w-9 h-9 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${
+                                    isToday
+                                      ? 'bg-purple-500 text-white'
+                                      : 'text-gray-700 hover:bg-gray-100 cursor-pointer'
+                                  }`}
+                                >
+                                  {date.getDate()}
+                                </div>
+                                {hasClasses && (
+                                  <div className="flex gap-0.5 mt-1">
+                                    {classesOnDate.slice(0, 2).map((_, idx) => (
+                                      <div 
+                                        key={idx} 
+                                        className={`w-1 h-1 rounded-full ${
+                                          idx === 0 ? 'bg-red-500' : 'bg-cyan-500'
+                                        }`} 
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          
+                          return weekDays;
+                        })()}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
+
+                {/* Upcoming Classes */}
+                <div className="space-y-3">
+                  {scheduledClasses.slice(0, 2).map((scheduledClass, index) => {
+                    const classDate = new Date(scheduledClass.scheduled_time);
+                    const dateStr = classDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+                    const timeStr = classDate.toLocaleTimeString('en-US', { 
+                      hour: 'numeric', 
+                      minute: '2-digit',
+                      hour12: false 
+                    });
+                    const endTime = new Date(classDate.getTime() + 60 * 60000);
+                    const endTimeStr = endTime.toLocaleTimeString('en-US', { 
+                      hour: 'numeric', 
+                      minute: '2-digit',
+                      hour12: false 
+                    });
+
+                    const colors = [
+                      { bg: 'bg-gray-900', icon: 'bg-gray-900', label: 'Course' },
+                      { bg: 'bg-cyan-500', icon: 'bg-cyan-500', label: 'Tutoring' }
+                    ];
+                    const color = colors[index % colors.length];
+
+                    return (
+                      <Card
+                        key={scheduledClass.id}
+                        className="border-2 hover:border-[#006d2c] transition-all cursor-pointer group"
+                        onClick={() => navigate("/student/schedule")}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className={`w-12 h-12 rounded-full ${color.bg} flex items-center justify-center flex-shrink-0`}>
+                              <BookOpen className="h-6 w-6 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-gray-500 mb-1">{color.label}</p>
+                              <h4 className="font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-[#006d2c] transition-colors">
+                                {scheduledClass.title}
+                              </h4>
+                              <div className="flex items-center gap-3 text-xs text-gray-600">
+                                <div className="flex items-center gap-1">
+                                  <CalendarDays className="h-3 w-3" />
+                                  <span>{dateStr}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{timeStr}-{endTimeStr}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-[#006d2c] transition-colors" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+
+                  {scheduledClasses.length === 0 && (
+                    <Card className="border-2 border-dashed">
+                      <CardContent className="p-8 text-center">
+                        <CalendarDays className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-sm text-gray-600">No upcoming classes</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
 
                 <div className="space-y-3 sm:space-y-4">
                   <div className="flex items-center justify-between">
@@ -429,7 +609,7 @@ const StudentDashboard = () => {
                                 {/* Time and Duration */}
                                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
                                   <div className="flex items-center gap-1.5 text-gray-700">
-                                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-[#006d2c]" />
+                                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-[#006d2c]" />
                                     <span className="font-medium">{timeString}</span>
                                   </div>
                                   <div className="flex items-center gap-1.5 text-gray-600">
@@ -478,7 +658,7 @@ const StudentDashboard = () => {
                     ) : (
                       <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-gray-300">
                         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center">
-                          <Calendar className="h-8 w-8 text-gray-400" />
+                          <CalendarDays className="h-8 w-8 text-gray-400" />
                         </div>
                         <p className="text-gray-600 font-medium mb-1">No upcoming classes</p>
                         <p className="text-sm text-gray-500">Your schedule is clear for now</p>
