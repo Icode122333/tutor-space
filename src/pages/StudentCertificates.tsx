@@ -115,7 +115,7 @@ const StudentCertificates = () => {
         <StudentSidebar />
 
         <div className="flex-1 flex flex-col">
-          <header className="border-b bg-white px-6 py-4">
+          <header className="border-b bg-white px-6 py-4 rounded-2xl shadow-lg mx-4 mt-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <SidebarTrigger />
@@ -124,10 +124,14 @@ const StudentCertificates = () => {
                   <p className="text-sm text-gray-600">View and download your course completion certificates</p>
                 </div>
               </div>
-              <Avatar>
-                <AvatarFallback className="bg-[#006d2c] text-white">
-                  {profile?.full_name?.charAt(0) || 'S'}
-                </AvatarFallback>
+              <Avatar className="h-12 w-12 rounded-full shadow-lg border-2 border-white">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt={profile.full_name} className="object-cover" />
+                ) : (
+                  <AvatarFallback className="bg-[#006d2c] text-white">
+                    {profile?.full_name?.charAt(0) || 'S'}
+                  </AvatarFallback>
+                )}
               </Avatar>
             </div>
           </header>
@@ -135,7 +139,7 @@ const StudentCertificates = () => {
           <main className="flex-1 p-6 overflow-auto">
             <div className="max-w-7xl mx-auto">
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <Card className="border-2 border-[#006d2c]/20 bg-gradient-to-br from-green-50 to-white">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -159,20 +163,6 @@ const StudentCertificates = () => {
                       </div>
                       <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center">
                         <CheckCircle2 className="h-7 w-7 text-blue-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">Average Grade</p>
-                        <p className="text-3xl font-bold text-purple-600">A+</p>
-                      </div>
-                      <div className="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center">
-                        <span className="text-2xl">🏆</span>
                       </div>
                     </div>
                   </CardContent>

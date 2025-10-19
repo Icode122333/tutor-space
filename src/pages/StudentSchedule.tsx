@@ -100,7 +100,7 @@ const StudentSchedule = () => {
         <StudentSidebar />
         
         <div className="flex-1 flex flex-col">
-          <header className="border-b bg-card px-6 py-4">
+          <header className="border-b bg-card px-6 py-4 rounded-2xl shadow-lg mx-4 mt-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <SidebarTrigger />
@@ -109,10 +109,14 @@ const StudentSchedule = () => {
                   <p className="text-sm text-muted-foreground">View and manage your upcoming classes</p>
                 </div>
               </div>
-              <Avatar>
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {profile?.full_name?.charAt(0) || 'S'}
-                </AvatarFallback>
+              <Avatar className="h-12 w-12 rounded-full shadow-lg border-2 border-white">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt={profile.full_name} className="object-cover" />
+                ) : (
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {profile?.full_name?.charAt(0) || 'S'}
+                  </AvatarFallback>
+                )}
               </Avatar>
             </div>
           </header>
