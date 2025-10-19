@@ -115,6 +115,13 @@ const StudentDashboard = () => {
 
       if (error) throw error;
 
+      // Check if onboarding is completed
+      if (!profileData.onboarding_completed) {
+        toast.info("Please complete your profile setup");
+        navigate("/onboarding");
+        return;
+      }
+
       if (profileData.role !== "student") {
         navigate("/teacher/dashboard");
         return;
@@ -162,9 +169,15 @@ const StudentDashboard = () => {
                 <Button variant="ghost" size="icon" className="hover:bg-[#006D2C]/10">
                   <Bell className="h-5 w-5 text-[#006D2C]" />
                 </Button>
-                <Button variant="ghost" size="icon" className="hover:bg-[#006D2C]/10">
-                  <User className="h-5 w-5 text-[#006D2C]" />
-                </Button>
+                <Avatar className="h-9 w-9 border-2 border-[#006D2C]">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="User Avatar" className="object-cover" />
+                  ) : (
+                    <AvatarFallback className="bg-[#006D2C] text-white">
+                      {profile?.full_name?.charAt(0) || 'U'}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
               </div>
             </div>
           </header>

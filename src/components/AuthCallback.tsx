@@ -87,6 +87,7 @@ const AuthCallback = () => {
               full_name: user.user_metadata?.full_name || user.user_metadata?.name || "",
               role: role as "student" | "teacher",
               avatar_url: user.user_metadata?.avatar_url || null,
+              onboarding_completed: false,
             });
 
           if (profileError) {
@@ -97,13 +98,22 @@ const AuthCallback = () => {
           }
 
           console.log("Profile created successfully with role:", role);
-          toast.success(`Account created successfully as ${role}!`);
-          navigate(role === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
+          toast.success(`Account created successfully!`);
+          // Redirect to onboarding for new users
+          navigate("/onboarding");
         } else {
           console.log("Existing user found with role:", existingProfile.role);
-          // Existing user, redirect to appropriate dashboard
-          toast.success("Signed in successfully!");
-          navigate(existingProfile.role === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
+          
+          // Check if onboarding is completed
+          if (!existingProfile.onboarding_completed) {
+            console.log("Onboarding not completed, redirecting to onboarding");
+            toast.info("Please complete your profile setup");
+            navigate("/onboarding");
+          } else {
+            // Existing user with completed onboarding, redirect to dashboard
+            toast.success("Signed in successfully!");
+            navigate(existingProfile.role === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
+          }
         }
       } catch (error: any) {
         console.error("Error processing user:", error);
