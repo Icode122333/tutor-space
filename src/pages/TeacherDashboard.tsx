@@ -28,14 +28,24 @@ const TeacherDashboard = () => {
         return;
       }
 
-      if (profile && profile.role !== "teacher") {
-        console.log('User is not a teacher, redirecting to student dashboard');
-        navigate("/student/dashboard");
-        return;
-      }
+      if (profile) {
+        // Check if onboarding is completed
+        if (!profile.onboarding_completed) {
+          console.log('Onboarding not completed, redirecting to teacher onboarding');
+          toast.info("Please complete your profile setup");
+          navigate("/teacher/onboarding");
+          return;
+        }
 
-      // Fetch teacher's courses
-      fetchCourses();
+        if (profile.role !== "teacher") {
+          console.log('User is not a teacher, redirecting to student dashboard');
+          navigate("/student/dashboard");
+          return;
+        }
+
+        // Fetch teacher's courses
+        fetchCourses();
+      }
     }
   }, [user, profile, loading, navigate]);
 

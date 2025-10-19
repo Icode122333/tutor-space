@@ -99,8 +99,8 @@ const AuthCallback = () => {
 
           console.log("Profile created successfully with role:", role);
           toast.success(`Account created successfully!`);
-          // Redirect to onboarding for new users
-          navigate("/onboarding");
+          // Redirect to appropriate onboarding based on role
+          navigate(role === "teacher" ? "/teacher/onboarding" : "/onboarding");
         } else {
           console.log("Existing user found with role:", existingProfile.role);
           
@@ -108,7 +108,8 @@ const AuthCallback = () => {
           if (!existingProfile.onboarding_completed) {
             console.log("Onboarding not completed, redirecting to onboarding");
             toast.info("Please complete your profile setup");
-            navigate("/onboarding");
+            // Redirect to appropriate onboarding based on role
+            navigate(existingProfile.role === "teacher" ? "/teacher/onboarding" : "/onboarding");
           } else {
             // Existing user with completed onboarding, redirect to dashboard
             toast.success("Signed in successfully!");

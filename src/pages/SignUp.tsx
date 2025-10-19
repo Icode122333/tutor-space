@@ -82,8 +82,8 @@ const SignUp = () => {
         }
 
         toast.success("Account created successfully!");
-        // Redirect to onboarding page
-        navigate("/onboarding");
+        // Redirect to appropriate onboarding based on role
+        navigate(selectedRole === "teacher" ? "/teacher/onboarding" : "/onboarding");
       }
     } catch (error: any) {
       console.error("Signup error:", error);
