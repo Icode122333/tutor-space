@@ -79,7 +79,11 @@ export default function StudentChat() {
         course_id,
         courses (
           id,
-          title
+          title,
+          whatsapp_group_link,
+          profiles (
+            full_name
+          )
         )
       `)
       .eq("student_id", user?.id);
@@ -91,7 +95,7 @@ export default function StudentChat() {
         course_id: enrollment.courses.id,
         course_name: enrollment.courses.title,
         student_count: 0,
-        whatsapp_link: null,
+        whatsapp_link: enrollment.courses.whatsapp_group_link || null,
       })) || [];
       setCourseGroups(groups);
     }
@@ -192,14 +196,14 @@ export default function StudentChat() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-green-50 via-white to-green-100">
         <StudentSidebar />
 
-        <div className="flex-1 flex flex-col p-4 gap-4">
+        <div className="flex-1 flex flex-col p-6 gap-6">
           {/* Course Group Chat Widgets */}
           {courseGroups.length > 0 && (
             <div className="relative">
-              <Card className="bg-gradient-to-r from-[#006d2c] to-[#008d3c] text-white border-0 shadow-lg">
+              <Card className="bg-gradient-to-r from-[#006d2c] to-[#008d3c] text-white border-0 shadow-2xl rounded-3xl">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1">
@@ -213,7 +217,14 @@ export default function StudentChat() {
                       </p>
                       <Button
                         className="bg-white text-[#006d2c] hover:bg-gray-100 font-semibold"
-                        onClick={() => toast.info("Group chat feature coming soon!")}
+                        onClick={() => {
+                          const link = courseGroups[currentGroupIndex]?.whatsapp_link;
+                          if (link) {
+                            window.open(link, '_blank');
+                          } else {
+                            toast.error("No WhatsApp group link available for this course");
+                          }
+                        }}
                       >
                         <Users className="h-4 w-4 mr-2" />
                         Join Group Chat
@@ -254,33 +265,33 @@ export default function StudentChat() {
           )}
 
           {/* Three-Column Chat Layout */}
-          <Card className="flex-1 flex overflow-hidden">
+          <Card className="flex-1 flex overflow-hidden shadow-2xl rounded-3xl">
             {/* Left Sidebar - Conversations List */}
-            <div className="w-80 border-r flex flex-col bg-background">
-              <div className="p-4 border-b">
-                <h2 className="font-bold text-lg mb-3 flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-[#006d2c]" />
+            <div className="w-80 flex flex-col bg-[#006d2c]">
+              <div className="p-4 border-b border-white/10">
+                <h2 className="font-bold text-lg mb-3 flex items-center gap-2 text-white">
+                  <MessageSquare className="h-5 w-5" />
                   Messages
                   {conversations.length > 0 && (
-                    <Badge variant="secondary" className="ml-auto">
+                    <Badge variant="secondary" className="ml-auto bg-white text-[#006d2c]">
                       {conversations.reduce((sum, conv) => sum + conv.unread_count, 0)} new
                     </Badge>
                   )}
                 </h2>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
                   <Input
                     placeholder="Search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:bg-white/20"
                   />
                 </div>
               </div>
 
               <div className="flex-1 overflow-y-auto">
                 {filteredConversations.length === 0 ? (
-                  <div className="p-6 text-center text-muted-foreground">
+                  <div className="p-6 text-center text-white/60">
                     <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No conversations yet</p>
                   </div>
@@ -289,37 +300,37 @@ export default function StudentChat() {
                     <button
                       key={conv.id}
                       onClick={() => setSelectedConversation(conv)}
-                      className={`w-full p-4 border-b hover:bg-accent transition-colors text-left ${
-                        selectedConversation?.id === conv.id ? "bg-accent" : ""
+                      className={`w-full p-4 border-b border-white/10 hover:bg-white/10 transition-colors text-left ${
+                        selectedConversation?.id === conv.id ? "bg-white/20" : ""
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className="relative">
-                          <Avatar className="h-12 w-12">
+                          <Avatar className="h-12 w-12 border-2 border-white/20">
                             {conv.teacher_avatar ? (
                               <img src={conv.teacher_avatar} alt={conv.teacher_name} className="object-cover" />
                             ) : (
-                              <AvatarFallback className="bg-[#006d2c] text-white">
+                              <AvatarFallback className="bg-white text-[#006d2c]">
                                 {conv.teacher_name.substring(0, 2).toUpperCase()}
                               </AvatarFallback>
                             )}
                           </Avatar>
-                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-[#006d2c]" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <h3 className="font-semibold truncate">{conv.teacher_name}</h3>
+                            <h3 className="font-semibold truncate text-white">{conv.teacher_name}</h3>
                             {conv.last_message_at && (
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-white/60">
                                 {formatDate(conv.last_message_at)}
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground truncate">
+                          <p className="text-sm text-white/80 truncate">
                             {conv.last_message || "No messages yet"}
                           </p>
                           {conv.unread_count > 0 && (
-                            <Badge className="mt-1 bg-[#006d2c]">{conv.unread_count}</Badge>
+                            <Badge className="mt-1 bg-white text-[#006d2c]">{conv.unread_count}</Badge>
                           )}
                         </div>
                       </div>
@@ -331,9 +342,9 @@ export default function StudentChat() {
 
             {/* Middle Section - Chat Area */}
             {selectedConversation ? (
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex flex-col bg-white">
                 {/* Chat Header */}
-                <div className="p-4 border-b bg-background flex items-center justify-between">
+                <div className="p-4 border-b bg-white flex items-center justify-between shadow-sm">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                       {selectedConversation.teacher_avatar ? (
@@ -355,7 +366,7 @@ export default function StudentChat() {
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+                <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-gray-50 to-white">
                   {messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center text-muted-foreground">
@@ -383,7 +394,7 @@ export default function StudentChat() {
                             <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}>
                               <div className={`max-w-md ${isOwnMessage ? "order-2" : "order-1"}`}>
                                 <div
-                                  className={`rounded-2xl px-4 py-2 ${
+                                  className={`rounded-2xl px-4 py-2 shadow-md ${
                                     isOwnMessage
                                       ? "bg-green-500 text-white rounded-br-none"
                                       : "bg-blue-500 text-white rounded-bl-none"
@@ -405,7 +416,7 @@ export default function StudentChat() {
                 </div>
 
                 {/* Input Area */}
-                <div className="p-4 border-t bg-background">
+                <div className="p-4 border-t bg-white shadow-lg">
                   <div className="flex items-center gap-2">
                     <Input
                       placeholder="Message"
@@ -417,12 +428,12 @@ export default function StudentChat() {
                           handleSendMessage();
                         }
                       }}
-                      className="flex-1"
+                      className="flex-1 rounded-full border-gray-300 focus:border-[#006d2c] focus:ring-[#006d2c]"
                     />
                     <Button
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim()}
-                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                      className="bg-purple-600 hover:bg-purple-700 text-white rounded-full h-10 w-10"
                       size="icon"
                     >
                       <Send className="h-4 w-4" />
@@ -431,7 +442,7 @@ export default function StudentChat() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center bg-gray-50">
+              <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white">
                 <div className="text-center text-muted-foreground">
                   <MessageSquare className="h-24 w-24 mx-auto mb-4 opacity-50" />
                   <h3 className="text-xl font-semibold mb-2">Select a conversation</h3>
