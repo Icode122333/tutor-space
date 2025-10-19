@@ -39,24 +39,27 @@ const StudentCertificates = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // For now, we'll create mock certificates
-    // In production, you'd fetch from a certificates table
-    const mockCertificates: Certificate[] = [
-      {
-        id: "1",
-        course_title: "Web Development Fundamentals",
-        completion_date: "2024-12-15",
-        grade: "A+",
-        instructor_name: "Prof. John Smith",
-      },
-      {
-        id: "2",
-        course_title: "Advanced JavaScript",
-        completion_date: "2024-11-20",
-        grade: "A",
-        instructor_name: "Dr. Sarah Johnson",
-      },
-    ];
+    // TODO: Fetch from certificates table in database
+    // For now, checking if student has any certificates
+    const mockCertificates: Certificate[] = [];
+    
+    // Example: Uncomment to show mock certificates
+    // const mockCertificates: Certificate[] = [
+    //   {
+    //     id: "1",
+    //     course_title: "Web Development Fundamentals",
+    //     completion_date: "2024-12-15",
+    //     grade: "A+",
+    //     instructor_name: "Prof. John Smith",
+    //   },
+    //   {
+    //     id: "2",
+    //     course_title: "Advanced JavaScript",
+    //     completion_date: "2024-11-20",
+    //     grade: "A",
+    //     instructor_name: "Dr. Sarah Johnson",
+    //   },
+    // ];
 
     setCertificates(mockCertificates);
   };
@@ -283,14 +286,18 @@ const StudentCertificates = () => {
                     })}
                   </div>
                 ) : (
-                  <Card className="border-2 border-dashed border-gray-300">
+                  <Card className="border-2 border-dashed border-gray-300 bg-white">
                     <CardContent className="py-16 text-center">
-                      <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
-                        <Award className="h-10 w-10 text-gray-400" />
+                      <div className="mb-6">
+                        <img
+                          src="/images/certificate.png"
+                          alt="Certificate illustration"
+                          className="w-64 h-64 mx-auto object-contain opacity-90"
+                        />
                       </div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">No Certificates Yet</h3>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2">No certificate</h3>
                       <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                        Complete your courses to earn certificates and showcase your achievements
+                        Take course to earn certificate
                       </p>
                       <Button
                         onClick={() => navigate("/student/dashboard")}

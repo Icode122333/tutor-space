@@ -6,10 +6,19 @@ import { TeacherSidebar } from "@/components/TeacherSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, MessageSquare, Users, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Send, MessageSquare, Users, ChevronLeft, ChevronRight, Search, ExternalLink, Check, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface TeacherCourse {
   course_id: string;
@@ -48,6 +57,9 @@ export default function TeacherChat() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentCourseIndex, setCurrentCourseIndex] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isGroupChatDialogOpen, setIsGroupChatDialogOpen] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+  const [whatsappLink, setWhatsappLink] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -219,6 +231,59 @@ export default function TeacherChat() {
     setCurrentCourseIndex((prev) => (prev - 1 + teacherCourses.length) % teacherCourses.length);
   };
 
+  const handleOpenGroupChatDialog = () => {
+    setIsGroupChatDialogOpen(true);
+    setSelectedCourseId("");
+    setWhatsappLink("");
+  };
+
+  const handleCourseSelection = (courseId: string) => {
+    setSelectedCourseId(courseId);
+    const course = teacherCourses.find(c => c.course_id === courseId);
+    if (course?.whatsapp_link) {
+      setWhatsappLink(course.whatsapp_link);
+    } else {
+      setWhatsappLink("");
+    }
+  };
+
+  const handleSaveOrOpenGroupChat = async () => {
+    const selectedCourse = teacherCourses.find(c => c.course_id === selectedCourseId);
+    
+    if (!selectedCourse) {
+      toast.error("Please select a course");
+      return;
+    }
+
+    // If course already has a link, open it
+    if (selectedCourse.whatsapp_link) {
+      window.open(selectedCourse.whatsapp_link, '_blank');
+      toast.success(`Opening ${selectedCourse.course_name} group chat`);
+      setIsGroupChatDialogOpen(false);
+      return;
+    }
+
+    // If no link, save the new one
+    if (!whatsappLink.trim()) {
+      toast.error("Please enter a WhatsApp group link");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("courses")
+      .update({ whatsapp_group_link: whatsappLink })
+      .eq("id", selectedCourseId);
+
+    if (error) {
+      toast.error("Failed to save WhatsApp link");
+      console.error("Error saving WhatsApp link:", error);
+    } else {
+      toast.success("WhatsApp link saved successfully!");
+      setIsGroupChatDialogOpen(false);
+      fetchTeacherCourses(); // Refresh courses
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gradient-to-br from-green-50 via-white to-green-100">
@@ -242,14 +307,7 @@ export default function TeacherChat() {
                       </p>
                       <Button
                         className="bg-white text-[#006d2c] hover:bg-gray-100 font-semibold"
-                        onClick={() => {
-                          const link = teacherCourses[currentCourseIndex]?.whatsapp_link;
-                          if (link) {
-                            window.open(link, '_blank');
-                          } else {
-                            toast.error("No WhatsApp group link set for this course");
-                          }
-                        }}
+                        onClick={handleOpenGroupChatDialog}
                       >
                         <Users className="h-4 w-4 mr-2" />
                         Open Group Chat
@@ -477,6 +535,149 @@ export default function TeacherChat() {
             )}
           </Card>
         </div>
+
+        {/* Group Chat Management Dialog */}
+        <Dialog open={isGroupChatDialogOpen} onOpenChange={setIsGroupChatDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-green-600" />
+                Manage Course Group Chats
+              </DialogTitle>
+              <DialogDescription>
+                Select a course to create or manage its WhatsApp group chat
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              {/* Course Selection */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Select Course</Label>
+                <RadioGroup value={selectedCourseId} onValueChange={handleCourseSelection}>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {teacherCourses.map((course) => (
+                      <div
+                        key={course.course_id}
+                        className={`flex items-center space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                          selectedCourseId === course.course_id
+                            ? "border-green-600 bg-green-50"
+                            : "border-gray-200 hover:border-green-300"
+                        }`}
+                        onClick={() => handleCourseSelection(course.course_id)}
+                      >
+                        <RadioGroupItem value={course.course_id} id={course.course_id} />
+                        <Label
+                          htmlFor={course.course_id}
+                          className="flex-1 cursor-pointer"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{course.course_name}</span>
+                            {course.whatsapp_link ? (
+                              <Badge variant="outline" className="text-green-600 border-green-600">
+                                <Check className="h-3 w-3 mr-1" />
+                                Linked
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-orange-600 border-orange-600">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                No Link
+                              </Badge>
+                            )}
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Show notification or input based on selection */}
+              {selectedCourseId && (
+                <div className="space-y-3">
+                  {teacherCourses.find(c => c.course_id === selectedCourseId)?.whatsapp_link ? (
+                    // Course has link - show notification
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <Check className="h-5 w-5 text-green-600 mt-0.5" />
+                        <div className="flex-1">
+                          <h4 className="text-sm font-semibold text-green-900 mb-1">
+                            WhatsApp Link Connected
+                          </h4>
+                          <p className="text-xs text-green-800 mb-2">
+                            This course already has a WhatsApp group link. Click the button below to open it.
+                          </p>
+                          <div className="bg-white rounded p-2 border border-green-200">
+                            <p className="text-xs text-gray-600 truncate">{whatsappLink}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // No link - show input field
+                    <div className="space-y-3">
+                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5" />
+                          <p className="text-xs text-orange-800">
+                            No WhatsApp link found for this course. Add one below to enable group chat.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="whatsapp-link">WhatsApp Group Link</Label>
+                        <Input
+                          id="whatsapp-link"
+                          placeholder="https://chat.whatsapp.com/..."
+                          value={whatsappLink}
+                          onChange={(e) => setWhatsappLink(e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <h4 className="text-xs font-semibold text-blue-900 mb-2">How to get the link:</h4>
+                        <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
+                          <li>Open WhatsApp and create a new group</li>
+                          <li>Tap on the group name at the top</li>
+                          <li>Tap "Invite via link"</li>
+                          <li>Copy and paste the link here</li>
+                        </ol>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setIsGroupChatDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-green-600 hover:bg-green-700"
+                onClick={handleSaveOrOpenGroupChat}
+                disabled={!selectedCourseId}
+              >
+                {teacherCourses.find(c => c.course_id === selectedCourseId)?.whatsapp_link ? (
+                  <>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open Chat
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Save Link
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </SidebarProvider>
   );

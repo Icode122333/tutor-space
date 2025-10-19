@@ -7,8 +7,19 @@ The Teacher Chat page allows teachers to view and respond to messages from their
 
 ### 1. Course Group Management Widget
 - **Carousel Display**: Teachers can navigate through all their courses using left/right arrows
-- **WhatsApp Integration**: Direct access to course group chats via WhatsApp links
+- **Smart Dialog System**: Click "Open Group Chat" to see all courses and manage WhatsApp links
 - **Visual Design**: Green gradient card with WhatsApp illustration
+
+### 1.1 Group Chat Management Dialog
+When clicking "Open Group Chat", a popup appears with:
+- **Course Selection**: Radio buttons showing all teacher's courses
+- **Status Indicators**: 
+  - Green "Linked" badge for courses with WhatsApp links
+  - Orange "No Link" badge for courses without links
+- **Smart Behavior**:
+  - If course has link: Shows notification and "Open Chat" button
+  - If no link: Shows input field to add WhatsApp link with instructions
+- **Dynamic Button**: Changes between "Open Chat" and "Save Link" based on selection
 
 ### 2. Student Conversations List
 - **Left Sidebar**: Green-themed sidebar showing all students who have messaged the teacher
