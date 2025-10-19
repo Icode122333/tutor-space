@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const StudentSchedule = () => {
   const navigate = useNavigate();
@@ -90,11 +91,7 @@ const StudentSchedule = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (

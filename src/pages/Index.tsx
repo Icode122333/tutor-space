@@ -44,7 +44,7 @@ const Index = () => {
                 Login
               </Button>
               <Button
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/signup")}
                 className="bg-[#006d2c] hover:bg-[#006d2c] text-black font-medium"
               >
                 Sign Up
@@ -128,7 +128,7 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
               size="lg"
-              onClick={() => navigate("/auth")}
+              onClick={() => navigate("/signup")}
               variant="outline"
               className="bg-white border-gray-300 text-black hover:bg-gray-50 px-8 py-3 text-lg font-medium"
             >
@@ -517,7 +517,7 @@ const Index = () => {
           </p>
           <Button
             size="lg"
-            onClick={() => navigate("/auth")}
+            onClick={() => navigate("/signup")}
             className="bg-white text-black hover:bg-gray-100 border border-gray-300"
           >
             Get Started Today

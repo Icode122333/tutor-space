@@ -1,24 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Building2, BookOpen, ChevronLeft } from "lucide-react";
+import { User, Building2, BookOpen, ChevronLeft, Image } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const StudentOnboarding = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     telephone: "",
+    avatar: "",
     organizationName: "",
     industry: "",
     role: "",
     interests: [] as string[],
   });
+
+  const avatars = [
+    "/images/avators/1.webp",
+    "/images/avators/2.webp",
+    "/images/avators/3.webp",
+    "/images/avators/4 (1).webp",
+    "/images/avators/5.webp",
+    "/images/avators/6.webp",
+    "/images/avators/7.webp",
+    "/images/avators/8.webp",
+    "/images/avators/9.webp",
+    "/images/avators/10.webp",
+    "/images/avators/woman.webp",
+    "/images/avators/hacker.webp",
+    "/images/avators/3d-rendering-zoom-call-avatar.webp",
+    "/images/avators/androgynous-avatar-non-binary-queer-person.webp",
+  ];
+
+  useEffect(() => {
+    checkUserAuth();
+  }, []);
+
+  const checkUserAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      navigate("/auth");
+    }
+  };
 
   const industries = [
     "Technology",
@@ -47,8 +78,8 @@ const StudentOnboarding = () => {
 
   const handleNext = () => {
     if (currentStep === 1) {
-      if (!formData.firstName || !formData.lastName || !formData.telephone) {
-        toast.error("Please fill in all fields");
+      if (!formData.firstName || !formData.lastName || !formData.telephone || !formData.avatar) {
+        toast.error("Please fill in all fields and select an avatar");
         return;
       }
     } else if (currentStep === 2) {
@@ -57,7 +88,7 @@ const StudentOnboarding = () => {
         return;
       }
     }
-    
+
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -71,15 +102,60 @@ const StudentOnboarding = () => {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (formData.interests.length === 0) {
       toast.error("Please select at least one interest");
       return;
     }
-    
-    // Save onboarding data (you can integrate with Supabase here)
-    toast.success("Onboarding completed!");
-    navigate("/student/dashboard");
+
+    setLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast.error("User not authenticated");
+        navigate("/auth");
+        return;
+      }
+
+      // Update user profile with onboarding data
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          full_name: `${formData.firstName} ${formData.lastName}`,
+          avatar_url: formData.avatar,
+          phone: formData.telephone,
+          organization: formData.organizationName,
+          industry: formData.industry,
+          job_role: formData.role,
+          interests: formData.interests,
+          onboarding_completed: true,
+        })
+        .eq("id", user.id);
+
+      if (profileError) throw profileError;
+
+      toast.success("Onboarding completed successfully!");
+
+      // Navigate based on user role
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.role === "teacher") {
+        navigate("/teacher/dashboard");
+      } else {
+        navigate("/student/dashboard");
+      }
+    } catch (error: any) {
+      console.error("Error completing onboarding:", error);
+      toast.error("Failed to complete onboarding. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleInterest = (interest: string) => {
@@ -109,18 +185,17 @@ const StudentOnboarding = () => {
           {/* Step 1 */}
           <div className="flex items-start gap-4">
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                currentStep >= 1 ? "bg-white text-[#006d2c]" : "bg-white/20 text-white"
-              }`}
+              className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${currentStep >= 1 ? "bg-white text-[#006d2c]" : "bg-white/20 text-white"
+                }`}
             >
-              <User className="w-6 h-6" />
+              <Image className="w-6 h-6" />
             </div>
             <div>
               <h3 className={`font-bold ${currentStep >= 1 ? "text-white" : "text-white/60"}`}>
-                Basic Info
+                Profile & Avatar
               </h3>
               <p className={`text-sm ${currentStep >= 1 ? "text-white/90" : "text-white/50"}`}>
-                Personal details of user
+                Personal details and avatar
               </p>
             </div>
           </div>
@@ -128,9 +203,8 @@ const StudentOnboarding = () => {
           {/* Step 2 */}
           <div className="flex items-start gap-4">
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                currentStep >= 2 ? "bg-white text-[#006d2c]" : "bg-white/20 text-white"
-              }`}
+              className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${currentStep >= 2 ? "bg-white text-[#006d2c]" : "bg-white/20 text-white"
+                }`}
             >
               <Building2 className="w-6 h-6" />
             </div>
@@ -147,9 +221,8 @@ const StudentOnboarding = () => {
           {/* Step 3 */}
           <div className="flex items-start gap-4">
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                currentStep >= 3 ? "bg-white text-[#006d2c]" : "bg-white/20 text-white"
-              }`}
+              className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${currentStep >= 3 ? "bg-white text-[#006d2c]" : "bg-white/20 text-white"
+                }`}
             >
               <BookOpen className="w-6 h-6" />
             </div>
@@ -172,14 +245,14 @@ const StudentOnboarding = () => {
       {/* Right Content Area - White */}
       <div className="flex-1 flex items-center justify-center p-12">
         <div className="w-full max-w-2xl">
-          {/* Step 1: Basic Info */}
+          {/* Step 1: Profile & Avatar */}
           {currentStep === 1 && (
             <div className="space-y-6">
               <div>
                 <p className="text-sm text-gray-500 mb-2">Step 1/3</p>
-                <h1 className="text-4xl font-bold text-black mb-3">Basic Info</h1>
+                <h1 className="text-4xl font-bold text-black mb-3">Profile & Avatar</h1>
                 <p className="text-gray-600">
-                  Tell us a bit about yourself to get started with your learning journey.
+                  Tell us a bit about yourself and choose your avatar.
                 </p>
               </div>
 
@@ -223,6 +296,42 @@ const StudentOnboarding = () => {
                     onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
                     className="h-12 border-gray-300 rounded-lg"
                   />
+                </div>
+
+                {/* Avatar Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-gray-700">
+                    Choose your avatar
+                  </Label>
+                  <div className="grid grid-cols-7 gap-3 max-h-64 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                    {avatars.map((avatar, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, avatar })}
+                        className={`relative rounded-full overflow-hidden border-4 transition-all hover:scale-110 ${formData.avatar === avatar
+                            ? "border-[#006d2c] ring-4 ring-[#006d2c]/30"
+                            : "border-gray-200 hover:border-[#006d2c]/50"
+                          }`}
+                      >
+                        <img
+                          src={avatar}
+                          alt={`Avatar ${index + 1}`}
+                          className="w-full h-full object-cover aspect-square"
+                        />
+                        {formData.avatar === avatar && (
+                          <div className="absolute inset-0 bg-[#006d2c]/20 flex items-center justify-center">
+                            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  {formData.avatar && (
+                    <p className="text-sm text-[#006d2c] font-medium">✓ Avatar selected</p>
+                  )}
                 </div>
               </div>
 
@@ -332,19 +441,17 @@ const StudentOnboarding = () => {
                   <button
                     key={interest}
                     onClick={() => toggleInterest(interest)}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      formData.interests.includes(interest)
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${formData.interests.includes(interest)
                         ? "border-[#006d2c] bg-[#006d2c]/10"
                         : "border-gray-200 hover:border-[#006d2c]/50"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                          formData.interests.includes(interest)
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center ${formData.interests.includes(interest)
                             ? "border-[#006d2c] bg-[#006d2c]"
                             : "border-gray-300"
-                        }`}
+                          }`}
                       >
                         {formData.interests.includes(interest) && (
                           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -369,9 +476,10 @@ const StudentOnboarding = () => {
                 </Button>
                 <Button
                   onClick={handleComplete}
+                  disabled={loading}
                   className="bg-[#006d2c] hover:bg-[#006d2c] text-black font-medium h-12 px-8"
                 >
-                  Complete
+                  {loading ? "Saving..." : "Complete"}
                 </Button>
               </div>
             </div>

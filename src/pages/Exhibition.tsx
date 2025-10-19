@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { BookOpen, Users, Clock } from "lucide-react";
+import { BookOpen, Users, Clock, GraduationCap, Award, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type Course = {
   id: string;
@@ -101,14 +102,10 @@ const Exhibition = () => {
   ];
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-lg">Loading courses...</p>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
-  const oldStudentProjects = [
+  const studentProjects = [
     {
       id: 1,
       studentName: "Uwimana Aline",
@@ -243,7 +240,7 @@ const Exhibition = () => {
         <div className="container mx-auto">
           <div className="grid md:grid-cols-2 gap-8 max-w-7xl mx-auto">
             {studentProjects.map((project) => (
-              <Card 
+              <Card
                 key={project.id}
                 className="bg-white border-2 border-gray-200 hover:border-[#006d2c] transition-all duration-300 hover:shadow-xl overflow-hidden"
               >
@@ -261,7 +258,7 @@ const Exhibition = () => {
                         <p className="text-black/80 font-medium">{project.courseName}</p>
                       </div>
                     </div>
-                    
+
                     {/* Score Badge */}
                     <div className="flex items-center justify-between">
                       <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full">
@@ -338,7 +335,7 @@ const Exhibition = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
                 size="lg"
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/signup")}
                 className="bg-black hover:bg-black/90 text-white px-8 py-4 text-lg font-medium"
               >
                 Enroll Now

@@ -182,26 +182,29 @@ const Auth = () => {
           {/* Footer */}
           <div className="text-center">
             <p className="text-sm text-gray-500">
-              Already have an account?{" "}
+              Don't have an account?{" "}
               <button
                 onClick={() => navigate("/signup")}
                 className="text-black font-bold hover:underline"
               >
-                Login Here
+                Sign Up
               </button>
             </p>
           </div>
         </div>
       </div>
 
-      {/* Right Side - Green Gradient Background with Floating Image */}
-      <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-green-300 via-green-200 to-green-400 items-center justify-center p-2.5">
-        <div className="relative">
-          <img 
-            src="/images/log in image.webp" 
-            alt="Learning Experience" 
-            className="w-full max-w-2xl rounded-3xl shadow-2xl object-cover"
-          />
+      {/* Right Side - Image */}
+      <div className="hidden lg:flex flex-1 relative">
+        <img
+          src="/images/mainpagepicture.jpg"
+          alt="Students learning together"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+        <div className="absolute bottom-8 left-8 text-white z-10">
+          <h3 className="text-2xl font-bold mb-2">Join Our Learning Community</h3>
+          <p className="text-lg opacity-90">Connect with students and teachers worldwide</p>
         </div>
       </div>
     </div>
