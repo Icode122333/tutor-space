@@ -6,7 +6,7 @@ import { StudentSidebar } from "@/components/StudentSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, MessageSquare, Users, ChevronLeft, ChevronRight, Search, Phone, Video } from "lucide-react";
+import { Send, MessageSquare, Users, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -221,12 +221,9 @@ export default function StudentChat() {
                     </div>
                     <div className="hidden md:block">
                       <img
-                        src="/images/whatsappillustrations.webp"
+                        src="/images/whatsapp illustration.webp"
                         alt="Chat illustration"
                         className="w-48 h-48 object-contain"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
                       />
                     </div>
                   </div>
@@ -340,7 +337,7 @@ export default function StudentChat() {
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                       {selectedConversation.teacher_avatar ? (
-                        <img src={selectedConversation.teacher_avatar} alt={selectedConversation.teacher_name} />
+                        <img src={selectedConversation.teacher_avatar} alt={selectedConversation.teacher_name} className="object-cover" />
                       ) : (
                         <AvatarFallback className="bg-[#006d2c] text-white">
                           {selectedConversation.teacher_name.substring(0, 2).toUpperCase()}
@@ -354,15 +351,6 @@ export default function StudentChat() {
                         Online
                       </p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" className="text-muted-foreground">
-                      <Phone className="h-4 w-4" />
-                      Call
-                    </Button>
-                    <Button variant="outline" className="bg-purple-100 text-purple-700 hover:bg-purple-200">
-                      View profile
-                    </Button>
                   </div>
                 </div>
 
@@ -419,16 +407,6 @@ export default function StudentChat() {
                 {/* Input Area */}
                 <div className="p-4 border-t bg-background">
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="text-muted-foreground">
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground">
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                      </svg>
-                    </Button>
                     <Input
                       placeholder="Message"
                       value={newMessage}
