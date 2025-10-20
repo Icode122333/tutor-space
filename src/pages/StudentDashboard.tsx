@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Search, Bell, BookOpen, CalendarDays, Clock, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Bell, BookOpen, CalendarDays, Clock, User, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
@@ -17,6 +18,7 @@ const StudentDashboard = () => {
   const [profile, setProfile] = useState<any>(null);
   const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
+  const [courseProgress, setCourseProgress] = useState<Record<string, number>>({});
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   useEffect(() => {
@@ -55,7 +57,33 @@ const StudentDashboard = () => {
       console.error("Error fetching enrolled courses:", error);
     } else {
       setEnrolledCourses(data || []);
+      // Fetch progress for each course
+      if (data) {
+        fetchCoursesProgress(user.id, data.map(d => d.courses.id));
+      }
     }
+  };
+
+  const fetchCoursesProgress = async (studentId: string, courseIds: string[]) => {
+    const progressMap: Record<string, number> = {};
+    
+    for (const courseId of courseIds) {
+      try {
+        const { data, error } = await supabase
+          .rpc("calculate_course_progress", {
+            p_student_id: studentId,
+            p_course_id: courseId,
+          });
+
+        if (!error && data && data.length > 0) {
+          progressMap[courseId] = data[0].progress_percentage || 0;
+        }
+      } catch (err) {
+        console.error(`Error fetching progress for course ${courseId}:`, err);
+      }
+    }
+    
+    setCourseProgress(progressMap);
   };
 
   const fetchScheduledClasses = async () => {
@@ -289,7 +317,7 @@ const StudentDashboard = () => {
 
                               {/* Course Info */}
                               <div>
-                                {/* Level */}
+                                {/* Level and Progress */}
                                 <div className="flex items-center justify-between mb-3">
                                   <span
                                     className={`text-sm font-semibold ${
@@ -302,13 +330,33 @@ const StudentDashboard = () => {
                                   >
                                     {level}
                                   </span>
-                                  <span className="text-xs text-gray-500">Enrolled</span>
+                                  {courseProgress[course.id] !== undefined && (
+                                    <div className="flex items-center gap-1 text-xs font-semibold text-blue-600">
+                                      <TrendingUp className="h-3 w-3" />
+                                      {Math.round(courseProgress[course.id])}%
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Course Title */}
-                                <h3 className="font-bold text-gray-900 mb-4 line-clamp-2 min-h-[3rem] text-base">
+                                <h3 className="font-bold text-gray-900 mb-3 line-clamp-2 min-h-[3rem] text-base">
                                   {course.title}
                                 </h3>
+
+                                {/* Progress Bar */}
+                                {courseProgress[course.id] !== undefined && (
+                                  <div className="mb-4">
+                                    <Progress 
+                                      value={courseProgress[course.id]} 
+                                      className="h-2"
+                                    />
+                                    <p className="text-xs text-gray-600 mt-1">
+                                      {courseProgress[course.id] === 0 ? 'Start learning' : 
+                                       courseProgress[course.id] === 100 ? 'Completed! 🎉' : 
+                                       'Keep going!'}
+                                    </p>
+                                  </div>
+                                )}
 
                                 {/* View Button */}
                                 <Button
@@ -318,7 +366,8 @@ const StudentDashboard = () => {
                                     navigate(`/course/${course.id}`);
                                   }}
                                 >
-                                  View
+                                  {courseProgress[course.id] === 100 ? 'Review Course' : 
+                                   courseProgress[course.id] > 0 ? 'Continue Learning' : 'Start Course'}
                                 </Button>
                               </div>
                             </CardContent>

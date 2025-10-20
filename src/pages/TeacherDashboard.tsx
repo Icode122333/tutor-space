@@ -179,14 +179,28 @@ const TeacherDashboard = () => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                   {/* Create Course Button */}
-                  <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-background border-primary/20">
+                  <Card className="bg-gradient-to-r from-purple-500/10 via-blue-500/5 to-background border-purple-500/20 hover:border-purple-500/40 transition-all">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-lg font-semibold mb-1">Ready to create a new course?</h3>
-                          <p className="text-sm text-muted-foreground">Share your knowledge with students worldwide</p>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold mb-1 text-purple-900">Ready to create a new course?</h3>
+                          <p className="text-sm text-muted-foreground mb-3">Share your knowledge with students worldwide</p>
+                          <div className="flex flex-wrap gap-2">
+                            <Badge variant="secondary" className="text-xs">
+                              📹 Video Lessons
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              📝 Quizzes
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              📊 Progress Tracking
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              🏆 Capstone Projects
+                            </Badge>
+                          </div>
                         </div>
-                        <Button size="lg" className="gap-2" onClick={() => navigate("/create-course")}>
+                        <Button size="lg" className="gap-2 bg-purple-600 hover:bg-purple-700" onClick={() => navigate("/create-course")}>
                           <Plus className="h-4 w-4" />
                           Create Course
                         </Button>
