@@ -2,12 +2,19 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Bell, Plus, Users, BookOpen, ClipboardList, TrendingUp, Calendar as CalendarIcon } from "lucide-react";
+import { Search, Bell, Plus, Users, BookOpen, ClipboardList, TrendingUp, Calendar as CalendarIcon, Edit, Trash2, MoreVertical, Layers, PlayCircle } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,13 +71,67 @@ const TeacherDashboard = () => {
     if (error) {
       console.error("Error fetching courses:", error);
     } else {
-      // Add enrollment count to each course
-      const coursesWithCount = data?.map(course => ({
-        ...course,
-        enrolled_count: course.course_enrollments?.[0]?.count || 0
-      })) || [];
-      setCourses(coursesWithCount);
+      // Add enrollment count and fetch chapter/lesson counts
+      const coursesWithDetails = await Promise.all(
+        (data || []).map(async (course) => {
+          // Get chapter count
+          const { count: chapterCount } = await supabase
+            .from("course_chapters")
+            .select("*", { count: 'exact', head: true })
+            .eq("course_id", course.id);
+
+          // Get lesson count
+          const { data: chapters } = await supabase
+            .from("course_chapters")
+            .select("id")
+            .eq("course_id", course.id);
+
+          let lessonCount = 0;
+          if (chapters) {
+            for (const chapter of chapters) {
+              const { count } = await supabase
+                .from("course_lessons")
+                .select("*", { count: 'exact', head: true })
+                .eq("chapter_id", chapter.id);
+              lessonCount += count || 0;
+            }
+          }
+
+          return {
+            ...course,
+            enrolled_count: course.course_enrollments?.[0]?.count || 0,
+            chapter_count: chapterCount || 0,
+            lesson_count: lessonCount,
+          };
+        })
+      );
+      setCourses(coursesWithDetails);
     }
+  };
+
+  const handleDeleteCourse = async (courseId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this course? This action cannot be undone.")) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("courses")
+      .delete()
+      .eq("id", courseId);
+
+    if (error) {
+      toast.error("Failed to delete course");
+      console.error("Error deleting course:", error);
+    } else {
+      toast.success("Course deleted successfully");
+      fetchCourses();
+    }
+  };
+
+  const handleEditCourse = (courseId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/create-course?edit=${courseId}`);
   };
 
 
@@ -137,8 +198,8 @@ const TeacherDashboard = () => {
                     <BookOpen className="h-4 w-4 text-blue-500" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">12</div>
-                    <p className="text-xs text-muted-foreground">+2 from last month</p>
+                    <div className="text-2xl font-bold">{courses.length}</div>
+                    <p className="text-xs text-muted-foreground">Active courses</p>
                   </CardContent>
                 </Card>
 
@@ -148,30 +209,30 @@ const TeacherDashboard = () => {
                     <Users className="h-4 w-4 text-green-500" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">487</div>
-                    <p className="text-xs text-muted-foreground">+23 from last month</p>
+                    <div className="text-2xl font-bold">{courses.reduce((sum, c) => sum + (c.enrolled_count || 0), 0)}</div>
+                    <p className="text-xs text-muted-foreground">Enrolled students</p>
                   </CardContent>
                 </Card>
 
                 <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
-                    <ClipboardList className="h-4 w-4 text-orange-500" />
+                    <CardTitle className="text-sm font-medium">Total Lessons</CardTitle>
+                    <PlayCircle className="h-4 w-4 text-orange-500" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">18</div>
-                    <p className="text-xs text-muted-foreground">Assignments to grade</p>
+                    <div className="text-2xl font-bold">{courses.reduce((sum, c) => sum + (c.lesson_count || 0), 0)}</div>
+                    <p className="text-xs text-muted-foreground">Across all courses</p>
                   </CardContent>
                 </Card>
 
                 <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-purple-500" />
+                    <CardTitle className="text-sm font-medium">Total Chapters</CardTitle>
+                    <Layers className="h-4 w-4 text-purple-500" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">87%</div>
-                    <p className="text-xs text-muted-foreground">+5% from last month</p>
+                    <div className="text-2xl font-bold">{courses.reduce((sum, c) => sum + (c.chapter_count || 0), 0)}</div>
+                    <p className="text-xs text-muted-foreground">Across all courses</p>
                   </CardContent>
                 </Card>
               </div>
@@ -179,28 +240,14 @@ const TeacherDashboard = () => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                   {/* Create Course Button */}
-                  <Card className="bg-gradient-to-r from-purple-500/10 via-blue-500/5 to-background border-purple-500/20 hover:border-purple-500/40 transition-all">
+                  <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-background border-primary/20">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold mb-1 text-purple-900">Ready to create a new course?</h3>
-                          <p className="text-sm text-muted-foreground mb-3">Share your knowledge with students worldwide</p>
-                          <div className="flex flex-wrap gap-2">
-                            <Badge variant="secondary" className="text-xs">
-                              📹 Video Lessons
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs">
-                              📝 Quizzes
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs">
-                              📊 Progress Tracking
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs">
-                              🏆 Capstone Projects
-                            </Badge>
-                          </div>
+                        <div>
+                          <h3 className="text-lg font-semibold mb-1">Ready to create a new course?</h3>
+                          <p className="text-sm text-muted-foreground">Share your knowledge with students worldwide</p>
                         </div>
-                        <Button size="lg" className="gap-2 bg-purple-600 hover:bg-purple-700" onClick={() => navigate("/create-course")}>
+                        <Button size="lg" className="gap-2" onClick={() => navigate("/create-course")}>
                           <Plus className="h-4 w-4" />
                           Create Course
                         </Button>
@@ -208,11 +255,20 @@ const TeacherDashboard = () => {
                     </CardContent>
                   </Card>
 
-                  {/* My Courses */}
+                  {/* My Courses - Management Section */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>My Active Courses</CardTitle>
-                      <CardDescription>Courses you're currently teaching</CardDescription>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle>My Courses</CardTitle>
+                          <CardDescription>Manage and edit your courses</CardDescription>
+                        </div>
+                        {courses.length > 0 && (
+                          <Badge variant="secondary" className="text-sm">
+                            {courses.length} {courses.length === 1 ? 'Course' : 'Courses'}
+                          </Badge>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent>
                       {courses.length === 0 ? (
@@ -226,46 +282,144 @@ const TeacherDashboard = () => {
                           </Button>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                        <div className="space-y-4">
                           {courses.map((course) => (
-                            <div
+                            <Card
                               key={course.id}
-                              className="group cursor-pointer"
+                              className="group hover:shadow-lg transition-all duration-300 border-2 hover:border-[#006d2c] cursor-pointer"
                               onClick={() => navigate(`/course/${course.id}`)}
                             >
-                              <div className="relative overflow-hidden rounded-xl bg-white border-2 border-gray-200 hover:border-[#006d2c] transition-all duration-300 hover:shadow-xl">
-                                <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden">
-                                  {course.thumbnail_url ? (
-                                    <img
-                                      src={course.thumbnail_url}
-                                      alt={course.title}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#006d2c] to-[#004d20]">
-                                      <BookOpen className="h-20 w-20 text-white/30" />
-                                    </div>
-                                  )}
-                                  <div className="absolute top-3 right-3">
-                                    <Badge className="bg-[#006d2c] text-white hover:bg-[#005523]">
-                                      {course.level || 'Beginner'}
-                                    </Badge>
-                                  </div>
-                                </div>
-                                <div className="p-5">
-                                  <h4 className="font-bold text-black mb-3 line-clamp-2 text-lg">{course.title}</h4>
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                                      <Users className="h-4 w-4" />
-                                      <span>{course.enrolled_count || 0} students</span>
-                                    </div>
-                                    {course.price && (
-                                      <span className="text-[#006d2c] font-bold">${course.price}</span>
+                              <CardContent className="p-5">
+                                <div className="flex items-start gap-4">
+                                  {/* Course Thumbnail */}
+                                  <div className="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-[#006d2c] to-[#004d20]">
+                                    {course.thumbnail_url ? (
+                                      <img
+                                        src={course.thumbnail_url}
+                                        alt={course.title}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center">
+                                        <BookOpen className="h-10 w-10 text-white/30" />
+                                      </div>
                                     )}
                                   </div>
+
+                                  {/* Course Info */}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-4 mb-3">
+                                      <div className="flex-1">
+                                        <h4 className="font-bold text-gray-900 mb-1 line-clamp-1 group-hover:text-[#006d2c] transition-colors">
+                                          {course.title}
+                                        </h4>
+                                        <Badge variant="outline" className="text-xs">
+                                          {course.level || 'Beginner'}
+                                        </Badge>
+                                      </div>
+                                      
+                                      {/* Actions Menu */}
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <MoreVertical className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                          <DropdownMenuItem onClick={(e) => handleEditCourse(course.id, e)}>
+                                            <Edit className="h-4 w-4 mr-2" />
+                                            Edit Course
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/create-course?edit=${course.id}&addChapter=true`);
+                                          }}>
+                                            <Layers className="h-4 w-4 mr-2" />
+                                            Add Chapter
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/course/${course.id}`);
+                                          }}>
+                                            <BookOpen className="h-4 w-4 mr-2" />
+                                            View Course
+                                          </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem 
+                                            onClick={(e) => handleDeleteCourse(course.id, e)}
+                                            className="text-destructive focus:text-destructive"
+                                          >
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                            Delete Course
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </div>
+
+                                    {/* Course Stats */}
+                                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                                      <div className="flex items-center gap-1.5">
+                                        <Layers className="h-4 w-4 text-blue-500" />
+                                        <span>{course.chapter_count || 0} Chapters</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5">
+                                        <PlayCircle className="h-4 w-4 text-purple-500" />
+                                        <span>{course.lesson_count || 0} Lessons</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5">
+                                        <Users className="h-4 w-4 text-green-500" />
+                                        <span>{course.enrolled_count || 0} Students</span>
+                                      </div>
+                                      {course.price && (
+                                        <div className="flex items-center gap-1.5 ml-auto">
+                                          <span className="text-[#006d2c] font-bold text-lg">${course.price}</span>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Quick Actions */}
+                                    <div className="flex gap-2 mt-3">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={(e) => handleEditCourse(course.id, e)}
+                                        className="text-xs"
+                                      >
+                                        <Edit className="h-3 w-3 mr-1" />
+                                        Edit
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(`/create-course?edit=${course.id}&addChapter=true`);
+                                        }}
+                                        className="text-xs"
+                                      >
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Add Content
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(`/course/${course.id}`);
+                                        }}
+                                        className="text-xs bg-[#006d2c] hover:bg-[#005523]"
+                                      >
+                                        View Course
+                                      </Button>
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                            </div>
+                              </CardContent>
+                            </Card>
                           ))}
                         </div>
                       )}
