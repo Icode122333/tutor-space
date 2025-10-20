@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,8 +41,12 @@ interface Chapter {
 
 export default function CreateCourse() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [courseId, setCourseId] = useState<string | null>(null);
   
   const [courseData, setCourseData] = useState({
     title: "",
@@ -62,6 +66,146 @@ export default function CreateCourse() {
     due_date: "",
   });
   const [includeCapstone, setIncludeCapstone] = useState(false);
+
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) {
+      setIsEditMode(true);
+      setCourseId(editId);
+      fetchCourseData(editId);
+    }
+  }, [searchParams]);
+
+  const fetchCourseData = async (id: string) => {
+    try {
+      setInitialLoading(true);
+      
+      // Fetch course details
+      const { data: course, error: courseError } = await supabase
+        .from("courses")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (courseError) throw courseError;
+
+      setCourseData({
+        title: course.title || "",
+        description: course.description || "",
+        price: course.price?.toString() || "",
+        requirements: course.requirements || "",
+        thumbnail_url: course.thumbnail_url || "",
+      });
+
+      // Fetch chapters
+      const { data: chaptersData, error: chaptersError } = await supabase
+        .from("course_chapters")
+        .select("*")
+        .eq("course_id", id)
+        .order("order_index");
+
+      if (chaptersError) throw chaptersError;
+
+      // Fetch lessons for each chapter
+      const chaptersWithLessons = await Promise.all(
+        (chaptersData || []).map(async (chapter) => {
+          const { data: lessonsData, error: lessonsError } = await supabase
+            .from("course_lessons")
+            .select("*")
+            .eq("chapter_id", chapter.id)
+            .order("order_index");
+
+          if (lessonsError) throw lessonsError;
+
+          // Fetch quiz questions for quiz lessons
+          const lessonsWithQuiz = await Promise.all(
+            (lessonsData || []).map(async (lesson) => {
+              if (lesson.content_type === "quiz") {
+                const { data: questionsData, error: questionsError } = await supabase
+                  .from("lesson_quiz_questions")
+                  .select("*")
+                  .eq("lesson_id", lesson.id)
+                  .order("order_index");
+
+                if (!questionsError && questionsData) {
+                  return {
+                    title: lesson.title,
+                    description: lesson.description,
+                    content_type: lesson.content_type,
+                    content_url: lesson.content_url || "",
+                    duration: lesson.duration,
+                    order_index: lesson.order_index,
+                    is_mandatory: lesson.is_mandatory,
+                    quiz_questions: questionsData.map(q => ({
+                      id: q.id,
+                      question_text: q.question_text,
+                      options: q.options,
+                      correct_answer: q.correct_answer,
+                      explanation: q.explanation,
+                      points: q.points,
+                    })),
+                  };
+                }
+              }
+              return {
+                title: lesson.title,
+                description: lesson.description,
+                content_type: lesson.content_type,
+                content_url: lesson.content_url || "",
+                duration: lesson.duration,
+                order_index: lesson.order_index,
+                is_mandatory: lesson.is_mandatory,
+                quiz_questions: [],
+              };
+            })
+          );
+
+          return {
+            title: chapter.title,
+            description: chapter.description,
+            order_index: chapter.order_index,
+            lessons: lessonsWithQuiz,
+          };
+        })
+      );
+
+      setChapters(chaptersWithLessons);
+      // Open all chapters in edit mode
+      setOpenChapters(new Set(chaptersWithLessons.map((_, idx) => idx)));
+
+      // Fetch capstone project if exists
+      const { data: capstoneData, error: capstoneError } = await supabase
+        .from("capstone_projects")
+        .select("*")
+        .eq("course_id", id)
+        .single();
+
+      if (!capstoneError && capstoneData) {
+        setIncludeCapstone(true);
+        setCapstoneProject({
+          title: capstoneData.title || "",
+          description: capstoneData.description || "",
+          instructions: capstoneData.instructions || "",
+          requirements: capstoneData.requirements || [""],
+          due_date: capstoneData.due_date || "",
+        });
+      }
+
+      toast({
+        title: "Course loaded",
+        description: "You can now edit your course",
+      });
+    } catch (error) {
+      console.error("Error fetching course:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load course data",
+        variant: "destructive",
+      });
+    } finally {
+      setInitialLoading(false);
+    }
+  };
 
   const addChapter = () => {
     setChapters([...chapters, {
@@ -193,21 +337,59 @@ export default function CreateCourse() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Create course
-      const { data: course, error: courseError } = await supabase
-        .from("courses")
-        .insert({
-          title: courseData.title,
-          description: courseData.description,
-          price: parseFloat(courseData.price) || 0,
-          requirements: courseData.requirements,
-          thumbnail_url: courseData.thumbnail_url,
-          teacher_id: user.id,
-        })
-        .select()
-        .single();
+      let course: any;
 
-      if (courseError) throw courseError;
+      if (isEditMode && courseId) {
+        // Update existing course
+        const { data: updatedCourse, error: courseError } = await supabase
+          .from("courses")
+          .update({
+            title: courseData.title,
+            description: courseData.description,
+            price: parseFloat(courseData.price) || 0,
+            requirements: courseData.requirements,
+            thumbnail_url: courseData.thumbnail_url,
+          })
+          .eq("id", courseId)
+          .select()
+          .single();
+
+        if (courseError) throw courseError;
+        course = updatedCourse;
+
+        // Delete existing chapters and lessons to rebuild
+        const { data: existingChapters } = await supabase
+          .from("course_chapters")
+          .select("id")
+          .eq("course_id", courseId);
+
+        if (existingChapters) {
+          for (const chapter of existingChapters) {
+            await supabase.from("course_lessons").delete().eq("chapter_id", chapter.id);
+          }
+          await supabase.from("course_chapters").delete().eq("course_id", courseId);
+        }
+
+        // Delete existing capstone
+        await supabase.from("capstone_projects").delete().eq("course_id", courseId);
+      } else {
+        // Create new course
+        const { data: newCourse, error: courseError } = await supabase
+          .from("courses")
+          .insert({
+            title: courseData.title,
+            description: courseData.description,
+            price: parseFloat(courseData.price) || 0,
+            requirements: courseData.requirements,
+            thumbnail_url: courseData.thumbnail_url,
+            teacher_id: user.id,
+          })
+          .select()
+          .single();
+
+        if (courseError) throw courseError;
+        course = newCourse;
+      }
 
       // Create chapters and lessons
       for (const chapter of chapters) {
@@ -284,15 +466,15 @@ export default function CreateCourse() {
 
       toast({
         title: "Success!",
-        description: "Course created successfully",
+        description: isEditMode ? "Course updated successfully" : "Course created successfully",
       });
 
-      navigate("/teacher-dashboard");
+      navigate("/teacher/dashboard");
     } catch (error) {
       console.error("Error creating course:", error);
       toast({
         title: "Error",
-        description: "Failed to create course",
+        description: isEditMode ? "Failed to update course" : "Failed to create course",
         variant: "destructive",
       });
     } finally {
@@ -300,10 +482,32 @@ export default function CreateCourse() {
     }
   };
 
+  if (initialLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading course data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Create New Course</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">
+            {isEditMode ? "Edit Course" : "Create New Course"}
+          </h1>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/teacher/dashboard")}
+          >
+            Cancel
+          </Button>
+        </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>
@@ -799,12 +1003,15 @@ export default function CreateCourse() {
 
           <div className="flex gap-4">
             <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? "Creating..." : "Create Course"}
+              {loading 
+                ? (isEditMode ? "Updating..." : "Creating...") 
+                : (isEditMode ? "Update Course" : "Create Course")
+              }
             </Button>
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/teacher-dashboard")}
+              onClick={() => navigate("/teacher/dashboard")}
             >
               Cancel
             </Button>
