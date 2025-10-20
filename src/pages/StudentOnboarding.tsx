@@ -310,8 +310,8 @@ const StudentOnboarding = () => {
                         type="button"
                         onClick={() => setFormData({ ...formData, avatar })}
                         className={`relative rounded-full overflow-hidden border-4 transition-all hover:scale-110 ${formData.avatar === avatar
-                            ? "border-[#006d2c] ring-4 ring-[#006d2c]/30"
-                            : "border-gray-200 hover:border-[#006d2c]/50"
+                          ? "border-[#006d2c] ring-4 ring-[#006d2c]/30"
+                          : "border-gray-200 hover:border-[#006d2c]/50"
                           }`}
                       >
                         <img
@@ -442,15 +442,15 @@ const StudentOnboarding = () => {
                     key={interest}
                     onClick={() => toggleInterest(interest)}
                     className={`p-4 rounded-xl border-2 text-left transition-all ${formData.interests.includes(interest)
-                        ? "border-[#006d2c] bg-[#006d2c]/10"
-                        : "border-gray-200 hover:border-[#006d2c]/50"
+                      ? "border-[#006d2c] bg-[#006d2c]/10"
+                      : "border-gray-200 hover:border-[#006d2c]/50"
                       }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
                         className={`w-5 h-5 rounded border-2 flex items-center justify-center ${formData.interests.includes(interest)
-                            ? "border-[#006d2c] bg-[#006d2c]"
-                            : "border-gray-300"
+                          ? "border-[#006d2c] bg-[#006d2c]"
+                          : "border-gray-300"
                           }`}
                       >
                         {formData.interests.includes(interest) && (

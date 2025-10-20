@@ -7,17 +7,29 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, ClipboardList, Award } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
+interface QuizQuestion {
+  id: string;
+  question_text: string;
+  options: { id: string; text: string }[];
+  correct_answer: string;
+  explanation: string;
+  points: number;
+}
 
 interface Lesson {
   title: string;
   description: string;
-  content_type: "video" | "pdf" | "document";
+  content_type: "video" | "pdf" | "document" | "url" | "quiz";
   content_url: string;
   duration?: number;
   order_index: number;
+  is_mandatory?: boolean;
+  quiz_questions?: QuizQuestion[];
 }
 
 interface Chapter {
@@ -42,6 +54,14 @@ export default function CreateCourse() {
   
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [openChapters, setOpenChapters] = useState<Set<number>>(new Set([0]));
+  const [capstoneProject, setCapstoneProject] = useState({
+    title: "",
+    description: "",
+    instructions: "",
+    requirements: [""],
+    due_date: "",
+  });
+  const [includeCapstone, setIncludeCapstone] = useState(false);
 
   const addChapter = () => {
     setChapters([...chapters, {
@@ -64,7 +84,9 @@ export default function CreateCourse() {
       description: "",
       content_type: "video",
       content_url: "",
-      order_index: newChapters[chapterIndex].lessons.length
+      order_index: newChapters[chapterIndex].lessons.length,
+      is_mandatory: false,
+      quiz_questions: [],
     });
     setChapters(newChapters);
   };
@@ -81,13 +103,76 @@ export default function CreateCourse() {
     setChapters(newChapters);
   };
 
-  const updateLesson = (chapterIndex: number, lessonIndex: number, field: string, value: string | number) => {
+  const updateLesson = (chapterIndex: number, lessonIndex: number, field: string, value: string | number | boolean | QuizQuestion[]) => {
     const newChapters = [...chapters];
     newChapters[chapterIndex].lessons[lessonIndex] = {
       ...newChapters[chapterIndex].lessons[lessonIndex],
       [field]: value
     };
     setChapters(newChapters);
+  };
+
+  const addQuizQuestion = (chapterIndex: number, lessonIndex: number) => {
+    const newChapters = [...chapters];
+    const lesson = newChapters[chapterIndex].lessons[lessonIndex];
+    if (!lesson.quiz_questions) lesson.quiz_questions = [];
+    lesson.quiz_questions.push({
+      id: crypto.randomUUID(),
+      question_text: "",
+      options: [
+        { id: "a", text: "" },
+        { id: "b", text: "" },
+        { id: "c", text: "" },
+        { id: "d", text: "" },
+      ],
+      correct_answer: "a",
+      explanation: "",
+      points: 1,
+    });
+    setChapters(newChapters);
+  };
+
+  const updateQuizQuestion = (chapterIndex: number, lessonIndex: number, questionIndex: number, field: string, value: any) => {
+    const newChapters = [...chapters];
+    const question = newChapters[chapterIndex].lessons[lessonIndex].quiz_questions![questionIndex];
+    if (field === "option") {
+      const optionIndex = question.options.findIndex(o => o.id === value.id);
+      if (optionIndex !== -1) {
+        question.options[optionIndex].text = value.text;
+      }
+    } else {
+      newChapters[chapterIndex].lessons[lessonIndex].quiz_questions![questionIndex] = {
+        ...question,
+        [field]: value
+      };
+    }
+    setChapters(newChapters);
+  };
+
+  const removeQuizQuestion = (chapterIndex: number, lessonIndex: number, questionIndex: number) => {
+    const newChapters = [...chapters];
+    newChapters[chapterIndex].lessons[lessonIndex].quiz_questions!.splice(questionIndex, 1);
+    setChapters(newChapters);
+  };
+
+  const addCapstoneRequirement = () => {
+    setCapstoneProject({
+      ...capstoneProject,
+      requirements: [...capstoneProject.requirements, ""],
+    });
+  };
+
+  const updateCapstoneRequirement = (index: number, value: string) => {
+    const newRequirements = [...capstoneProject.requirements];
+    newRequirements[index] = value;
+    setCapstoneProject({ ...capstoneProject, requirements: newRequirements });
+  };
+
+  const removeCapstoneRequirement = (index: number) => {
+    setCapstoneProject({
+      ...capstoneProject,
+      requirements: capstoneProject.requirements.filter((_, i) => i !== index),
+    });
   };
 
   const toggleChapter = (index: number) => {
@@ -141,22 +226,60 @@ export default function CreateCourse() {
 
         // Create lessons for this chapter
         if (chapter.lessons.length > 0) {
-          const { error: lessonsError } = await supabase
-            .from("course_lessons")
-            .insert(
-              chapter.lessons.map(lesson => ({
+          for (const lesson of chapter.lessons) {
+            const { data: lessonData, error: lessonError } = await supabase
+              .from("course_lessons")
+              .insert({
                 chapter_id: chapterData.id,
                 title: lesson.title,
                 description: lesson.description,
                 content_type: lesson.content_type,
-                content_url: lesson.content_url,
+                content_url: lesson.content_type === "quiz" ? "" : lesson.content_url,
                 duration: lesson.duration,
                 order_index: lesson.order_index,
-              }))
-            );
+                is_mandatory: lesson.is_mandatory || false,
+              })
+              .select()
+              .single();
 
-          if (lessonsError) throw lessonsError;
+            if (lessonError) throw lessonError;
+
+            // If it's a quiz, save the questions
+            if (lesson.content_type === "quiz" && lesson.quiz_questions && lesson.quiz_questions.length > 0) {
+              const questionsToInsert = lesson.quiz_questions.map((q, idx) => ({
+                lesson_id: lessonData.id,
+                question_text: q.question_text,
+                options: q.options,
+                correct_answer: q.correct_answer,
+                explanation: q.explanation,
+                order_index: idx,
+                points: q.points,
+              }));
+
+              const { error: questionsError } = await supabase
+                .from("lesson_quiz_questions")
+                .insert(questionsToInsert);
+
+              if (questionsError) throw questionsError;
+            }
+          }
         }
+      }
+
+      // Create capstone project if included
+      if (includeCapstone && capstoneProject.title.trim()) {
+        const { error: capstoneError } = await supabase
+          .from("capstone_projects")
+          .insert({
+            course_id: course.id,
+            title: capstoneProject.title,
+            description: capstoneProject.description,
+            instructions: capstoneProject.instructions,
+            requirements: capstoneProject.requirements.filter(r => r.trim() !== ""),
+            due_date: capstoneProject.due_date || null,
+          });
+
+        if (capstoneError) throw capstoneError;
       }
 
       toast({
@@ -364,7 +487,9 @@ export default function CreateCourse() {
                                       <SelectContent>
                                         <SelectItem value="video">Video</SelectItem>
                                         <SelectItem value="pdf">PDF Document</SelectItem>
-                                        <SelectItem value="document">Document</SelectItem>
+                                        <SelectItem value="document">Document (DOC/DOCX)</SelectItem>
+                                        <SelectItem value="url">External URL</SelectItem>
+                                        <SelectItem value="quiz">Quiz</SelectItem>
                                       </SelectContent>
                                     </Select>
                                   </div>
@@ -390,21 +515,25 @@ export default function CreateCourse() {
                                   )}
                                 </div>
 
-                                <div>
-                                  <Label className="text-sm">Content URL *</Label>
-                                  <Input
-                                    required
-                                    value={lesson.content_url}
-                                    onChange={(e) =>
-                                      updateLesson(chapterIndex, lessonIndex, "content_url", e.target.value)
-                                    }
-                                    placeholder={
-                                      lesson.content_type === "video"
-                                        ? "YouTube URL or video link"
-                                        : "PDF or document URL"
-                                    }
-                                  />
-                                </div>
+                                {lesson.content_type !== "quiz" && (
+                                  <div>
+                                    <Label className="text-sm">Content URL *</Label>
+                                    <Input
+                                      required
+                                      value={lesson.content_url}
+                                      onChange={(e) =>
+                                        updateLesson(chapterIndex, lessonIndex, "content_url", e.target.value)
+                                      }
+                                      placeholder={
+                                        lesson.content_type === "video"
+                                          ? "YouTube URL or video link"
+                                          : lesson.content_type === "url"
+                                          ? "https://example.com"
+                                          : "PDF or document URL"
+                                      }
+                                    />
+                                  </div>
+                                )}
 
                                 <div>
                                   <Label className="text-sm">Description</Label>
@@ -417,6 +546,123 @@ export default function CreateCourse() {
                                     rows={2}
                                   />
                                 </div>
+
+                                {lesson.content_type === "quiz" && (
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="checkbox"
+                                        id={`mandatory-${chapterIndex}-${lessonIndex}`}
+                                        checked={lesson.is_mandatory || false}
+                                        onChange={(e) =>
+                                          updateLesson(chapterIndex, lessonIndex, "is_mandatory", e.target.checked)
+                                        }
+                                        className="rounded"
+                                      />
+                                      <Label htmlFor={`mandatory-${chapterIndex}-${lessonIndex}`} className="text-sm font-normal">
+                                        Mandatory (students must pass to proceed)
+                                      </Label>
+                                    </div>
+
+                                    <div className="border-t pt-3">
+                                      <div className="flex items-center justify-between mb-3">
+                                        <Label className="text-sm font-semibold">Quiz Questions</Label>
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => addQuizQuestion(chapterIndex, lessonIndex)}
+                                        >
+                                          <Plus className="h-3 w-3 mr-1" />
+                                          Add Question
+                                        </Button>
+                                      </div>
+
+                                      {lesson.quiz_questions && lesson.quiz_questions.length > 0 ? (
+                                        <div className="space-y-4">
+                                          {lesson.quiz_questions.map((question, qIndex) => (
+                                            <Card key={question.id} className="p-3 bg-white">
+                                              <div className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                  <Label className="text-xs font-semibold">Question {qIndex + 1}</Label>
+                                                  <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => removeQuizQuestion(chapterIndex, lessonIndex, qIndex)}
+                                                  >
+                                                    <Trash2 className="h-3 w-3" />
+                                                  </Button>
+                                                </div>
+
+                                                <Input
+                                                  placeholder="Enter question"
+                                                  value={question.question_text}
+                                                  onChange={(e) =>
+                                                    updateQuizQuestion(chapterIndex, lessonIndex, qIndex, "question_text", e.target.value)
+                                                  }
+                                                  className="text-sm"
+                                                />
+
+                                                <div className="grid grid-cols-2 gap-2">
+                                                  {question.options.map((option) => (
+                                                    <div key={option.id} className="flex items-center gap-2">
+                                                      <input
+                                                        type="radio"
+                                                        name={`correct-${chapterIndex}-${lessonIndex}-${qIndex}`}
+                                                        checked={question.correct_answer === option.id}
+                                                        onChange={() =>
+                                                          updateQuizQuestion(chapterIndex, lessonIndex, qIndex, "correct_answer", option.id)
+                                                        }
+                                                        className="flex-shrink-0"
+                                                      />
+                                                      <Input
+                                                        placeholder={`Option ${option.id.toUpperCase()}`}
+                                                        value={option.text}
+                                                        onChange={(e) =>
+                                                          updateQuizQuestion(chapterIndex, lessonIndex, qIndex, "option", {
+                                                            id: option.id,
+                                                            text: e.target.value,
+                                                          })
+                                                        }
+                                                        className="text-xs"
+                                                      />
+                                                    </div>
+                                                  ))}
+                                                </div>
+
+                                                <Textarea
+                                                  placeholder="Explanation (optional)"
+                                                  value={question.explanation}
+                                                  onChange={(e) =>
+                                                    updateQuizQuestion(chapterIndex, lessonIndex, qIndex, "explanation", e.target.value)
+                                                  }
+                                                  rows={2}
+                                                  className="text-xs"
+                                                />
+
+                                                <Input
+                                                  type="number"
+                                                  placeholder="Points"
+                                                  value={question.points}
+                                                  onChange={(e) =>
+                                                    updateQuizQuestion(chapterIndex, lessonIndex, qIndex, "points", parseInt(e.target.value) || 1)
+                                                  }
+                                                  className="text-xs w-24"
+                                                  min="1"
+                                                />
+                                              </div>
+                                            </Card>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <p className="text-xs text-muted-foreground text-center py-4">
+                                          No questions yet. Click "Add Question" to create quiz questions.
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </CardContent>
                             </Card>
                           ))}
@@ -433,6 +679,122 @@ export default function CreateCourse() {
                 </div>
               )}
             </CardContent>
+          </Card>
+
+          {/* Capstone Project Section */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Award className="h-5 w-5 text-purple-600" />
+                  <CardTitle>Capstone Project (Optional)</CardTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="include-capstone"
+                    checked={includeCapstone}
+                    onChange={(e) => setIncludeCapstone(e.target.checked)}
+                    className="rounded"
+                  />
+                  <Label htmlFor="include-capstone" className="text-sm font-normal cursor-pointer">
+                    Include capstone project
+                  </Label>
+                </div>
+              </div>
+            </CardHeader>
+            {includeCapstone && (
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="capstone-title">Project Title *</Label>
+                  <Input
+                    id="capstone-title"
+                    required={includeCapstone}
+                    value={capstoneProject.title}
+                    onChange={(e) =>
+                      setCapstoneProject({ ...capstoneProject, title: e.target.value })
+                    }
+                    placeholder="e.g., Build a Full-Stack Application"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="capstone-description">Description *</Label>
+                  <Textarea
+                    id="capstone-description"
+                    required={includeCapstone}
+                    value={capstoneProject.description}
+                    onChange={(e) =>
+                      setCapstoneProject({ ...capstoneProject, description: e.target.value })
+                    }
+                    placeholder="Brief overview of the capstone project"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="capstone-instructions">Instructions *</Label>
+                  <Textarea
+                    id="capstone-instructions"
+                    required={includeCapstone}
+                    value={capstoneProject.instructions}
+                    onChange={(e) =>
+                      setCapstoneProject({ ...capstoneProject, instructions: e.target.value })
+                    }
+                    placeholder="Detailed step-by-step instructions for completing the project"
+                    rows={5}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Requirements</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={addCapstoneRequirement}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Requirement
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {capstoneProject.requirements.map((req, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          value={req}
+                          onChange={(e) => updateCapstoneRequirement(index, e.target.value)}
+                          placeholder={`Requirement ${index + 1}`}
+                        />
+                        {capstoneProject.requirements.length > 1 && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => removeCapstoneRequirement(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="capstone-due-date">Due Date (Optional)</Label>
+                  <Input
+                    id="capstone-due-date"
+                    type="date"
+                    value={capstoneProject.due_date}
+                    onChange={(e) =>
+                      setCapstoneProject({ ...capstoneProject, due_date: e.target.value })
+                    }
+                  />
+                </div>
+              </CardContent>
+            )}
           </Card>
 
           <div className="flex gap-4">
