@@ -125,7 +125,7 @@ const BrowseCourses = () => {
                 <Card
                   key={course.id}
                   className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-[#006D2C] cursor-pointer rounded-2xl"
-                  onClick={() => navigate(`/course/${course.id}`)}
+                  onClick={() => navigate("/signup")}
                 >
                   <CardContent className="p-4">
                     {/* Course Image */}
@@ -192,7 +192,7 @@ const BrowseCourses = () => {
                         className="w-full bg-[#006D2C] hover:bg-[#005523] text-white rounded-full font-medium"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/course/${course.id}`);
+                          navigate("/signup");
                         }}
                       >
                         View

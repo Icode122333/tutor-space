@@ -2,11 +2,31 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BookOpen, GraduationCap, Users, BookOpenCheck, MessageSquare, FileText, Star, Menu, X } from "lucide-react";
+import { toast } from "sonner";
 
 const Index = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [demoDialogOpen, setDemoDialogOpen] = useState(false);
+  const [demoFormData, setDemoFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    organization: ""
+  });
+
+  const handleDemoSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Here you can add logic to send the demo request to your backend
+    console.log("Demo request:", demoFormData);
+    toast.success("Demo request submitted! We'll contact you soon.");
+    setDemoDialogOpen(false);
+    setDemoFormData({ name: "", email: "", phone: "", organization: "" });
+  };
 
   return (
     <div className="min-h-screen relative">
@@ -26,20 +46,20 @@ const Index = () => {
                 alt="DataPlus Logo"
                 className="w-8 h-8 object-contain"
               />
-              <span className="text-xl font-bold text-black">Labs</span>
+              <span className="text-xl font-bold" style={{ color: '#008000' }}>Labs</span>
             </div>
             <div className="hidden md:flex items-center gap-8">
               <a href="#home" className="text-sm font-medium text-black hover:text-[#006d2c] transition-colors">Home</a>
-              <a href="#courses" className="text-sm font-medium text-black hover:text-[#006d2c] transition-colors">Courses</a>
-              <a href="#about" className="text-sm font-medium text-black hover:text-[#006d2c] transition-colors">About</a>
-              <a href="#contact" className="text-sm font-medium text-black hover:text-[#006d2c] transition-colors">Contact</a>
+              <button onClick={() => navigate("/courses")} className="text-sm font-medium text-black hover:text-[#006d2c] transition-colors">Courses</button>
+              <button onClick={() => navigate("/about")} className="text-sm font-medium text-black hover:text-[#006d2c] transition-colors">About</button>
+              <button onClick={() => navigate("/contact")} className="text-sm font-medium text-black hover:text-[#006d2c] transition-colors">Contact</button>
               <button onClick={() => navigate("/exhibition")} className="text-sm font-medium text-black hover:text-[#006d2c] transition-colors">Exhibition</button>
             </div>
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
                 onClick={() => navigate("/auth")}
-                className="bg-white border-gray-300 text-black hover:bg-gray-50"
+                className="bg-white border-gray-300 text-black hover:bg-[#006d2c] hover:text-white"
               >
                 Login
               </Button>
@@ -65,44 +85,48 @@ const Index = () => {
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)}>
-          <div 
+          <div
             className="fixed top-40 left-6 bg-white rounded-2xl shadow-2xl p-6 w-64 animate-in slide-in-from-left-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col gap-4">
-              <a 
-                href="#home" 
+              <a
+                href="#home"
                 className="text-base font-medium text-black hover:text-[#006d2c] transition-colors py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Home
               </a>
-              <a 
-                href="#courses" 
+              <a
+                href="#courses"
                 className="text-base font-medium text-black hover:text-[#006d2c] transition-colors py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Courses
               </a>
-              <a 
-                href="#about" 
-                className="text-base font-medium text-black hover:text-[#006d2c] transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
+              <button
+                onClick={() => {
+                  navigate("/about");
+                  setMobileMenuOpen(false);
+                }}
+                className="text-base font-medium text-black hover:text-[#006d2c] transition-colors py-2 text-left"
               >
                 About
-              </a>
-              <a 
-                href="#contact" 
-                className="text-base font-medium text-black hover:text-[#006d2c] transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
+              </button>
+              <button
+                onClick={() => {
+                  navigate("/contact");
+                  setMobileMenuOpen(false);
+                }}
+                className="text-base font-medium text-black hover:text-[#006d2c] transition-colors py-2 text-left"
               >
                 Contact
-              </a>
-              <button 
+              </button>
+              <button
                 onClick={() => {
                   navigate("/exhibition");
                   setMobileMenuOpen(false);
-                }} 
+                }}
                 className="text-base font-medium text-black hover:text-[#006d2c] transition-colors py-2 text-left"
               >
                 Exhibition
@@ -113,14 +137,25 @@ const Index = () => {
       )}
 
       {/* Hero Section */}
-      <section id="home" className="relative z-10 flex items-center justify-center min-h-[80vh] px-4">
-        <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6" style={{ fontFamily: 'Inter, Poppins, Manrope, sans-serif' }}>
+      <section id="home" className="relative z-10 flex items-center justify-center min-h-[80vh] px-4 overflow-hidden">
+        {/* Gradient Background (Bottom Layer) */}
+        <div className="absolute inset-0 -z-20 bg-gradient-to-br from-green-50 via-white to-green-100"></div>
+        
+        {/* Background Image (Top Layer with opacity) */}
+        <div className="absolute inset-0 -z-10">
+          <img 
+            src="/images/background.webp" 
+            alt="Background" 
+            className="w-full h-full object-cover opacity-70"
+          />
+        </div>
+        
+        <div className="text-center max-w-4xl mx-auto relative z-10">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-6 tracking-wide" style={{ fontFamily: 'Roboto, sans-serif', letterSpacing: '0.02em' }}>
             Get where you're going <span className="text-[#006d2c]">faster</span>
             <br />
-            with <span className="text-[#006d2c]">DataPlus Labs</span>
+            with <span className="text-[#006d2c]">DATAPLUS Labs</span>
           </h1>
-
           <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto font-medium" style={{ fontFamily: 'Inter, Poppins, Manrope, sans-serif' }}>
             Expand your skills in development, testing, analysis, and designing with our comprehensive courses.
           </p>
@@ -130,13 +165,16 @@ const Index = () => {
               size="lg"
               onClick={() => navigate("/signup")}
               variant="outline"
-              className="bg-white border-gray-300 text-black hover:bg-gray-50 px-8 py-3 text-lg font-medium"
+              className="bg-white border-gray-300 text-white hover:text-[#006d2c] hover:bg-gray-50 px-8 py-3 text-lg font-medium transition-colors duration-300 group"
             >
-              Get Started
+              <span className="text-black group-hover:text-[#006d2c] transition-colors">
+                Get Started
+              </span>
             </Button>
             <Button
               size="lg"
-              className="bg-[#006d2c] hover:bg-[#006d2c] text-black px-8 py-3 text-lg font-medium"
+              onClick={() => setDemoDialogOpen(true)}
+              className="bg-[#006d2c] hover:bg-[#005523] text-white px-8 py-3 text-lg font-medium transition-colors duration-300"
             >
               Request Demo
             </Button>
@@ -186,7 +224,7 @@ const Index = () => {
                   className="h-12 w-auto object-contain"
                 />
               </div>
-              
+
               {/* Duplicate set for seamless loop */}
               <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
                 <img
@@ -240,8 +278,8 @@ const Index = () => {
 
           <div className="grid md:grid-cols-2 gap-12 max-w-5xl mx-auto mb-20">
             {/* Student Track */}
-            <div 
-              className="group cursor-pointer overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300" 
+            <div
+              className="group cursor-pointer overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300"
               onClick={() => navigate("/auth?role=student")}
             >
               <img
@@ -252,8 +290,8 @@ const Index = () => {
             </div>
 
             {/* Teacher Track */}
-            <div 
-              className="group cursor-pointer overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300" 
+            <div
+              className="group cursor-pointer overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300"
               onClick={() => navigate("/auth?role=teacher")}
             >
               <img
@@ -509,16 +547,39 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-[#006d2c] to-[#006d2c] text-black">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-4" style={{ fontFamily: 'Inter, Poppins, Manrope, sans-serif' }}>Ready to start learning?</h2>
-          <p className="text-lg mb-8 opacity-80">
+      <section className="py-20 relative overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 -z-10">
+          <img
+            src="/images/Screenshot 2025-10-25 193149 (1).webp"
+            alt="Background"
+            className="w-full h-full object-cover"
+          />
+          {/* Dark overlay for text visibility */}
+          <div className="absolute inset-0 bg-black/60"></div>
+        </div>
+
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <h2 
+            className="text-4xl md:text-5xl font-bold mb-4 text-white"
+            style={{ 
+              textShadow: '2px 2px 8px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.5)'
+            }}
+          >
+            Ready to start learning?
+          </h2>
+          <p 
+            className="text-lg md:text-xl mb-8 text-white"
+            style={{ 
+              textShadow: '1px 1px 6px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 0, 0, 0.5)'
+            }}
+          >
             Join thousands of students and teachers already using DataPlus Labs
           </p>
           <Button
             size="lg"
             onClick={() => navigate("/signup")}
-            className="bg-white text-black hover:bg-gray-100 border border-gray-300"
+            className="bg-[#006d2c] hover:bg-[#005523] text-white font-semibold px-8 py-6 text-lg shadow-2xl"
           >
             Get Started Today
           </Button>
@@ -626,9 +687,9 @@ const Index = () => {
                 <h3 className="font-bold text-black mb-4">Company</h3>
                 <ul className="space-y-3">
                   <li>
-                    <a href="#about" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
+                    <button onClick={() => navigate("/about")} className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
                       About
-                    </a>
+                    </button>
                   </li>
                   <li>
                     <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
@@ -636,9 +697,9 @@ const Index = () => {
                     </a>
                   </li>
                   <li>
-                    <a href="#contact" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
+                    <button onClick={() => navigate("/contact")} className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
                       Contact
-                    </a>
+                    </button>
                   </li>
                   <li>
                     <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
@@ -669,6 +730,96 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      {/* Demo Request Dialog */}
+      <Dialog open={demoDialogOpen} onOpenChange={setDemoDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-[#006d2c]">Request a Demo</DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Fill out the form below and we'll get back to you shortly to schedule your personalized demo.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleDemoSubmit} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="demo-name" className="text-sm font-medium text-gray-700">
+                Full Name*
+              </Label>
+              <Input
+                id="demo-name"
+                type="text"
+                placeholder="Enter your full name"
+                required
+                value={demoFormData.name}
+                onChange={(e) => setDemoFormData({ ...demoFormData, name: e.target.value })}
+                className="h-11 px-4 border-gray-300 rounded-lg focus:border-[#006d2c] focus:ring-[#006d2c]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="demo-email" className="text-sm font-medium text-gray-700">
+                Email Address*
+              </Label>
+              <Input
+                id="demo-email"
+                type="email"
+                placeholder="Enter your email"
+                required
+                value={demoFormData.email}
+                onChange={(e) => setDemoFormData({ ...demoFormData, email: e.target.value })}
+                className="h-11 px-4 border-gray-300 rounded-lg focus:border-[#006d2c] focus:ring-[#006d2c]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="demo-phone" className="text-sm font-medium text-gray-700">
+                Phone Number*
+              </Label>
+              <Input
+                id="demo-phone"
+                type="tel"
+                placeholder="Enter your phone number"
+                required
+                value={demoFormData.phone}
+                onChange={(e) => setDemoFormData({ ...demoFormData, phone: e.target.value })}
+                className="h-11 px-4 border-gray-300 rounded-lg focus:border-[#006d2c] focus:ring-[#006d2c]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="demo-organization" className="text-sm font-medium text-gray-700">
+                Organization*
+              </Label>
+              <Input
+                id="demo-organization"
+                type="text"
+                placeholder="Enter your organization name"
+                required
+                value={demoFormData.organization}
+                onChange={(e) => setDemoFormData({ ...demoFormData, organization: e.target.value })}
+                className="h-11 px-4 border-gray-300 rounded-lg focus:border-[#006d2c] focus:ring-[#006d2c]"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDemoDialogOpen(false)}
+                className="flex-1 h-11 border-gray-300 hover:bg-gray-50"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 h-11 bg-[#006d2c] hover:bg-[#005523] text-white transition-colors duration-300"
+              >
+                Submit Request
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
