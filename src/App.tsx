@@ -24,6 +24,9 @@ import StudentCertificates from "./pages/StudentCertificates";
 import BrowseCourses from "./pages/BrowseCourses";
 import MyCourses from "./pages/MyCourses";
 import StudentSettings from "./pages/StudentSettings";
+import TeacherSettings from "./pages/TeacherSettings";
+import TeacherAssignments from "./pages/TeacherAssignments";
+import TeacherGrades from "./pages/TeacherGrades";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TeacherStudents from "./pages/TeacherStudents";
 import NotFound from "./pages/NotFound";
@@ -56,6 +59,9 @@ const App = () => (
           <Route path="/teacher/schedule" element={<TeacherSchedule />} />
           <Route path="/teacher/chat" element={<TeacherChat />} />
           <Route path="/teacher/students" element={<TeacherStudents />} />
+          <Route path="/teacher/assignments" element={<TeacherAssignments />} />
+          <Route path="/teacher/grades" element={<TeacherGrades />} />
+          <Route path="/teacher/settings" element={<TeacherSettings />} />
           <Route path="/course/:id" element={<CourseDetail />} />
           <Route path="/create-course" element={<CreateCourse />} />
           <Route path="/courses" element={<BrowseCourses />} />

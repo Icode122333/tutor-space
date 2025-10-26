@@ -1,0 +1,503 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { TeacherSidebar } from "@/components/TeacherSidebar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { 
+  FileText, 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  Users, 
+  Eye,
+  AlertCircle
+} from "lucide-react";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import LoadingSpinner from "@/components/LoadingSpinner";
+
+interface Course {
+  id: string;
+  title: string;
+}
+
+interface CapstoneProject {
+  id: string;
+  course_id: string;
+  title: string;
+  description: string;
+  due_date: string | null;
+  courses: {
+    title: string;
+  };
+}
+
+interface Submission {
+  id: string;
+  student_id: string;
+  submitted_at: string;
+  grade: number | null;
+  feedback: string | null;
+  project_links: string[];
+  description: string;
+  profiles: {
+    full_name: string;
+    email: string;
+    avatar_url: string | null;
+  };
+}
+
+interface EnrolledStudent {
+  student_id: string;
+  profiles: {
+    full_name: string;
+    email: string;
+    avatar_url: string | null;
+  };
+}
+
+const TeacherAssignments = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+  const [capstoneProject, setCapstoneProject] = useState<CapstoneProject | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([]);
+
+  useEffect(() => {
+    fetchTeacherCourses();
+  }, []);
+
+  useEffect(() => {
+    if (selectedCourseId) {
+      fetchCapstoneProject();
+      fetchEnrolledStudents();
+    }
+  }, [selectedCourseId]);
+
+  useEffect(() => {
+    if (capstoneProject) {
+      fetchSubmissions();
+    }
+  }, [capstoneProject]);
+
+  const fetchTeacherCourses = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("courses")
+        .select("id, title")
+        .eq("teacher_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      setCourses(data || []);
+      if (data && data.length > 0) {
+        setSelectedCourseId(data[0].id);
+      }
+    } catch (error: any) {
+      toast.error("Failed to load courses");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCapstoneProject = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("capstone_projects")
+        .select(`
+          *,
+          courses (
+            title
+          )
+        `)
+        .eq("course_id", selectedCourseId)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        throw error;
+      }
+
+      setCapstoneProject(data || null);
+    } catch (error: any) {
+      console.error("Error fetching capstone project:", error);
+    }
+  };
+
+  const fetchSubmissions = async () => {
+    if (!capstoneProject) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("capstone_submissions")
+        .select(`
+          *,
+          profiles (
+            full_name,
+            email,
+            avatar_url
+          )
+        `)
+        .eq("capstone_project_id", capstoneProject.id)
+        .order("submitted_at", { ascending: false });
+
+      if (error) throw error;
+
+      setSubmissions(data || []);
+    } catch (error: any) {
+      toast.error("Failed to load submissions");
+      console.error(error);
+    }
+  };
+
+  const fetchEnrolledStudents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("course_enrollments")
+        .select(`
+          student_id,
+          profiles (
+            full_name,
+            email,
+            avatar_url
+          )
+        `)
+        .eq("course_id", selectedCourseId);
+
+      if (error) throw error;
+
+      setEnrolledStudents(data || []);
+    } catch (error: any) {
+      toast.error("Failed to load enrolled students");
+      console.error(error);
+    }
+  };
+
+  const getStudentsWhoHaventSubmitted = () => {
+    const submittedStudentIds = submissions.map(s => s.student_id);
+    return enrolledStudents.filter(
+      student => !submittedStudentIds.includes(student.student_id)
+    );
+  };
+
+  const handleViewSubmission = (submissionId: string) => {
+    // Navigate to submission detail or open modal
+    toast.info("Viewing submission details");
+  };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  const studentsWhoHaventSubmitted = getStudentsWhoHaventSubmitted();
+  const submittedCount = submissions.length;
+  const notSubmittedCount = studentsWhoHaventSubmitted.length;
+  const totalStudents = enrolledStudents.length;
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <TeacherSidebar />
+
+        <div className="flex-1 flex flex-col overflow-hidden p-4">
+          {/* Header */}
+          <header className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 mb-4">
+            <div className="flex items-center justify-between px-6 py-4">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger />
+                <div>
+                  <h1 className="text-2xl font-bold">Assignments</h1>
+                  <p className="text-sm text-muted-foreground">
+                    Track student submissions and progress
+                  </p>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 overflow-y-auto px-2">
+            <div className="max-w-7xl mx-auto space-y-6">
+              {/* Course Selector */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Select Course</CardTitle>
+                  <CardDescription>
+                    Choose a course to view its assignments
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {courses.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600">No courses found</p>
+                      <Button
+                        onClick={() => navigate("/create-course")}
+                        className="mt-4 bg-[#006d2c] hover:bg-[#005523]"
+                      >
+                        Create Your First Course
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a course" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {courses.map((course) => (
+                          <SelectItem key={course.id} value={course.id}>
+                            {course.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </CardContent>
+              </Card>
+
+              {selectedCourseId && (
+                <>
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+                        <Users className="h-4 w-4 text-blue-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{totalStudents}</div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Submitted</CardTitle>
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{submittedCount}</div>
+                        <p className="text-xs text-muted-foreground">
+                          {totalStudents > 0 ? Math.round((submittedCount / totalStudents) * 100) : 0}% completion
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Not Submitted</CardTitle>
+                        <Clock className="h-4 w-4 text-orange-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{notSubmittedCount}</div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Graded</CardTitle>
+                        <FileText className="h-4 w-4 text-purple-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {submissions.filter(s => s.grade !== null).length}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Assignment Details */}
+                  {capstoneProject ? (
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle className="text-xl">{capstoneProject.title}</CardTitle>
+                            <CardDescription className="mt-2">
+                              {capstoneProject.description}
+                            </CardDescription>
+                          </div>
+                          {capstoneProject.due_date && (
+                            <Badge variant="outline" className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Due: {new Date(capstoneProject.due_date).toLocaleDateString()}
+                            </Badge>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <Tabs defaultValue="submitted" className="w-full">
+                          <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="submitted">
+                              Submitted ({submittedCount})
+                            </TabsTrigger>
+                            <TabsTrigger value="not-submitted">
+                              Not Submitted ({notSubmittedCount})
+                            </TabsTrigger>
+                          </TabsList>
+
+                          {/* Submitted Tab */}
+                          <TabsContent value="submitted" className="space-y-4 mt-4">
+                            {submissions.length === 0 ? (
+                              <div className="text-center py-12">
+                                <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                                <p className="text-gray-600">No submissions yet</p>
+                              </div>
+                            ) : (
+                              submissions.map((submission) => (
+                                <Card key={submission.id} className="hover:shadow-md transition-shadow">
+                                  <CardContent className="p-4">
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex items-start gap-4 flex-1">
+                                        <Avatar className="h-12 w-12">
+                                          {submission.profiles.avatar_url ? (
+                                            <img src={submission.profiles.avatar_url} alt={submission.profiles.full_name} />
+                                          ) : (
+                                            <AvatarFallback className="bg-[#006d2c] text-white">
+                                              {submission.profiles.full_name.charAt(0)}
+                                            </AvatarFallback>
+                                          )}
+                                        </Avatar>
+                                        <div className="flex-1">
+                                          <h4 className="font-semibold">{submission.profiles.full_name}</h4>
+                                          <p className="text-sm text-muted-foreground">{submission.profiles.email}</p>
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            Submitted: {new Date(submission.submitted_at).toLocaleString()}
+                                          </p>
+                                          {submission.description && (
+                                            <p className="text-sm mt-2 line-clamp-2">{submission.description}</p>
+                                          )}
+                                          {submission.project_links && submission.project_links.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                              {submission.project_links.map((link, idx) => (
+                                                <a
+                                                  key={idx}
+                                                  href={link}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="text-xs text-blue-600 hover:underline"
+                                                >
+                                                  Link {idx + 1}
+                                                </a>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-col items-end gap-2">
+                                        {submission.grade !== null ? (
+                                          <Badge className="bg-green-500">
+                                            Grade: {submission.grade}/100
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant="outline" className="text-orange-500 border-orange-500">
+                                            Not Graded
+                                          </Badge>
+                                        )}
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => handleViewSubmission(submission.id)}
+                                        >
+                                          <Eye className="h-4 w-4 mr-1" />
+                                          View
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))
+                            )}
+                          </TabsContent>
+
+                          {/* Not Submitted Tab */}
+                          <TabsContent value="not-submitted" className="space-y-4 mt-4">
+                            {studentsWhoHaventSubmitted.length === 0 ? (
+                              <div className="text-center py-12">
+                                <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                                <p className="text-gray-600 font-semibold">All students have submitted!</p>
+                              </div>
+                            ) : (
+                              studentsWhoHaventSubmitted.map((student) => (
+                                <Card key={student.student_id} className="border-orange-200">
+                                  <CardContent className="p-4">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-4">
+                                        <Avatar className="h-12 w-12">
+                                          {student.profiles.avatar_url ? (
+                                            <img src={student.profiles.avatar_url} alt={student.profiles.full_name} />
+                                          ) : (
+                                            <AvatarFallback className="bg-gray-500 text-white">
+                                              {student.profiles.full_name.charAt(0)}
+                                            </AvatarFallback>
+                                          )}
+                                        </Avatar>
+                                        <div>
+                                          <h4 className="font-semibold">{student.profiles.full_name}</h4>
+                                          <p className="text-sm text-muted-foreground">{student.profiles.email}</p>
+                                        </div>
+                                      </div>
+                                      <Badge variant="outline" className="text-orange-500 border-orange-500 flex items-center gap-1">
+                                        <AlertCircle className="h-3 w-3" />
+                                        Pending
+                                      </Badge>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))
+                            )}
+                          </TabsContent>
+                        </Tabs>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card>
+                      <CardContent className="py-12 text-center">
+                        <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No Assignment Created</h3>
+                        <p className="text-gray-600 mb-4">
+                          This course doesn't have a capstone project yet
+                        </p>
+                        <Button
+                          onClick={() => navigate(`/create-course?edit=${selectedCourseId}`)}
+                          className="bg-[#006d2c] hover:bg-[#005523]"
+                        >
+                          Create Assignment
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              )}
+            </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+};
+
+export default TeacherAssignments;
