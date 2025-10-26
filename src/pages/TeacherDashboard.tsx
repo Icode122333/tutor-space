@@ -26,6 +26,7 @@ const TeacherDashboard = () => {
   const { user, profile, loading } = useAuth();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [courses, setCourses] = useState<any[]>([]);
+  const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
 
   useEffect(() => {
     if (!loading) {
@@ -52,9 +53,35 @@ const TeacherDashboard = () => {
 
         // Fetch teacher's courses
         fetchCourses();
+        fetchScheduledClasses();
       }
     }
   }, [user, profile, loading, navigate]);
+
+  const fetchScheduledClasses = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("scheduled_classes")
+      .select(`
+        *,
+        courses (
+          id,
+          title,
+          teacher_id
+        )
+      `)
+      .gte("scheduled_time", new Date().toISOString())
+      .order("scheduled_time", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching scheduled classes:", error);
+    } else {
+      // Filter to only show classes for teacher's courses
+      const teacherClasses = data?.filter(sc => sc.courses?.teacher_id === user.id) || [];
+      setScheduledClasses(teacherClasses);
+    }
+  };
 
   const fetchCourses = async () => {
     if (!user) return;
@@ -440,6 +467,17 @@ const TeacherDashboard = () => {
                         selected={date}
                         onSelect={setDate}
                         className="rounded-md"
+                        modifiers={{
+                          scheduled: scheduledClasses.map(sc => new Date(sc.scheduled_time))
+                        }}
+                        modifiersStyles={{
+                          scheduled: {
+                            backgroundColor: '#ef4444',
+                            color: 'white',
+                            borderRadius: '50%',
+                            fontWeight: 'bold'
+                          }
+                        }}
                       />
                     </CardContent>
                   </Card>

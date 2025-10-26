@@ -102,21 +102,104 @@ export default function StudentChat() {
   };
 
   const fetchConversations = async () => {
-    const { data, error } = await supabase
+    // First, get all courses the student is enrolled in
+    const { data: enrollments, error: enrollError } = await supabase
+      .from("course_enrollments")
+      .select(`
+        courses (
+          id,
+          teacher_id
+        )
+      `)
+      .eq("student_id", user?.id);
+
+    if (enrollError) {
+      console.error("Error fetching enrolled courses:", enrollError);
+      return;
+    }
+
+    // Get unique teacher IDs
+    const teacherIds = new Set<string>();
+    enrollments?.forEach((enrollment: any) => {
+      if (enrollment.courses?.teacher_id) {
+        teacherIds.add(enrollment.courses.teacher_id);
+      }
+    });
+
+    // Fetch teacher profiles
+    const { data: teachers, error: teacherError } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url")
+      .in("id", Array.from(teacherIds));
+
+    if (teacherError) {
+      console.error("Error fetching teachers:", teacherError);
+      return;
+    }
+
+    // Create teachers map
+    const teachersMap = new Map();
+    teachers?.forEach((teacher: any) => {
+      teachersMap.set(teacher.id, {
+        id: teacher.id,
+        name: teacher.full_name,
+        avatar: teacher.avatar_url,
+      });
+    });
+
+    console.log("Found teachers:", teachers);
+    console.log("Teachers map size:", teachersMap.size);
+
+    // Fetch existing conversations
+    const { data: existingConvs, error: convError } = await supabase
       .from("conversations_with_details")
       .select("*")
       .eq("student_id", user?.id)
-      .order("updated_at", { ascending: false });
+      .order("updated_at", { ascending: false});
 
-    if (error) {
-      console.error("Error fetching conversations:", error);
-    } else {
-      setConversations(data || []);
+    if (convError) {
+      console.error("Error fetching conversations:", convError);
     }
+
+    console.log("Existing conversations:", existingConvs);
+
+    // Merge teachers with existing conversations
+    const conversationsList: Conversation[] = [];
+    
+    // Add existing conversations
+    if (existingConvs) {
+      existingConvs.forEach((conv: any) => {
+        conversationsList.push(conv);
+        teachersMap.delete(conv.teacher_id); // Remove from teachers map if conversation exists
+      });
+    }
+
+    // Add teachers without conversations
+    teachersMap.forEach((teacher) => {
+      conversationsList.push({
+        id: `new-${teacher.id}`, // Temporary ID for new conversations
+        student_id: user?.id || '',
+        teacher_id: teacher.id,
+        teacher_name: teacher.name,
+        teacher_avatar: teacher.avatar,
+        last_message: null,
+        last_message_at: null,
+        unread_count: 0,
+      });
+    });
+
+    console.log("Final conversations list:", conversationsList);
+    setConversations(conversationsList);
   };
 
   const fetchMessages = async () => {
     if (!selectedConversation) return;
+
+    // If it's a new conversation (ID starts with 'new-'), don't fetch messages yet
+    if (selectedConversation.id.startsWith('new-')) {
+      setMessages([]);
+      return;
+    }
 
     const { data, error } = await supabase
       .from("direct_messages")
@@ -132,7 +215,7 @@ export default function StudentChat() {
   };
 
   const markMessagesAsRead = async () => {
-    if (!selectedConversation) return;
+    if (!selectedConversation || selectedConversation.id.startsWith('new-')) return;
 
     await supabase
       .from("direct_messages")
@@ -147,8 +230,35 @@ export default function StudentChat() {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
 
+    let conversationId = selectedConversation.id;
+
+    // If it's a new conversation, create it first
+    if (conversationId.startsWith('new-')) {
+      const { data: newConv, error: convError } = await supabase
+        .from("conversations")
+        .insert({
+          student_id: user?.id,
+          teacher_id: selectedConversation.teacher_id,
+        })
+        .select()
+        .single();
+
+      if (convError) {
+        toast.error("Failed to create conversation");
+        return;
+      }
+
+      conversationId = newConv.id;
+      
+      // Update selected conversation with real ID
+      setSelectedConversation({
+        ...selectedConversation,
+        id: conversationId,
+      });
+    }
+
     const { error } = await supabase.from("direct_messages").insert({
-      conversation_id: selectedConversation.id,
+      conversation_id: conversationId,
       sender_id: user?.id,
       message_text: newMessage,
     });

@@ -272,6 +272,17 @@ const StudentSchedule = () => {
                         selected={date}
                         onSelect={setDate}
                         className="rounded-md border-0"
+                        modifiers={{
+                          scheduled: scheduledClasses.map(sc => new Date(sc.scheduled_time))
+                        }}
+                        modifiersStyles={{
+                          scheduled: {
+                            backgroundColor: '#ef4444',
+                            color: 'white',
+                            borderRadius: '50%',
+                            fontWeight: 'bold'
+                          }
+                        }}
                       />
                     </CardContent>
                   </Card>
