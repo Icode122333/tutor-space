@@ -102,94 +102,156 @@ export default function StudentChat() {
   };
 
   const fetchConversations = async () => {
-    // First, get all courses the student is enrolled in
-    const { data: enrollments, error: enrollError } = await supabase
-      .from("course_enrollments")
-      .select(`
-        courses (
-          id,
-          teacher_id
-        )
-      `)
-      .eq("student_id", user?.id);
-
-    if (enrollError) {
-      console.error("Error fetching enrolled courses:", enrollError);
+    if (!user?.id) {
+      console.log("No user ID available");
       return;
     }
 
-    // Get unique teacher IDs
-    const teacherIds = new Set<string>();
-    enrollments?.forEach((enrollment: any) => {
-      if (enrollment.courses?.teacher_id) {
-        teacherIds.add(enrollment.courses.teacher_id);
+    console.log("Fetching conversations for user:", user.id);
+
+    try {
+      // Step 1: Get all enrolled courses with their teacher_id
+      const { data: enrollments, error: enrollError } = await supabase
+        .from("course_enrollments")
+        .select("course_id")
+        .eq("student_id", user.id);
+
+      console.log("Enrollments:", enrollments, "Error:", enrollError);
+
+      if (enrollError) {
+        console.error("Error fetching enrollments:", enrollError);
+        return;
       }
-    });
 
-    // Fetch teacher profiles
-    const { data: teachers, error: teacherError } = await supabase
-      .from("profiles")
-      .select("id, full_name, avatar_url")
-      .in("id", Array.from(teacherIds));
+      if (!enrollments || enrollments.length === 0) {
+        console.log("No enrollments found");
+        setConversations([]);
+        return;
+      }
 
-    if (teacherError) {
-      console.error("Error fetching teachers:", teacherError);
-      return;
-    }
+      // Step 2: Get courses with teacher_id
+      const courseIds = enrollments.map(e => e.course_id);
+      const { data: courses, error: coursesError } = await supabase
+        .from("courses")
+        .select("id, teacher_id")
+        .in("id", courseIds);
 
-    // Create teachers map
-    const teachersMap = new Map();
-    teachers?.forEach((teacher: any) => {
-      teachersMap.set(teacher.id, {
-        id: teacher.id,
-        name: teacher.full_name,
-        avatar: teacher.avatar_url,
+      console.log("Courses:", courses, "Error:", coursesError);
+
+      if (coursesError) {
+        console.error("Error fetching courses:", coursesError);
+        return;
+      }
+
+      // Step 3: Get unique teacher IDs
+      const teacherIds = [...new Set(courses?.map(c => c.teacher_id).filter(Boolean))];
+      console.log("Teacher IDs:", teacherIds);
+
+      if (teacherIds.length === 0) {
+        console.log("No teachers found");
+        setConversations([]);
+        return;
+      }
+
+      // Step 4: Fetch teacher profiles using RPC or direct query
+      const { data: teachers, error: teacherError } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, role")
+        .in("id", teacherIds)
+        .eq("role", "teacher");
+
+      console.log("Teachers:", teachers, "Error:", teacherError);
+
+      if (teacherError) {
+        console.error("Error fetching teachers:", teacherError);
+        // Continue anyway with empty teachers array
+      }
+
+      // Step 5: Fetch existing conversations directly from conversations table
+      const { data: conversations, error: convError } = await supabase
+        .from("conversations")
+        .select(`
+          id,
+          student_id,
+          teacher_id,
+          created_at,
+          updated_at
+        `)
+        .eq("student_id", user.id);
+
+      console.log("Existing conversations:", conversations, "Error:", convError);
+
+      // Fetch teacher details for existing conversations
+      let existingConvs: any[] = [];
+      if (conversations && conversations.length > 0) {
+        const convTeacherIds = conversations.map(c => c.teacher_id);
+        const { data: convTeachers } = await supabase
+          .from("profiles")
+          .select("id, full_name, avatar_url")
+          .in("id", convTeacherIds);
+
+        // Get last messages for each conversation
+        const { data: lastMessages } = await supabase
+          .from("direct_messages")
+          .select("conversation_id, message_text, created_at, is_read, sender_id")
+          .in("conversation_id", conversations.map(c => c.id))
+          .order("created_at", { ascending: false });
+
+        // Build conversation objects with details
+        existingConvs = conversations.map(conv => {
+          const teacher = convTeachers?.find(t => t.id === conv.teacher_id);
+          const lastMsg = lastMessages?.find(m => m.conversation_id === conv.id);
+          const unreadCount = lastMessages?.filter(
+            m => m.conversation_id === conv.id && 
+            !m.is_read && 
+            m.sender_id !== user.id
+          ).length || 0;
+
+          return {
+            id: conv.id,
+            student_id: conv.student_id,
+            teacher_id: conv.teacher_id,
+            teacher_name: teacher?.full_name || 'Unknown Teacher',
+            teacher_avatar: teacher?.avatar_url,
+            last_message: lastMsg?.message_text || null,
+            last_message_at: lastMsg?.created_at || null,
+            unread_count: unreadCount,
+          };
+        });
+      }
+
+      console.log("Processed existing conversations:", existingConvs);
+
+      // Step 6: Create conversations list
+      const conversationsList: Conversation[] = [];
+      const existingTeacherIds = new Set(existingConvs?.map(c => c.teacher_id) || []);
+
+      // Add existing conversations first
+      if (existingConvs) {
+        conversationsList.push(...existingConvs);
+      }
+
+      // Add teachers without conversations
+      teachers?.forEach((teacher: any) => {
+        if (!existingTeacherIds.has(teacher.id)) {
+          conversationsList.push({
+            id: `new-${teacher.id}`,
+            student_id: user.id,
+            teacher_id: teacher.id,
+            teacher_name: teacher.full_name || 'Unknown Teacher',
+            teacher_avatar: teacher.avatar_url,
+            last_message: null,
+            last_message_at: null,
+            unread_count: 0,
+          });
+        }
       });
-    });
 
-    console.log("Found teachers:", teachers);
-    console.log("Teachers map size:", teachersMap.size);
-
-    // Fetch existing conversations
-    const { data: existingConvs, error: convError } = await supabase
-      .from("conversations_with_details")
-      .select("*")
-      .eq("student_id", user?.id)
-      .order("updated_at", { ascending: false});
-
-    if (convError) {
-      console.error("Error fetching conversations:", convError);
+      console.log("Final conversations list:", conversationsList);
+      setConversations(conversationsList);
+    } catch (error) {
+      console.error("Unexpected error in fetchConversations:", error);
     }
-
-    console.log("Existing conversations:", existingConvs);
-
-    // Merge teachers with existing conversations
-    const conversationsList: Conversation[] = [];
-    
-    // Add existing conversations
-    if (existingConvs) {
-      existingConvs.forEach((conv: any) => {
-        conversationsList.push(conv);
-        teachersMap.delete(conv.teacher_id); // Remove from teachers map if conversation exists
-      });
-    }
-
-    // Add teachers without conversations
-    teachersMap.forEach((teacher) => {
-      conversationsList.push({
-        id: `new-${teacher.id}`, // Temporary ID for new conversations
-        student_id: user?.id || '',
-        teacher_id: teacher.id,
-        teacher_name: teacher.name,
-        teacher_avatar: teacher.avatar,
-        last_message: null,
-        last_message_at: null,
-        unread_count: 0,
-      });
-    });
-
-    console.log("Final conversations list:", conversationsList);
-    setConversations(conversationsList);
   };
 
   const fetchMessages = async () => {

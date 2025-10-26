@@ -18,6 +18,7 @@ import { CapstoneSubmission } from "@/components/CapstoneSubmission";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface Course {
   id: string;
@@ -387,11 +388,7 @@ export default function CourseDetail() {
   }
 
   if (!course) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Course not found</p>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (

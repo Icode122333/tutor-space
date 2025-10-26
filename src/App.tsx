@@ -22,6 +22,9 @@ import StudentChat from "./pages/StudentChat";
 import StudentSchedule from "./pages/StudentSchedule";
 import StudentCertificates from "./pages/StudentCertificates";
 import BrowseCourses from "./pages/BrowseCourses";
+import MyCourses from "./pages/MyCourses";
+import StudentSettings from "./pages/StudentSettings";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
 import RoleDebugger from "./components/RoleDebugger";
@@ -46,6 +49,8 @@ const App = () => (
           <Route path="/student/chat" element={<StudentChat />} />
           <Route path="/student/schedule" element={<StudentSchedule />} />
           <Route path="/student/certificates" element={<StudentCertificates />} />
+          <Route path="/student/my-courses" element={<MyCourses />} />
+          <Route path="/student/settings" element={<StudentSettings />} />
           <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
           <Route path="/teacher/schedule" element={<TeacherSchedule />} />
           <Route path="/teacher/chat" element={<TeacherChat />} />
@@ -56,6 +61,7 @@ const App = () => (
           <Route path="/onboarding" element={<StudentOnboarding />} />
           <Route path="/student/onboarding" element={<StudentOnboarding />} />
           <Route path="/teacher/onboarding" element={<TeacherOnboarding />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/debug" element={<RoleDebugger />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
