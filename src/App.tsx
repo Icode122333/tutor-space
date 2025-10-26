@@ -25,6 +25,7 @@ import BrowseCourses from "./pages/BrowseCourses";
 import MyCourses from "./pages/MyCourses";
 import StudentSettings from "./pages/StudentSettings";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TeacherStudents from "./pages/TeacherStudents";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
 import RoleDebugger from "./components/RoleDebugger";
@@ -54,6 +55,7 @@ const App = () => (
           <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
           <Route path="/teacher/schedule" element={<TeacherSchedule />} />
           <Route path="/teacher/chat" element={<TeacherChat />} />
+          <Route path="/teacher/students" element={<TeacherStudents />} />
           <Route path="/course/:id" element={<CourseDetail />} />
           <Route path="/create-course" element={<CreateCourse />} />
           <Route path="/courses" element={<BrowseCourses />} />
