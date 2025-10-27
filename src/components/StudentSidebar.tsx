@@ -1,4 +1,4 @@
-import { BookOpen, Calendar, MessageSquare, Award, GraduationCap, BookMarked, Settings, CreditCard, Home } from "lucide-react";
+import { BookOpen, Calendar, MessageSquare, Award, GraduationCap, BookMarked, Settings, CreditCard, Home, FileText, TrendingUp } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar,
@@ -18,6 +18,8 @@ const generalItems = [
   { title: "Dashboard", url: "/student/dashboard", icon: Home },
   { title: "Schedule", url: "/student/schedule", icon: Calendar },
   { title: "Chat Group", url: "/student/chat", icon: MessageSquare },
+  { title: "Assignments", url: "/student/assignments", icon: FileText },
+  { title: "Scores", url: "/student/scores", icon: TrendingUp },
   { title: "Certificates", url: "/student/certificates", icon: Award },
 ];
 
