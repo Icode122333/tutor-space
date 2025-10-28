@@ -4,12 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Bell, BookOpen, CalendarDays, Clock, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Bell, BookOpen, CalendarDays, Clock, User, ChevronLeft, ChevronRight, Award } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { GradesTable } from "@/components/GradesTable";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -18,8 +19,14 @@ const StudentDashboard = () => {
   const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [studentId, setStudentId] = useState<string | null>(null);
 
   useEffect(() => {
+    const getStudentId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setStudentId(user.id);
+    };
+    getStudentId();
     checkUser();
   }, []);
 
@@ -522,6 +529,22 @@ const StudentDashboard = () => {
                   </Card>
                 )}
               </div>
+
+              {/* Quiz Scores/Marks Section */}
+              {studentId && enrolledCourses.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-purple-100 rounded-full p-2">
+                      <Award className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">My Quiz Scores</h2>
+                      <p className="text-sm text-muted-foreground">Track your quiz performance and marks</p>
+                    </div>
+                  </div>
+                  <GradesTable studentId={studentId} showFilters={false} />
+                </div>
+              )}
             </div>
           </main>
         </div>

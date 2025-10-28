@@ -11,6 +11,7 @@ import { Plus, Trash2, GripVertical, ClipboardList, Award } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { FileUploadField } from "@/components/FileUploadField";
 
 interface QuizQuestion {
   id: string;
@@ -24,8 +25,9 @@ interface QuizQuestion {
 interface Lesson {
   title: string;
   description: string;
-  content_type: "video" | "pdf" | "document" | "url" | "quiz";
+  content_type: "video" | "pdf" | "document" | "url" | "quiz" | "assignment";
   content_url: string;
+  file_url?: string;
   duration?: number;
   order_index: number;
   is_mandatory?: boolean;
@@ -34,7 +36,6 @@ interface Lesson {
 
 interface Chapter {
   title: string;
-  description: string;
   order_index: number;
   lessons: Lesson[];
 }
@@ -51,9 +52,11 @@ export default function CreateCourse() {
   const [courseData, setCourseData] = useState({
     title: "",
     description: "",
-    price: "",
     requirements: "",
     thumbnail_url: "",
+    welcome_video_url: "",
+    level: "beginner",
+    language: "",
   });
   
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -92,9 +95,11 @@ export default function CreateCourse() {
       setCourseData({
         title: course.title || "",
         description: course.description || "",
-        price: course.price?.toString() || "",
         requirements: course.requirements || "",
         thumbnail_url: course.thumbnail_url || "",
+        welcome_video_url: course.welcome_video_url || "",
+        level: course.level || "beginner",
+        language: course.language || "",
       });
 
       // Fetch chapters
@@ -152,6 +157,7 @@ export default function CreateCourse() {
                 description: lesson.description,
                 content_type: lesson.content_type,
                 content_url: lesson.content_url || "",
+                file_url: lesson.file_url || "",
                 duration: lesson.duration,
                 order_index: lesson.order_index,
                 is_mandatory: lesson.is_mandatory,
@@ -162,7 +168,6 @@ export default function CreateCourse() {
 
           return {
             title: chapter.title,
-            description: chapter.description,
             order_index: chapter.order_index,
             lessons: lessonsWithQuiz,
           };
@@ -210,7 +215,6 @@ export default function CreateCourse() {
   const addChapter = () => {
     setChapters([...chapters, {
       title: "",
-      description: "",
       order_index: chapters.length,
       lessons: []
     }]);
@@ -228,6 +232,7 @@ export default function CreateCourse() {
       description: "",
       content_type: "video",
       content_url: "",
+      file_url: "",
       order_index: newChapters[chapterIndex].lessons.length,
       is_mandatory: false,
       quiz_questions: [],
@@ -346,9 +351,11 @@ export default function CreateCourse() {
           .update({
             title: courseData.title,
             description: courseData.description,
-            price: parseFloat(courseData.price) || 0,
             requirements: courseData.requirements,
             thumbnail_url: courseData.thumbnail_url,
+            welcome_video_url: courseData.welcome_video_url,
+            level: courseData.level,
+            language: courseData.language,
           })
           .eq("id", courseId)
           .select()
@@ -379,9 +386,11 @@ export default function CreateCourse() {
           .insert({
             title: courseData.title,
             description: courseData.description,
-            price: parseFloat(courseData.price) || 0,
             requirements: courseData.requirements,
             thumbnail_url: courseData.thumbnail_url,
+            welcome_video_url: courseData.welcome_video_url,
+            level: courseData.level,
+            language: courseData.language,
             teacher_id: user.id,
           })
           .select()
@@ -398,7 +407,6 @@ export default function CreateCourse() {
           .insert({
             course_id: course.id,
             title: chapter.title,
-            description: chapter.description,
             order_index: chapter.order_index,
           })
           .select()
@@ -417,6 +425,7 @@ export default function CreateCourse() {
                 description: lesson.description,
                 content_type: lesson.content_type,
                 content_url: lesson.content_type === "quiz" ? "" : lesson.content_url,
+                file_url: lesson.file_url || null,
                 duration: lesson.duration,
                 order_index: lesson.order_index,
                 is_mandatory: lesson.is_mandatory || false,
@@ -539,17 +548,43 @@ export default function CreateCourse() {
               </div>
 
               <div>
-                <Label htmlFor="price">Price ($) *</Label>
+                <Label htmlFor="welcome-video">Welcome Video URL</Label>
                 <Input
-                  id="price"
-                  type="number"
-                  required
-                  step="0.01"
-                  min="0"
-                  value={courseData.price}
-                  onChange={(e) => setCourseData({ ...courseData, price: e.target.value })}
-                  placeholder="49.99"
+                  id="welcome-video"
+                  value={courseData.welcome_video_url}
+                  onChange={(e) => setCourseData({ ...courseData, welcome_video_url: e.target.value })}
+                  placeholder="https://youtube.com/watch?v=..."
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="level">Course Level *</Label>
+                  <Select
+                    value={courseData.level}
+                    onValueChange={(value) => setCourseData({ ...courseData, level: value })}
+                  >
+                    <SelectTrigger id="level">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginner">Beginner</SelectItem>
+                      <SelectItem value="intermediate">Intermediate</SelectItem>
+                      <SelectItem value="advanced">Advanced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="language">Language *</Label>
+                  <Input
+                    id="language"
+                    required
+                    value={courseData.language}
+                    onChange={(e) => setCourseData({ ...courseData, language: e.target.value })}
+                    placeholder="e.g., English"
+                  />
+                </div>
               </div>
 
               <div>
@@ -623,16 +658,6 @@ export default function CreateCourse() {
                           />
                         </div>
 
-                        <div>
-                          <Label>Chapter Description</Label>
-                          <Textarea
-                            value={chapter.description}
-                            onChange={(e) => updateChapter(chapterIndex, "description", e.target.value)}
-                            placeholder="Brief description of this chapter"
-                            rows={2}
-                          />
-                        </div>
-
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <Label>Lessons</Label>
@@ -694,6 +719,7 @@ export default function CreateCourse() {
                                         <SelectItem value="document">Document (DOC/DOCX)</SelectItem>
                                         <SelectItem value="url">External URL</SelectItem>
                                         <SelectItem value="quiz">Quiz</SelectItem>
+                                        <SelectItem value="assignment">Assignment</SelectItem>
                                       </SelectContent>
                                     </Select>
                                   </div>
@@ -720,23 +746,49 @@ export default function CreateCourse() {
                                 </div>
 
                                 {lesson.content_type !== "quiz" && (
-                                  <div>
-                                    <Label className="text-sm">Content URL *</Label>
-                                    <Input
-                                      required
-                                      value={lesson.content_url}
-                                      onChange={(e) =>
-                                        updateLesson(chapterIndex, lessonIndex, "content_url", e.target.value)
-                                      }
-                                      placeholder={
-                                        lesson.content_type === "video"
-                                          ? "YouTube URL or video link"
-                                          : lesson.content_type === "url"
-                                          ? "https://example.com"
-                                          : "PDF or document URL"
-                                      }
-                                    />
-                                  </div>
+                                  <>
+                                    {(lesson.content_type === "pdf" || 
+                                      lesson.content_type === "document" || 
+                                      lesson.content_type === "assignment") ? (
+                                      <FileUploadField
+                                        label="Content *"
+                                        value={lesson.file_url || lesson.content_url}
+                                        onChange={(url, isUpload) => {
+                                          if (isUpload) {
+                                            updateLesson(chapterIndex, lessonIndex, "file_url", url);
+                                            updateLesson(chapterIndex, lessonIndex, "content_url", "");
+                                          } else {
+                                            updateLesson(chapterIndex, lessonIndex, "content_url", url);
+                                            updateLesson(chapterIndex, lessonIndex, "file_url", "");
+                                          }
+                                        }}
+                                        accept={lesson.content_type === "pdf" ? ".pdf" : ".doc,.docx"}
+                                        placeholder={
+                                          lesson.content_type === "pdf"
+                                            ? "https://example.com/file.pdf"
+                                            : "https://example.com/file.docx"
+                                        }
+                                        courseId={courseId || undefined}
+                                        lessonId={`temp-${chapterIndex}-${lessonIndex}`}
+                                      />
+                                    ) : (
+                                      <div>
+                                        <Label className="text-sm">Content URL *</Label>
+                                        <Input
+                                          required
+                                          value={lesson.content_url}
+                                          onChange={(e) =>
+                                            updateLesson(chapterIndex, lessonIndex, "content_url", e.target.value)
+                                          }
+                                          placeholder={
+                                            lesson.content_type === "video"
+                                              ? "YouTube URL or video link"
+                                              : "https://example.com"
+                                          }
+                                        />
+                                      </div>
+                                    )}
+                                  </>
                                 )}
 
                                 <div>

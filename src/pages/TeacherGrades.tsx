@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
+import { GradesTable } from "@/components/GradesTable";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
   GraduationCap, 
@@ -81,6 +83,7 @@ const TeacherGrades = () => {
   const [selectedStudent, setSelectedStudent] = useState<StudentGrade | null>(null);
   const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>([]);
   const [showGradeDialog, setShowGradeDialog] = useState(false);
+  const [teacherId, setTeacherId] = useState<string | null>(null);
   const [showQuizDialog, setShowQuizDialog] = useState(false);
   const [gradeForm, setGradeForm] = useState({
     grade: "",
@@ -89,6 +92,11 @@ const TeacherGrades = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    const getTeacherId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setTeacherId(user.id);
+    };
+    getTeacherId();
     fetchTeacherCourses();
   }, []);
 
@@ -421,10 +429,22 @@ const TeacherGrades = () => {
                 </CardContent>
               </Card>
 
-              {selectedCourseId && (
+              {selectedCourseId && teacherId && (
                 <>
-                  {/* Stats Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Tabs for Quiz Marks and Assignments */}
+                  <Tabs defaultValue="quizzes" className="space-y-6">
+                    <TabsList className="grid w-full max-w-md grid-cols-2">
+                      <TabsTrigger value="quizzes">Quiz Marks</TabsTrigger>
+                      <TabsTrigger value="assignments">Assignments</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="quizzes" className="space-y-6">
+                      <GradesTable teacherId={teacherId} showFilters={true} />
+                    </TabsContent>
+
+                    <TabsContent value="assignments" className="space-y-6">
+                      {/* Stats Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -565,6 +585,8 @@ const TeacherGrades = () => {
                       )}
                     </CardContent>
                   </Card>
+                    </TabsContent>
+                  </Tabs>
                 </>
               )}
             </div>
