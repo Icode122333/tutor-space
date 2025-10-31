@@ -50,6 +50,47 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
     try {
       setLoading(true);
 
+      // If teacherId is provided, derive allowed lesson IDs first
+      let lessonIdsForTeacher: string[] = [];
+      if (teacherId) {
+        const { data: courses } = await supabase
+          .from("courses")
+          .select("id, title")
+          .eq("teacher_id", teacherId);
+
+        const courseIds = (courses || []).map((c: any) => c.id);
+        if (courseIds.length === 0) {
+          setGrades([]);
+          setCourses([]);
+          return;
+        }
+
+        const { data: chapters } = await supabase
+          .from("course_chapters")
+          .select("id")
+          .in("course_id", courseIds);
+
+        const chapterIds = (chapters || []).map((ch: any) => ch.id);
+        if (chapterIds.length === 0) {
+          setGrades([]);
+          setCourses([]);
+          return;
+        }
+
+        const { data: lessons } = await supabase
+          .from("course_lessons")
+          .select("id")
+          .in("chapter_id", chapterIds)
+          .eq("content_type", "quiz");
+
+        lessonIdsForTeacher = (lessons || []).map((l: any) => l.id);
+        if (lessonIdsForTeacher.length === 0) {
+          setGrades([]);
+          setCourses([]);
+          return;
+        }
+      }
+
       let query = supabase
         .from("student_quiz_attempts")
         .select(`
@@ -80,10 +121,8 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
         .order("submitted_at", { ascending: false });
 
       if (teacherId) {
-        // Teacher view: filter by courses they teach
-        query = query.eq("lesson.chapter.course.teacher_id", teacherId);
+        query = query.in("lesson_id", lessonIdsForTeacher);
       } else if (studentId) {
-        // Student view: filter by their own attempts
         query = query.eq("student_id", studentId);
       }
 

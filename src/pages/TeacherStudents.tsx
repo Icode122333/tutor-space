@@ -93,7 +93,7 @@ const TeacherStudents = () => {
         return;
       }
 
-      // Fetch students enrolled in these courses
+      // Fetch students enrolled in these courses (include profile via FK)
       const { data: enrollmentsData, error: enrollmentsError } = await supabase
         .from("course_enrollments")
         .select(`
@@ -104,35 +104,34 @@ const TeacherStudents = () => {
           courses (
             id,
             title
+          ),
+          profiles:student_id (
+            full_name,
+            email,
+            avatar_url
           )
         `)
         .in("course_id", courseIds);
 
       if (enrollmentsError) throw enrollmentsError;
 
-      // Fetch student profiles
-      const studentIds = enrollmentsData?.map(e => e.student_id) || [];
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, full_name, email, avatar_url")
-        .in("id", studentIds);
-
-      if (profilesError) throw profilesError;
+      if (!enrollmentsData || enrollmentsData.length === 0) {
+        setStudents([]);
+        setLoading(false);
+        return;
+      }
 
       // Combine data
-      const studentsWithDetails = enrollmentsData?.map(enrollment => {
-        const profile = profilesData?.find(p => p.id === enrollment.student_id);
-        return {
-          id: enrollment.student_id,
-          full_name: profile?.full_name || "Unknown",
-          email: profile?.email || "",
-          avatar_url: profile?.avatar_url || null,
-          enrolled_at: enrollment.created_at,
-          course_id: enrollment.course_id,
-          course_title: enrollment.courses?.title || "Unknown Course",
-          cohort_name: enrollment.cohort_name,
-        };
-      }) || [];
+      const studentsWithDetails = enrollmentsData.map((enrollment: any) => ({
+        id: enrollment.student_id,
+        full_name: enrollment.profiles?.full_name || "Unknown",
+        email: enrollment.profiles?.email || "",
+        avatar_url: enrollment.profiles?.avatar_url || null,
+        enrolled_at: enrollment.created_at,
+        course_id: enrollment.course_id,
+        course_title: enrollment.courses?.title || "Unknown Course",
+        cohort_name: enrollment.cohort_name,
+      }));
 
       setStudents(studentsWithDetails);
     } catch (error: any) {
