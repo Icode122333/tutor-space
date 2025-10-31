@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 interface PdfJsInlineViewerProps {
   src: string;
+  onError?: (err: unknown) => void;
 }
 
 declare global {
@@ -10,11 +11,14 @@ declare global {
   }
 }
 
+const PDFJS_MAIN = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js";
+const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+
 const loadPdfJs = () => {
   if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js";
+    script.src = PDFJS_MAIN;
     script.async = true;
     script.onload = () => resolve(window.pdfjsLib);
     script.onerror = reject;
@@ -22,19 +26,20 @@ const loadPdfJs = () => {
   });
 };
 
-export default function PdfJsInlineViewer({ src }: PdfJsInlineViewerProps) {
+export default function PdfJsInlineViewer({ src, onError }: PdfJsInlineViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const pdfDocRef = useRef<any | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown | null>(null);
 
   useEffect(() => {
-    let pdfDoc: any;
     let mounted = true;
 
     const renderPage = async (num: number) => {
-      if (!mounted || !pdfDoc) return;
-      const page = await pdfDoc.getPage(num);
+      if (!mounted || !pdfDocRef.current) return;
+      const page = await pdfDocRef.current.getPage(num);
       const canvas = canvasRef.current;
       if (!canvas) return;
       const viewport = page.getViewport({ scale: 1.5 });
@@ -46,16 +51,27 @@ export default function PdfJsInlineViewer({ src }: PdfJsInlineViewerProps) {
     };
 
     const load = async () => {
-      setLoading(true);
-      const pdfjsLib = await loadPdfJs();
-      if (!mounted) return;
-      const task = pdfjsLib.getDocument({ url: src });
-      pdfDoc = await task.promise;
-      if (!mounted) return;
-      setNumPages(pdfDoc.numPages);
-      setPageNumber(1);
-      await renderPage(1);
-      setLoading(false);
+      try {
+        setError(null);
+        setLoading(true);
+        const pdfjsLib = await loadPdfJs();
+        if (!mounted) return;
+        if (pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+        }
+        const task = pdfjsLib.getDocument({ url: src });
+        const pdfDoc = await task.promise;
+        pdfDocRef.current = pdfDoc;
+        if (!mounted) return;
+        setNumPages(pdfDoc.numPages);
+        setPageNumber(1);
+        await renderPage(1);
+        setLoading(false);
+      } catch (e) {
+        setError(e);
+        setLoading(false);
+        onError?.(e);
+      }
     };
 
     load();
@@ -70,10 +86,8 @@ export default function PdfJsInlineViewer({ src }: PdfJsInlineViewerProps) {
 
   useEffect(() => {
     const rerender = async () => {
-      const pdfjsLib = window.pdfjsLib;
-      if (!pdfjsLib) return;
-      const task = pdfjsLib.getDocument({ url: src });
-      const pdfDoc = await task.promise;
+      const pdfDoc = pdfDocRef.current;
+      if (!pdfDoc) return;
       const page = await pdfDoc.getPage(pageNumber);
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -90,7 +104,9 @@ export default function PdfJsInlineViewer({ src }: PdfJsInlineViewerProps) {
   return (
     <div className="w-full h-full flex flex-col bg-white">
       <div className="flex items-center justify-between border-b p-2">
-        <div className="text-sm">{loading ? "Loading PDF..." : `Page ${pageNumber} / ${numPages}`}</div>
+        <div className="text-sm">
+          {loading ? "Loading PDF..." : error ? "Failed to load PDF" : `Page ${pageNumber} / ${numPages}`}
+        </div>
         <div className="flex gap-2">
           <button onClick={prev} disabled={loading || pageNumber <= 1} className="px-3 py-1 border rounded disabled:opacity-50">Prev</button>
           <button onClick={next} disabled={loading || pageNumber >= numPages} className="px-3 py-1 border rounded disabled:opacity-50">Next</button>

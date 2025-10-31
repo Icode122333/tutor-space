@@ -26,6 +26,7 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
   const { toast } = useToast();
   const [markingComplete, setMarkingComplete] = useState(false);
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [pdfError, setPdfError] = useState(false);
 
   useEffect(() => {
     // Auto-mark video lessons as started when loaded
@@ -63,6 +64,7 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
         setResolvedUrl(raw);
       }
     };
+    setPdfError(false);
     resolve();
   }, [lesson?.id, studentId]);
 
@@ -202,20 +204,41 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
           {(lesson.content_type === "pdf" || lesson.content_type === "document" || lesson.content_type === "assignment") && (
             <div className="relative w-full rounded-t-lg overflow-hidden" style={{ minHeight: "60vh" }}>
               {(() => {
-                const url = resolvedUrl || (lesson.file_url || lesson.content_url) || "";
-                const lower = url.toLowerCase();
-                const isPDF = lower.endsWith(".pdf") || lesson.content_type === "pdf";
+                const raw = (lesson.file_url || lesson.content_url) || "";
                 const isUploaded = !!lesson.file_url;
-                if (isPDF && isUploaded && url) {
-                  return <PdfJsInlineViewer src={url} />;
+                const candidate = isUploaded ? resolvedUrl : (/^https?:\/\//i.test(raw) ? raw : null);
+                const lower = (candidate || raw).toLowerCase();
+                const isPDF = lower.endsWith(".pdf") || lesson.content_type === "pdf";
+
+                if (isPDF && isUploaded) {
+                  if (!candidate) {
+                    return (
+                      <div className="w-full h-[60vh] flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0A400C]" />
+                      </div>
+                    );
+                  }
+                  if (!pdfError) {
+                    return <PdfJsInlineViewer src={candidate} onError={() => setPdfError(true)} />;
+                  }
+                  return (
+                    <div className="relative w-full h-[60vh]">
+                      <iframe
+                        src={`${candidate}#toolbar=1&navpanes=1&scrollbar=1`}
+                        title={lesson.title}
+                        className="absolute inset-0 w-full h-full"
+                      />
+                    </div>
+                  );
                 }
-                // URL-based docs should open in new tab (button)
+
+                const urlToOpen = candidate || raw;
                 return (
                   <div className="p-12 bg-muted flex items-center justify-center">
                     <div className="text-center">
                       <FileText className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground mb-4 break-all">{url}</p>
-                      <Button onClick={() => window.open(url, "_blank")}>
+                      <p className="text-sm text-muted-foreground mb-4 break-all">{urlToOpen}</p>
+                      <Button onClick={() => window.open(urlToOpen, "_blank")}>
                         <ExternalLink className="h-4 w-4 mr-2" /> Open in new tab
                       </Button>
                     </div>

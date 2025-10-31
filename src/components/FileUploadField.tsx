@@ -26,7 +26,7 @@ export function FileUploadField({
   courseId,
   lessonId,
 }: FileUploadFieldProps) {
-  const [uploadMethod, setUploadMethod] = useState<"upload" | "url">("url");
+  const [uploadMethod, setUploadMethod] = useState<"upload" | "url">("upload");
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [fileName, setFileName] = useState("");
@@ -71,13 +71,9 @@ export function FileUploadField({
 
       if (error) throw error;
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from("lesson-files")
-        .getPublicUrl(data.path);
-
       setUploadProgress(100);
-      onChange(publicUrl, true);
+      // Store the storage path; viewer will resolve to signed/public URL
+      onChange(data.path, true);
 
       toast({
         title: "File uploaded successfully",
