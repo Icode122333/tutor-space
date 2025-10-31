@@ -58,7 +58,7 @@ const SignUp = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             full_name: fullName,
             role: selectedRole,
@@ -76,11 +76,15 @@ const SignUp = () => {
       }
 
       if (data.user) {
+        // Check if email confirmation is required
         if (data.user.identities && data.user.identities.length === 0) {
+          // Email needs to be verified
+          toast.info("Please check your email to verify your account");
           navigate("/verify-email");
           return;
         }
 
+        // Email confirmation not required (instant signup enabled)
         toast.success("Account created successfully!");
         // Redirect to appropriate onboarding based on role
         navigate(selectedRole === "teacher" ? "/teacher/onboarding" : "/onboarding");

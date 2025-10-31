@@ -74,11 +74,11 @@ const AuthCallback = () => {
         if (!existingProfile) {
           console.log("Creating new profile for user");
           
-          // Get role from URL params (for signup flow)
-          const role = searchParams.get("role") || "student";
+          // Get role from URL params (for OAuth signup) or user metadata (for email verification)
+          const role = searchParams.get("role") || user.user_metadata?.role || "student";
           console.log("Selected role:", role);
           
-          // Create profile for OAuth user
+          // Create profile for new user (OAuth or email verification)
           const { error: profileError } = await supabase
             .from("profiles")
             .insert({
@@ -98,7 +98,7 @@ const AuthCallback = () => {
           }
 
           console.log("Profile created successfully with role:", role);
-          toast.success(`Account created successfully!`);
+          toast.success(`Welcome! Let's complete your profile setup.`);
           // Redirect to appropriate onboarding based on role
           navigate(role === "teacher" ? "/teacher/onboarding" : "/onboarding");
         } else {

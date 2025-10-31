@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, BookOpen, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Course = {
   id: string;
@@ -27,9 +28,32 @@ const BrowseCourses = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrollmentCounts, setEnrollmentCounts] = useState<Map<string, number>>(new Map());
+  const [userId, setUserId] = useState<string | null>(null);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [enrollingCourseId, setEnrollingCourseId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCourses();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserAndEnrollments = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        const { data: enrollments } = await supabase
+          .from("course_enrollments")
+          .select("course_id")
+          .eq("student_id", user.id);
+        const ids = new Set<string>((enrollments || []).map((e: any) => e.course_id));
+        setEnrolledCourseIds(ids);
+      } else {
+        setUserId(null);
+        setEnrolledCourseIds(new Set());
+      }
+    };
+    fetchUserAndEnrollments();
   }, []);
 
   const fetchCourses = async () => {
@@ -62,6 +86,32 @@ const BrowseCourses = () => {
       toast.error("Failed to load courses");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEnroll = async (courseId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/signup");
+        return;
+      }
+
+      setEnrollingCourseId(courseId);
+      const { error } = await supabase
+        .from("course_enrollments")
+        .insert({ course_id: courseId, student_id: user.id });
+
+      if (error) throw error;
+
+      setEnrolledCourseIds(prev => new Set(prev).add(courseId));
+      toast.success("Enrolled successfully! Redirecting to course...");
+      navigate(`/course/${courseId}`);
+    } catch (error: any) {
+      console.error("Error enrolling in course:", error);
+      toast.error(error.message || "Failed to enroll in course");
+    } finally {
+      setEnrollingCourseId(null);
     }
   };
 
@@ -125,7 +175,13 @@ const BrowseCourses = () => {
                 <Card
                   key={course.id}
                   className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-[#006D2C] cursor-pointer rounded-2xl"
-                  onClick={() => navigate("/signup")}
+                  onClick={() => {
+                    if (userId && enrolledCourseIds.has(course.id)) {
+                      navigate(`/course/${course.id}`);
+                    } else if (!userId) {
+                      navigate("/signup");
+                    }
+                  }}
                 >
                   <CardContent className="p-4">
                     {/* Course Image */}
@@ -187,16 +243,43 @@ const BrowseCourses = () => {
                         {course.title}
                       </h3>
 
-                      {/* View Button */}
-                      <Button
-                        className="w-full bg-[#006D2C] hover:bg-[#005523] text-white rounded-full font-medium"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate("/signup");
-                        }}
-                      >
-                        View
-                      </Button>
+                      {/* Action Button */}
+                      {userId ? (
+                        enrolledCourseIds.has(course.id) ? (
+                          <Button
+                            variant="secondary"
+                            className="w-full cursor-not-allowed opacity-60 rounded-full font-medium"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDialogOpen(true);
+                            }}
+                            aria-disabled
+                          >
+                            Enrolled
+                          </Button>
+                        ) : (
+                          <Button
+                            className="w-full bg-[#006D2C] hover:bg-[#005523] text-white rounded-full font-medium"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEnroll(course.id);
+                            }}
+                            disabled={enrollingCourseId === course.id}
+                          >
+                            {enrollingCourseId === course.id ? "Enrolling..." : "Enroll"}
+                          </Button>
+                        )
+                      ) : (
+                        <Button
+                          className="w-full bg-[#006D2C] hover:bg-[#005523] text-white rounded-full font-medium"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate("/signup");
+                          }}
+                        >
+                          View
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -211,6 +294,21 @@ const BrowseCourses = () => {
           </div>
         )}
       </main>
+      {/* Already Enrolled Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Already enrolled</DialogTitle>
+            <DialogDescription>
+              You are already enrolled in this course. Check it in the My Courses section.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Close</Button>
+            <Button onClick={() => navigate("/student/my-courses")}>Go to My Courses</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

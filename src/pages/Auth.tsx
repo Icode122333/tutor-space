@@ -61,13 +61,20 @@ const Auth = () => {
       if (data.user && data.session) {
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("role")
+          .select("role, onboarding_completed")
           .eq("id", data.user.id)
           .single();
 
         if (profileError) {
           console.error("Profile fetch error:", profileError);
           toast.error("Error loading profile. Please try again.");
+          return;
+        }
+
+        // Check if onboarding is completed
+        if (!profile.onboarding_completed) {
+          toast.info("Please complete your profile setup");
+          navigate(profile.role === "teacher" ? "/teacher/onboarding" : "/onboarding");
           return;
         }
 
