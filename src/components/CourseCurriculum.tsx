@@ -24,9 +24,12 @@ interface CourseCurriculumProps {
   chapters: Chapter[];
   currentLessonId?: string;
   onLessonClick: (lessonId: string) => void;
+  welcomeVideoUrl?: string;
+  onSelectWelcome?: () => void;
+  isWelcomeSelected?: boolean;
 }
 
-export function CourseCurriculum({ chapters, currentLessonId, onLessonClick }: CourseCurriculumProps) {
+export function CourseCurriculum({ chapters, currentLessonId, onLessonClick, welcomeVideoUrl, onSelectWelcome, isWelcomeSelected }: CourseCurriculumProps) {
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(
     new Set(chapters.map((c) => c.id))
   );
@@ -70,6 +73,23 @@ export function CourseCurriculum({ chapters, currentLessonId, onLessonClick }: C
     <Card className="h-fit sticky top-6">
       <CardContent className="p-0">
         <div className="space-y-2">
+          {welcomeVideoUrl && (
+            <button
+              onClick={onSelectWelcome}
+              className={cn(
+                "w-full px-4 py-3 flex items-center gap-3 transition-colors text-left border-b",
+                isWelcomeSelected ? "bg-primary/10 hover:bg-primary/20" : "hover:bg-muted/50"
+              )}
+            >
+              <div className="flex-shrink-0 text-[#0A400C]">
+                <Play className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold truncate">Welcome Video</div>
+                <div className="text-xs text-muted-foreground">Start here</div>
+              </div>
+            </button>
+          )}
           {chapters.map((chapter, chapterIndex) => {
             const isExpanded = expandedChapters.has(chapter.id);
             const completedCount = chapter.lessons.filter((l) => l.is_completed).length;
@@ -82,29 +102,29 @@ export function CourseCurriculum({ chapters, currentLessonId, onLessonClick }: C
               )}>
                 <button
                   onClick={() => toggleChapter(chapter.id)}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                  className="w-full px-4 py-3 flex items-center justify-between bg-[#0A400C] text-white hover:bg-[#0A400C]/90 transition-colors"
                 >
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm">
+                      <span className="font-semibold text-sm text-white">
                         {String(chapterIndex + 1).padStart(2, "0")}. {chapter.title}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       {chapter.total_duration && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-white/80">
                           {formatDuration(chapter.total_duration)}
                         </span>
                       )}
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-white/80">
                         {completedCount}/{totalLessons} completed
                       </span>
                     </div>
                   </div>
                   {isExpanded ? (
-                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    <ChevronUp className="h-4 w-4 text-white" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    <ChevronDown className="h-4 w-4 text-white" />
                   )}
                 </button>
 

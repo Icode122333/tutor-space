@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Clock, BookOpen, Globe, Award } from "lucide-react";
+import { ArrowLeft, Clock, BookOpen, Globe, Award, FileText, ClipboardList } from "lucide-react";
 import { CourseCurriculum } from "@/components/CourseCurriculum";
 import { CourseContentPlayer } from "@/components/CourseContentPlayer";
 import { QuizTaker } from "@/components/QuizTaker";
@@ -74,6 +74,7 @@ export default function CourseDetail() {
   const [showQuiz, setShowQuiz] = useState(false);
   const [showCapstone, setShowCapstone] = useState(false);
   const [capstoneProject, setCapstoneProject] = useState<CapstoneProject | null>(null);
+  const [isWelcomeSelected, setIsWelcomeSelected] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -88,7 +89,6 @@ export default function CourseDetail() {
       
       setLoading(false);
     };
-    
     init();
   }, [id]);
 
@@ -185,6 +185,38 @@ export default function CourseDetail() {
     }
   };
 
+  const getCounts = () => {
+    let videos = 0, reading = 0, quizzes = 0, assignments = 0;
+    chapters.forEach((ch) => {
+      ch.lessons.forEach((l) => {
+        switch (l.content_type) {
+          case "video":
+            videos++;
+            break;
+          case "pdf":
+          case "document":
+          case "url":
+            reading++;
+            break;
+          case "quiz":
+            quizzes++;
+            break;
+          case "assignment":
+            assignments++;
+            break;
+        }
+      });
+    });
+    return { videos, reading, quizzes, assignments };
+  };
+
+  const getProgressPercent = () => {
+    const totalLessons = getTotalLessons();
+    if (totalLessons === 0) return 0;
+    const completed = chapters.reduce((sum, ch) => sum + ch.lessons.filter((l) => l.is_completed).length, 0);
+    return (completed / totalLessons) * 100;
+  };
+
   const fetchCapstone = async () => {
     if (!id) return;
 
@@ -198,6 +230,7 @@ export default function CourseDetail() {
   };
 
   const handleLessonClick = (lessonId: string) => {
+    setIsWelcomeSelected(false);
     const lesson = chapters
       .flatMap((ch) => ch.lessons)
       .find((l) => l.id === lessonId);
@@ -255,80 +288,93 @@ export default function CourseDetail() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-4">
+      {/* Redesigned Header */}
+      <div className="bg-gradient-to-br from-amber-100 via-amber-50 to-white border-b">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="mb-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold">{course.title}</h1>
-              <div className="flex items-center gap-4 mt-2">
-                {teacher && (
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={teacher.avatar_url} />
-                      <AvatarFallback>{teacher.full_name?.[0] || "T"}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm text-muted-foreground">{teacher.full_name}</span>
-                  </div>
-                )}
-                {course.level && (
-                  <Badge className={getLevelBadgeColor(course.level)}>
-                    {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
-                  </Badge>
-                )}
-                {course.language && (
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Globe className="h-4 w-4" />
-                    <span>{course.language}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
-                <span>{getTotalLessons()} lessons</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <span>{Math.floor(getTotalDuration() / 60)}h {getTotalDuration() % 60}m</span>
-              </div>
-            </div>
           </div>
+          <Card className="rounded-2xl">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+                {/* Left - Title and meta */}
+                <div className="lg:col-span-2">
+                  <h1 className="text-3xl font-bold mb-2">{course.title}</h1>
+                  <div className="flex items-center gap-3 mb-4">
+                    {course.level && (
+                      <Badge className={getLevelBadgeColor(course.level)}>
+                        {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
+                      </Badge>
+                    )}
+                    {course.language && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Globe className="h-4 w-4" />
+                        <span>{course.language}</span>
+                      </div>
+                    )}
+                  </div>
+                  {/* Stats */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="flex items-center gap-2 p-3 rounded-lg border bg-white/70">
+                      <BookOpen className="h-4 w-4 text-[#0A400C]" />
+                      <div className="text-sm"><span className="font-semibold">{getCounts().videos}</span> Videos</div>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 rounded-lg border bg-white/70">
+                      <FileText className="h-4 w-4 text-[#0A400C]" />
+                      <div className="text-sm"><span className="font-semibold">{getCounts().reading}</span> Reading</div>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 rounded-lg border bg-white/70">
+                      <ClipboardList className="h-4 w-4 text-[#0A400C]" />
+                      <div className="text-sm"><span className="font-semibold">{getCounts().quizzes}</span> Quizzes</div>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 rounded-lg border bg-white/70">
+                      <ClipboardList className="h-4 w-4 text-[#0A400C]" />
+                      <div className="text-sm"><span className="font-semibold">{getCounts().assignments}</span> Assignments</div>
+                    </div>
+                  </div>
+                </div>
+                {/* Right - Thumbnail */}
+                <div className="w-full">
+                  <div className="relative rounded-2xl overflow-hidden bg-amber-200/40 border aspect-[4/3] flex items-center justify-center">
+                    {course.thumbnail_url ? (
+                      <img src={course.thumbnail_url} alt={course.title} className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-muted-foreground">No Thumbnail</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </header>
-
-      {/* Welcome Video Section */}
-      {course.welcome_video_url && (
-        <div className="border-b bg-muted/30">
-          <div className="max-w-7xl mx-auto px-6 py-6">
-            <h2 className="text-lg font-semibold mb-4">Welcome to the Course</h2>
-            <div className="relative w-full max-w-3xl mx-auto" style={{ paddingTop: "56.25%" }}>
-              <iframe
-                className="absolute top-0 left-0 w-full h-full rounded-lg"
-                src={course.welcome_video_url.includes("youtube.com") || course.welcome_video_url.includes("youtu.be")
-                  ? course.welcome_video_url.replace("watch?v=", "embed/").split("&")[0]
-                  : course.welcome_video_url
-                }
-                title="Welcome Video"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Side - Content Player */}
           <div className="lg:col-span-2">
-            {showQuiz && currentLesson && userId ? (
+            {isWelcomeSelected && course.welcome_video_url ? (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
+                    <iframe
+                      className="absolute top-0 left-0 w-full h-full rounded-lg"
+                      src={course.welcome_video_url.includes("youtube.com") || course.welcome_video_url.includes("youtu.be")
+                        ? course.welcome_video_url.replace("watch?v=", "embed/").split("&")[0]
+                        : course.welcome_video_url
+                      }
+                      title="Welcome Video"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ) : showQuiz && currentLesson && userId ? (
               <Card>
                 <CardContent className="p-6">
                   <QuizTaker
@@ -343,6 +389,7 @@ export default function CourseDetail() {
                 lesson={currentLesson}
                 studentId={userId || undefined}
                 onComplete={handleLessonComplete}
+                progressPercent={getProgressPercent()}
               />
             )}
           </div>
@@ -353,6 +400,14 @@ export default function CourseDetail() {
               chapters={chapters}
               currentLessonId={currentLessonId || undefined}
               onLessonClick={handleLessonClick}
+              welcomeVideoUrl={course.welcome_video_url}
+              onSelectWelcome={() => {
+                setShowQuiz(false);
+                setCurrentLesson(null);
+                setCurrentLessonId(null);
+                setIsWelcomeSelected(true);
+              }}
+              isWelcomeSelected={isWelcomeSelected}
             />
 
             {/* Capstone Project Card */}

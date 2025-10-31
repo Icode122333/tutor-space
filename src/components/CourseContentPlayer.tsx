@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, FileText, Download, Play } from "lucide-react";
+import { ExternalLink, FileText, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,20 +14,55 @@ interface CourseContentPlayerProps {
     content_url: string;
     file_url?: string;
     duration?: number;
+    is_completed?: boolean;
   } | null;
   studentId?: string;
   onComplete?: () => void;
+  progressPercent?: number;
 }
 
-export function CourseContentPlayer({ lesson, studentId, onComplete }: CourseContentPlayerProps) {
+export function CourseContentPlayer({ lesson, studentId, onComplete, progressPercent = 0 }: CourseContentPlayerProps) {
   const { toast } = useToast();
   const [markingComplete, setMarkingComplete] = useState(false);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
 
   useEffect(() => {
     // Auto-mark video lessons as started when loaded
     if (lesson && studentId && lesson.content_type === "video") {
       markLessonProgress(false);
     }
+    // Resolve storage URLs for document-like content
+    const resolve = async () => {
+      if (!lesson) return setResolvedUrl(null);
+      const raw = (lesson.file_url || lesson.content_url) || "";
+      if (!raw) return setResolvedUrl(null);
+      if (/^https?:\/\//i.test(raw)) {
+        setResolvedUrl(raw);
+        return;
+      }
+      try {
+        // Assume the path belongs to the 'lesson-files' bucket
+        const cleaned = raw.replace(/^\/+/, "");
+        const path = cleaned.replace(/^lesson-files\//, "");
+        // Prefer a signed URL (works with private buckets and external viewers)
+        const { data: signed, error } = await supabase.storage.from("lesson-files").createSignedUrl(path, 3600);
+        if (!error && signed?.signedUrl) {
+          setResolvedUrl(signed.signedUrl);
+          return;
+        }
+        // Fallback to a public URL if bucket/object is public
+        const { data: pub } = supabase.storage.from("lesson-files").getPublicUrl(path);
+        if (pub?.publicUrl) {
+          setResolvedUrl(pub.publicUrl);
+          return;
+        }
+        setResolvedUrl(raw);
+      } catch (e) {
+        console.error("Failed to resolve storage URL", e);
+        setResolvedUrl(raw);
+      }
+    };
+    resolve();
   }, [lesson?.id, studentId]);
 
   const markLessonProgress = async (isComplete: boolean) => {
@@ -70,14 +105,15 @@ export function CourseContentPlayer({ lesson, studentId, onComplete }: CourseCon
     return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
   };
 
-  const handleExternalLinkClick = () => {
-    const url = lesson?.file_url || lesson?.content_url;
-    if (url) {
-      window.open(url, "_blank");
-      if (studentId && lesson) {
-        markLessonProgress(true);
-      }
-    }
+  const getOfficeViewerUrl = (url: string) => {
+    return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+  };
+
+  const getEmojiForProgress = (p: number) => {
+    if (p < 25) return "😢";
+    if (p < 50) return "🙂";
+    if (p < 75) return "😊";
+    return "🤩";
   };
 
   if (!lesson) {
@@ -98,6 +134,40 @@ export function CourseContentPlayer({ lesson, studentId, onComplete }: CourseCon
     <div className="space-y-4">
       <Card>
         <CardContent className="p-0">
+          {/* Top Bar: Progress + Mark as Done */}
+          {studentId && lesson && lesson.content_type !== "quiz" && (
+            <div className="flex flex-col gap-3 p-4 border-b bg-white">
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="relative w-full h-3 rounded-full bg-white border border-[#0A400C]/30 overflow-hidden">
+                    <div
+                      className="h-full transition-all bg-gradient-to-r from-[#0A400C] via-green-600 to-emerald-500"
+                      style={{ width: `${Math.round(progressPercent)}%` }}
+                    />
+                    <div
+                      className="absolute -top-2 translate-x-1/2 right-0 text-base"
+                      style={{ right: `calc(${Math.max(0, Math.min(100, Math.round(progressPercent)))}% - 10px)` }}
+                    >
+                      {getEmojiForProgress(progressPercent)}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm font-semibold text-[#0A400C] whitespace-nowrap">
+                  {Math.round(progressPercent)}% Complete
+                </div>
+              </div>
+              <div>
+                <Button
+                  onClick={() => markLessonProgress(true)}
+                  disabled={markingComplete || !!lesson.is_completed}
+                  className="bg-[#0A400C] hover:bg-[#083308]"
+                >
+                  {lesson.is_completed ? "Completed" : (markingComplete ? "Marking..." : "Mark as Done")}
+                </Button>
+              </div>
+            </div>
+          )}
+
           {lesson.content_type === "video" && (
             <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
               {(() => {
@@ -128,53 +198,55 @@ export function CourseContentPlayer({ lesson, studentId, onComplete }: CourseCon
             </div>
           )}
 
-          {(lesson.content_type === "pdf" || 
-            lesson.content_type === "document" || 
-            lesson.content_type === "assignment") && (
-            <div className="bg-gradient-to-br from-primary/10 to-purple-100 p-12 rounded-t-lg">
-              <div className="text-center max-w-md mx-auto">
-                <div className="bg-white rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <FileText className="h-10 w-10 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">
-                  {lesson.content_type === "assignment" ? "Assignment" : "Document"}
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  {lesson.content_type === "assignment" 
-                    ? "Click below to open and complete the assignment"
-                    : "Click below to open and view the document"}
-                </p>
-                <Button
-                  onClick={handleExternalLinkClick}
-                  size="lg"
-                  className="w-full"
-                >
-                  <ExternalLink className="h-5 w-5 mr-2" />
-                  Open {lesson.content_type === "pdf" ? "PDF" : "Document"} in New Tab
-                </Button>
-              </div>
+          {(lesson.content_type === "pdf" || lesson.content_type === "document" || lesson.content_type === "assignment") && (
+            <div className="relative w-full rounded-t-lg overflow-hidden" style={{ minHeight: "60vh" }}>
+              {(() => {
+                const url = resolvedUrl || (lesson.file_url || lesson.content_url) || "";
+                const lower = url.toLowerCase();
+                const isPDF = lower.endsWith(".pdf") || lesson.content_type === "pdf";
+                const isOffice = [".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx"].some(ext => lower.endsWith(ext)) || lesson.content_type === "document";
+                if (isPDF) {
+                  return (
+                    <iframe
+                      src={`${url}#toolbar=1&navpanes=1&scrollbar=1`}
+                      title={lesson.title}
+                      className="absolute inset-0 w-full h-full"
+                    />
+                  );
+                }
+                if (isOffice) {
+                  return (
+                    <iframe
+                      src={getOfficeViewerUrl(url)}
+                      title={lesson.title}
+                      className="absolute inset-0 w-full h-full"
+                    />
+                  );
+                }
+                // Fallback: link preview
+                return (
+                  <div className="p-12 bg-muted flex items-center justify-center">
+                    <div className="text-center">
+                      <FileText className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground mb-4 break-all">{url}</p>
+                      <Button onClick={() => window.open(url, "_blank")}>
+                        <ExternalLink className="h-4 w-4 mr-2" /> Open in new tab
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
           {lesson.content_type === "url" && (
-            <div className="bg-gradient-to-br from-blue-100 to-indigo-100 p-12 rounded-t-lg">
-              <div className="text-center max-w-md mx-auto">
-                <div className="bg-white rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <ExternalLink className="h-10 w-10 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">External Resource</h3>
-                <p className="text-muted-foreground mb-4 text-sm break-all">
-                  {lesson.content_url}
-                </p>
-                <Button
-                  onClick={handleExternalLinkClick}
-                  size="lg"
-                  className="w-full"
-                >
-                  <ExternalLink className="h-5 w-5 mr-2" />
-                  Open Resource in New Tab
-                </Button>
-              </div>
+            <div className="relative w-full rounded-t-lg overflow-hidden" style={{ minHeight: "60vh" }}>
+              <iframe
+                src={lesson.content_url}
+                title={lesson.title}
+                className="absolute inset-0 w-full h-full"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+              />
             </div>
           )}
         </CardContent>
@@ -191,18 +263,6 @@ export function CourseContentPlayer({ lesson, studentId, onComplete }: CourseCon
           {lesson.duration && (
             <div className="mt-4 text-sm text-muted-foreground">
               Duration: {lesson.duration} minutes
-            </div>
-          )}
-
-          {studentId && lesson.content_type === "video" && (
-            <div className="mt-6 pt-6 border-t">
-              <Button
-                onClick={() => markLessonProgress(true)}
-                disabled={markingComplete}
-                className="w-full"
-              >
-                {markingComplete ? "Marking complete..." : "Mark as Complete"}
-              </Button>
             </div>
           )}
         </CardContent>
