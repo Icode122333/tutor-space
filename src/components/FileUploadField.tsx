@@ -21,7 +21,7 @@ export function FileUploadField({
   label,
   value,
   onChange,
-  accept = ".pdf,.doc,.docx",
+  accept = ".pdf",
   placeholder = "https://example.com/file.pdf",
   courseId,
   lessonId,
@@ -36,13 +36,26 @@ export function FileUploadField({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Enforce PDF only
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    const isPdf = file.type === "application/pdf" || ext === "pdf";
+    if (!isPdf) {
+      toast({
+        title: "Invalid file type",
+        description: "Only PDF files are allowed.",
+        variant: "destructive",
+      });
+      event.currentTarget.value = "";
+      return;
+    }
+
     try {
       setUploading(true);
       setUploadProgress(0);
       setFileName(file.name);
 
       // Generate unique file path
-      const fileExt = file.name.split(".").pop();
+      const fileExt = "pdf";
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
       const filePath = courseId && lessonId 
         ? `${courseId}/${lessonId}/${fileName}`

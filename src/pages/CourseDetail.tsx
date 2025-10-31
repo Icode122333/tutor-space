@@ -229,7 +229,7 @@ export default function CourseDetail() {
     if (data) setCapstoneProject(data);
   };
 
-  const handleLessonClick = (lessonId: string) => {
+  const handleLessonClick = async (lessonId: string) => {
     setIsWelcomeSelected(false);
     const lesson = chapters
       .flatMap((ch) => ch.lessons)
@@ -241,6 +241,32 @@ export default function CourseDetail() {
       setCurrentLesson(lesson);
       setShowQuiz(true);
     } else {
+      const isUrlDoc =
+        (lesson.content_type === "pdf" || lesson.content_type === "document" || lesson.content_type === "assignment") &&
+        !!lesson.content_url && !lesson.file_url;
+      if (lesson.content_type === "url" || isUrlDoc) {
+        if (lesson.content_url) {
+          window.open(lesson.content_url, "_blank");
+        }
+        if (userId) {
+          try {
+            await supabase.from("student_lesson_progress").upsert(
+              {
+                student_id: userId,
+                lesson_id: lesson.id,
+                is_completed: true,
+                completed_at: new Date().toISOString(),
+              },
+              { onConflict: "student_id,lesson_id" }
+            );
+            await fetchChapters();
+            toast({ title: "Opened in new tab", description: "Marked as completed" });
+          } catch (e) {
+            console.error("Error marking URL lesson complete", e);
+          }
+        }
+        return;
+      }
       setCurrentLessonId(lessonId);
       setCurrentLesson(lesson);
       setShowQuiz(false);

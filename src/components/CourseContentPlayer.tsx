@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, FileText, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import PdfJsInlineViewer from "@/components/PdfJsInlineViewer";
 
 interface CourseContentPlayerProps {
   lesson: {
@@ -204,26 +205,11 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
                 const url = resolvedUrl || (lesson.file_url || lesson.content_url) || "";
                 const lower = url.toLowerCase();
                 const isPDF = lower.endsWith(".pdf") || lesson.content_type === "pdf";
-                const isOffice = [".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx"].some(ext => lower.endsWith(ext)) || lesson.content_type === "document";
-                if (isPDF) {
-                  return (
-                    <iframe
-                      src={`${url}#toolbar=1&navpanes=1&scrollbar=1`}
-                      title={lesson.title}
-                      className="absolute inset-0 w-full h-full"
-                    />
-                  );
+                const isUploaded = !!lesson.file_url;
+                if (isPDF && isUploaded && url) {
+                  return <PdfJsInlineViewer src={url} />;
                 }
-                if (isOffice) {
-                  return (
-                    <iframe
-                      src={getOfficeViewerUrl(url)}
-                      title={lesson.title}
-                      className="absolute inset-0 w-full h-full"
-                    />
-                  );
-                }
-                // Fallback: link preview
+                // URL-based docs should open in new tab (button)
                 return (
                   <div className="p-12 bg-muted flex items-center justify-center">
                     <div className="text-center">
@@ -240,13 +226,14 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
           )}
 
           {lesson.content_type === "url" && (
-            <div className="relative w-full rounded-t-lg overflow-hidden" style={{ minHeight: "60vh" }}>
-              <iframe
-                src={lesson.content_url}
-                title={lesson.title}
-                className="absolute inset-0 w-full h-full"
-                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-              />
+            <div className="p-12 bg-muted flex items-center justify-center">
+              <div className="text-center">
+                <FileText className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground mb-4 break-all">{lesson.content_url}</p>
+                <Button onClick={() => window.open(lesson.content_url, "_blank")}> 
+                  <ExternalLink className="h-4 w-4 mr-2" /> Open in new tab
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

@@ -762,12 +762,8 @@ export default function CreateCourse() {
                                             updateLesson(chapterIndex, lessonIndex, "file_url", "");
                                           }
                                         }}
-                                        accept={lesson.content_type === "pdf" ? ".pdf" : ".doc,.docx"}
-                                        placeholder={
-                                          lesson.content_type === "pdf"
-                                            ? "https://example.com/file.pdf"
-                                            : "https://example.com/file.docx"
-                                        }
+                                        accept={".pdf"}
+                                        placeholder={"https://example.com/file.pdf"}
                                         courseId={courseId || undefined}
                                         lessonId={`temp-${chapterIndex}-${lessonIndex}`}
                                       />
