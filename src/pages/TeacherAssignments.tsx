@@ -448,14 +448,36 @@ const TeacherAssignments = () => {
                                           {submission.description && (
                                             <p className="text-sm mt-2 line-clamp-2">{submission.description}</p>
                                           )}
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => handleViewSubmission(submission.id)}
-                                        >
-                                          <Eye className="h-4 w-4 mr-1" />
-                                          View
-                                        </Button>
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-col items-end gap-2">
+                                        <div className="flex items-center gap-2">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleViewSubmission(submission.id)}
+                                          >
+                                            <Eye className="h-4 w-4 mr-1" />
+                                            View
+                                          </Button>
+                                          <div className="flex items-center gap-2">
+                                            <Input
+                                              type="number"
+                                              min={0}
+                                              max={100}
+                                              className="w-24"
+                                              value={editGrades[submission.id] ?? (submission.grade?.toString() || "")}
+                                              onChange={(e) => handleInlineGradeChange(submission.id, e.target.value)}
+                                              placeholder="Marks"
+                                            />
+                                            <Button size="sm" onClick={() => handleSaveInlineGrade(submission.id)}>Save</Button>
+                                          </div>
+                                        </div>
+                                        {submission.grade !== null ? (
+                                          <Badge className="bg-green-500">Grade: {submission.grade}/100</Badge>
+                                        ) : (
+                                          <Badge variant="outline" className="text-orange-500 border-orange-500">Not Graded</Badge>
+                                        )}
                                       </div>
                                     </div>
                                   </CardContent>
