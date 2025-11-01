@@ -31,6 +31,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { Input } from "@/components/ui/input";
 
 interface Course {
   id: string;
@@ -80,6 +81,7 @@ const TeacherAssignments = () => {
   const [capstoneProject, setCapstoneProject] = useState<CapstoneProject | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([]);
+  const [editGrades, setEditGrades] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchTeacherCourses();
@@ -206,8 +208,56 @@ const TeacherAssignments = () => {
   };
 
   const handleViewSubmission = (submissionId: string) => {
-    // Navigate to submission detail or open modal
-    toast.info("Viewing submission details");
+    // Deprecated placeholder
+    const s = submissions.find((x) => x.id === submissionId);
+    if (!s) return;
+    const firstLink = (s.project_links && s.project_links[0]) || "";
+    openInGoogleViewer(firstLink);
+  };
+
+  const openInGoogleViewer = async (link: string) => {
+    try {
+      let url = link;
+      if (!/^https?:\/\//i.test(link)) {
+        // Treat as storage path within lesson-files bucket
+        const cleaned = link.replace(/^\/+/, "");
+        const { data, error } = await supabase.storage
+          .from("lesson-files")
+          .createSignedUrl(cleaned, 3600);
+        if (error) throw error;
+        url = data?.signedUrl || link;
+      }
+      const viewer = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(url)}`;
+      window.open(viewer, "_blank");
+    } catch (e) {
+      console.error("Failed to open viewer", e);
+      toast.error("Failed to open document");
+    }
+  };
+
+  const handleInlineGradeChange = (submissionId: string, value: string) => {
+    setEditGrades((prev) => ({ ...prev, [submissionId]: value }));
+  };
+
+  const handleSaveInlineGrade = async (submissionId: string) => {
+    const raw = editGrades[submissionId];
+    const grade = parseInt(raw, 10);
+    if (isNaN(grade) || grade < 0 || grade > 100) {
+      toast.error("Enter a valid grade 0-100");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("capstone_submissions")
+        .update({ grade, graded_at: new Date().toISOString() })
+        .eq("id", submissionId);
+      if (error) throw error;
+      setSubmissions((prev) => prev.map((s) => (s.id === submissionId ? { ...s, grade } : s)));
+      toast.success("Grade saved");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to save grade");
+    }
   };
 
   if (loading) {
@@ -340,12 +390,20 @@ const TeacherAssignments = () => {
                               {capstoneProject.description}
                             </CardDescription>
                           </div>
-                          {capstoneProject.due_date && (
-                            <Badge variant="outline" className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              Due: {new Date(capstoneProject.due_date).toLocaleDateString()}
-                            </Badge>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {capstoneProject.due_date && (
+                              <Badge variant="outline" className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                Due: {new Date(capstoneProject.due_date).toLocaleDateString()}
+                              </Badge>
+                            )}
+                            <Button
+                              variant="outline"
+                              onClick={() => navigate(`/create-course?edit=${selectedCourseId}`)}
+                            >
+                              Create Assignment
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent>
@@ -390,33 +448,6 @@ const TeacherAssignments = () => {
                                           {submission.description && (
                                             <p className="text-sm mt-2 line-clamp-2">{submission.description}</p>
                                           )}
-                                          {submission.project_links && submission.project_links.length > 0 && (
-                                            <div className="flex flex-wrap gap-2 mt-2">
-                                              {submission.project_links.map((link, idx) => (
-                                                <a
-                                                  key={idx}
-                                                  href={link}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="text-xs text-blue-600 hover:underline"
-                                                >
-                                                  Link {idx + 1}
-                                                </a>
-                                              ))}
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <div className="flex flex-col items-end gap-2">
-                                        {submission.grade !== null ? (
-                                          <Badge className="bg-green-500">
-                                            Grade: {submission.grade}/100
-                                          </Badge>
-                                        ) : (
-                                          <Badge variant="outline" className="text-orange-500 border-orange-500">
-                                            Not Graded
-                                          </Badge>
-                                        )}
                                         <Button
                                           size="sm"
                                           variant="outline"

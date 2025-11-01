@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import AssignmentUploadWidget from "@/components/AssignmentUploadWidget";
 
 interface Assignment {
   id: string;
@@ -35,9 +36,15 @@ const StudentAssignments = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [studentId, setStudentId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAssignments();
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setStudentId(user.id);
+      await fetchAssignments();
+    };
+    init();
   }, []);
 
   const fetchAssignments = async () => {
@@ -254,13 +261,22 @@ const StudentAssignments = () => {
                                     })}
                                   </p>
                                 )}
-                                <Button
-                                  onClick={() => navigate(`/course/${assignment.course_id}`)}
-                                  className="bg-[#006d2c] hover:bg-[#005523]"
-                                >
-                                  <ExternalLink className="h-4 w-4 mr-2" />
-                                  View & Submit
-                                </Button>
+                                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                                  <Button
+                                    onClick={() => navigate(`/course/${assignment.course_id}`)}
+                                    className="bg-[#006d2c] hover:bg-[#005523] w-full sm:w-auto"
+                                  >
+                                    <ExternalLink className="h-4 w-4 mr-2" />
+                                    View Assignment
+                                  </Button>
+                                  {studentId && (
+                                    <AssignmentUploadWidget
+                                      studentId={studentId}
+                                      capstoneProjectId={assignment.id}
+                                      onUploaded={fetchAssignments}
+                                    />
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </CardContent>
