@@ -153,46 +153,76 @@ const TeacherAssignments = () => {
 
   const fetchSubmissions = async () => {
     try {
-      // Fetch submissions for BOTH capstone projects AND regular assignments
-      // First, get all assignment IDs for this course
-      const { data: regularAssignments } = await supabase
-        .from("assignments")
-        .select("id")
-        .eq("course_id", selectedCourseId);
+      // Fetch submissions for BOTH regular assignments AND capstone projects
+      
+      // 1. Get regular assignment lesson IDs from course_lessons
+      const { data: courseLessons } = await supabase
+        .from("course_lessons")
+        .select(`
+          id,
+          course_chapters!inner (
+            course_id
+          )
+        `)
+        .eq("content_type", "assignment")
+        .eq("course_chapters.course_id", selectedCourseId);
 
+      const lessonIds = courseLessons?.map(l => l.id) || [];
+
+      // 2. Get capstone project IDs
       const { data: capstoneProjects } = await supabase
         .from("capstone_projects")
         .select("id")
         .eq("course_id", selectedCourseId);
 
-      const allAssignmentIds = [
-        ...(regularAssignments?.map(a => a.id) || []),
-        ...(capstoneProjects?.map(c => c.id) || [])
-      ];
+      const capstoneIds = capstoneProjects?.map(c => c.id) || [];
 
-      if (allAssignmentIds.length === 0) {
-        setSubmissions([]);
-        return;
+      // 3. Fetch assignment submissions (from assignment_submissions table)
+      let assignmentSubmissions: any[] = [];
+      if (lessonIds.length > 0) {
+        const { data: assignmentData } = await supabase
+          .from("assignment_submissions")
+          .select(`
+            *,
+            profiles (
+              full_name,
+              email,
+              avatar_url
+            )
+          `)
+          .in("lesson_id", lessonIds)
+          .order("submitted_at", { ascending: false });
+        assignmentSubmissions = assignmentData || [];
       }
 
-      // Fetch all submissions for these assignments
-      const { data, error } = await supabase
-        .from("capstone_submissions")
-        .select(`
-          *,
-          profiles (
-            full_name,
-            email,
-            avatar_url
-          )
-        `)
-        .in("capstone_project_id", allAssignmentIds)
-        .order("submitted_at", { ascending: false });
+      // 4. Fetch capstone submissions (from capstone_submissions table)
+      let capstoneSubmissions: any[] = [];
+      if (capstoneIds.length > 0) {
+        const { data: capstoneData } = await supabase
+          .from("capstone_submissions")
+          .select(`
+            *,
+            profiles (
+              full_name,
+              email,
+              avatar_url
+            )
+          `)
+          .in("capstone_project_id", capstoneIds)
+          .order("submitted_at", { ascending: false });
+        capstoneSubmissions = capstoneData || [];
+      }
 
-      if (error) throw error;
+      // 5. Combine both types of submissions
+      const allSubmissions = [...assignmentSubmissions, ...capstoneSubmissions].sort((a, b) => {
+        return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
+      });
 
-      console.log("Submissions found:", data?.length || 0);
-      setSubmissions(data || []);
+      console.log("Assignment submissions found:", assignmentSubmissions.length);
+      console.log("Capstone submissions found:", capstoneSubmissions.length);
+      console.log("Total submissions:", allSubmissions.length);
+      
+      setSubmissions(allSubmissions);
     } catch (error: any) {
       toast.error("Failed to load submissions");
       console.error(error);
@@ -269,11 +299,26 @@ const TeacherAssignments = () => {
       return;
     }
     try {
+      // Find the submission to determine which table to update
+      const submission = submissions.find(s => s.id === submissionId);
+      if (!submission) {
+        toast.error("Submission not found");
+        return;
+      }
+
+      // Determine table based on which ID field exists
+      const isAssignment = 'lesson_id' in submission;
+      const tableName = isAssignment ? "assignment_submissions" : "capstone_submissions";
+
+      console.log(`Updating grade in ${tableName} for submission ${submissionId}`);
+
       const { error } = await supabase
-        .from("capstone_submissions")
+        .from(tableName)
         .update({ grade, graded_at: new Date().toISOString() })
         .eq("id", submissionId);
+      
       if (error) throw error;
+      
       setSubmissions((prev) => prev.map((s) => (s.id === submissionId ? { ...s, grade } : s)));
       toast.success("Grade saved");
     } catch (e) {
