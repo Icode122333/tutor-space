@@ -104,6 +104,25 @@ const AuthCallback = () => {
         } else {
           console.log("Existing user found with role:", existingProfile.role);
           
+          // Check if role from URL/metadata doesn't match profile role (fix for trigger defaulting to student)
+          const intendedRole = searchParams.get("role") || user.user_metadata?.role;
+          if (intendedRole && intendedRole !== existingProfile.role) {
+            console.log(`Role mismatch detected. Profile has: ${existingProfile.role}, but intended: ${intendedRole}. Updating...`);
+            const { error: updateError } = await supabase
+              .from("profiles")
+              .update({ role: intendedRole as "student" | "teacher" })
+              .eq("id", user.id);
+            
+            if (updateError) {
+              console.error("Error updating role:", updateError);
+            } else {
+              console.log("Role updated successfully to:", intendedRole);
+              existingProfile.role = intendedRole as "student" | "teacher";
+            }
+          }
+          
+          console.log("Existing user found with role:", existingProfile.role);
+          
           // Check if onboarding is completed
           if (!existingProfile.onboarding_completed) {
             console.log("Onboarding not completed, redirecting to onboarding");
