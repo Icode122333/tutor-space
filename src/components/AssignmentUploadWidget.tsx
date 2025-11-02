@@ -11,9 +11,10 @@ interface AssignmentUploadWidgetProps {
   studentId: string;
   capstoneProjectId: string;
   onUploaded?: () => void;
+  submissionType?: 'assignment' | 'capstone'; // Type of submission
 }
 
-export default function AssignmentUploadWidget({ studentId, capstoneProjectId, onUploaded }: AssignmentUploadWidgetProps) {
+export default function AssignmentUploadWidget({ studentId, capstoneProjectId, onUploaded, submissionType = 'capstone' }: AssignmentUploadWidgetProps) {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
@@ -32,6 +33,14 @@ export default function AssignmentUploadWidget({ studentId, capstoneProjectId, o
 
     try {
       setUploading(true);
+      
+      // Debug logging
+      console.log('=== ASSIGNMENT UPLOAD DEBUG ===');
+      console.log('Submission Type:', submissionType);
+      console.log('ID (lesson_id or capstone_id):', capstoneProjectId);
+      console.log('Student ID:', studentId);
+      console.log('Will insert into table:', submissionType === 'assignment' ? 'assignment_submissions' : 'capstone_submissions');
+      
       const ext = file.name.split(".").pop()?.toLowerCase() || "dat";
       const path = `capstone-submissions/${capstoneProjectId}/${studentId}/${Date.now()}.${ext}`;
 
@@ -40,16 +49,30 @@ export default function AssignmentUploadWidget({ studentId, capstoneProjectId, o
         .upload(path, file, { cacheControl: "3600", upsert: false });
       if (error) throw error;
 
-      const insert = await supabase
-        .from("capstone_submissions")
-        .upsert({
-          capstone_project_id: capstoneProjectId,
-          student_id: studentId,
-          project_links: [data.path],
-          description: description.trim(),
-          submitted_at: new Date().toISOString(),
-        }, { onConflict: "capstone_project_id,student_id" });
-      if (insert.error) throw insert.error;
+      // Insert into appropriate table based on submission type
+      if (submissionType === 'assignment') {
+        const insert = await supabase
+          .from("assignment_submissions")
+          .upsert({
+            lesson_id: capstoneProjectId, // For assignments, this is actually a lesson_id
+            student_id: studentId,
+            project_links: [data.path],
+            description: description.trim(),
+            submitted_at: new Date().toISOString(),
+          }, { onConflict: "lesson_id,student_id" });
+        if (insert.error) throw insert.error;
+      } else {
+        const insert = await supabase
+          .from("capstone_submissions")
+          .upsert({
+            capstone_project_id: capstoneProjectId,
+            student_id: studentId,
+            project_links: [data.path],
+            description: description.trim(),
+            submitted_at: new Date().toISOString(),
+          }, { onConflict: "capstone_project_id,student_id" });
+        if (insert.error) throw insert.error;
+      }
 
       toast({ 
         title: "Success!", 

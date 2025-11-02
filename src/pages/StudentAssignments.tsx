@@ -24,6 +24,7 @@ interface Assignment {
   due_date: string | null;
   course_title: string;
   course_id: string;
+  type: 'assignment' | 'capstone';
   submission: {
     id: string;
     submitted_at: string;
@@ -150,26 +151,33 @@ const StudentAssignments = () => {
       console.log("Regular assignments:", regularAssignments);
       console.log("Capstones:", capstones);
 
-      // Get ALL assignment IDs (both regular and capstone)
-      const allAssignmentIds = [
-        ...regularAssignments.map(a => a.id),
-        ...capstones.map(c => c.id)
-      ];
+      // Get submissions for regular assignments (from assignment_submissions)
+      const regularAssignmentIds = regularAssignments.map(a => a.id);
+      let assignmentSubmissions: any[] = [];
+      if (regularAssignmentIds.length > 0) {
+        const { data: assignmentSubmissionsData } = await supabase
+          .from("assignment_submissions")
+          .select("*")
+          .eq("student_id", user.id)
+          .in("lesson_id", regularAssignmentIds);
+        assignmentSubmissions = assignmentSubmissionsData || [];
+      }
 
-      // Get submissions for ALL assignments (only if there are assignments)
-      let submissions: any[] = [];
-      if (allAssignmentIds.length > 0) {
-        const { data: submissionsData } = await supabase
+      // Get submissions for capstone projects (from capstone_submissions)
+      const capstoneIds = capstones.map(c => c.id);
+      let capstoneSubmissions: any[] = [];
+      if (capstoneIds.length > 0) {
+        const { data: capstoneSubmissionsData } = await supabase
           .from("capstone_submissions")
           .select("*")
           .eq("student_id", user.id)
-          .in("capstone_project_id", allAssignmentIds);
-        submissions = submissionsData || [];
+          .in("capstone_project_id", capstoneIds);
+        capstoneSubmissions = capstoneSubmissionsData || [];
       }
 
       // Map regular assignments with submission status
       const regularAssignmentsData = regularAssignments.map((assignment: any) => {
-        const submission = submissions?.find(s => s.capstone_project_id === assignment.id);
+        const submission = assignmentSubmissions?.find(s => s.lesson_id === assignment.id);
         return {
           id: assignment.id,
           title: assignment.title,
@@ -189,7 +197,7 @@ const StudentAssignments = () => {
 
       // Map capstone projects with submission status
       const capstoneData = capstones.map((capstone: any) => {
-        const submission = submissions?.find(s => s.capstone_project_id === capstone.id);
+        const submission = capstoneSubmissions?.find(s => s.capstone_project_id === capstone.id);
         return {
           id: capstone.id,
           title: capstone.title,
@@ -335,6 +343,7 @@ const StudentAssignments = () => {
                                   studentId={studentId}
                                   capstoneProjectId={course.id}
                                   onUploaded={fetchAssignments}
+                                  submissionType="capstone"
                                 />
                               </CardContent>
                             </Card>
@@ -405,6 +414,7 @@ const StudentAssignments = () => {
                                         studentId={studentId}
                                         capstoneProjectId={assignment.id}
                                         onUploaded={fetchAssignments}
+                                        submissionType={assignment.type}
                                       />
                                     </div>
                                   )}
