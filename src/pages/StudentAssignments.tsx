@@ -37,15 +37,40 @@ const StudentAssignments = () => {
   const [loading, setLoading] = useState(true);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [studentId, setStudentId] = useState<string | null>(null);
+  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) setStudentId(user.id);
       await fetchAssignments();
+      await fetchEnrolledCourses();
     };
     init();
   }, []);
+
+  const fetchEnrolledCourses = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("course_enrollments")
+        .select(`
+          course_id,
+          courses (
+            id,
+            title
+          )
+        `)
+        .eq("student_id", user.id);
+
+      if (error) throw error;
+      setEnrolledCourses(data || []);
+    } catch (error: any) {
+      console.error("Error fetching enrolled courses:", error);
+    }
+  };
 
   const fetchAssignments = async () => {
     try {
@@ -71,41 +96,88 @@ const StudentAssignments = () => {
         return;
       }
 
-      // Get capstone projects for enrolled courses
-      const { data: capstones, error: capstoneError } = await supabase
-        .from("capstone_projects")
-        .select(`
-          id,
-          title,
-          description,
-          due_date,
-          course_id,
-          courses (
-            title
-          )
-        `)
-        .in("course_id", courseIds);
+      // Get BOTH regular assignments (from course_lessons) AND capstone projects
+      const [regularAssignmentsResult, capstonesResult] = await Promise.all([
+        // Fetch regular assignments from course_lessons where content_type = 'assignment'
+        supabase
+          .from("course_lessons")
+          .select(`
+            id,
+            title,
+            description,
+            course_chapters!inner (
+              course_id,
+              courses (
+                title
+              )
+            )
+          `)
+          .eq("content_type", "assignment")
+          .in("course_chapters.course_id", courseIds),
+        
+        // Fetch capstone projects
+        supabase
+          .from("capstone_projects")
+          .select(`
+            id,
+            title,
+            description,
+            due_date,
+            course_id,
+            courses (
+              title
+            )
+          `)
+          .in("course_id", courseIds)
+      ]);
 
-      if (capstoneError) throw capstoneError;
+      if (regularAssignmentsResult.error) throw regularAssignmentsResult.error;
+      if (capstonesResult.error) throw capstonesResult.error;
 
-      // Get submissions for these capstones
-      const capstoneIds = capstones?.map(c => c.id) || [];
-      const { data: submissions } = await supabase
-        .from("capstone_submissions")
-        .select("*")
-        .eq("student_id", user.id)
-        .in("capstone_project_id", capstoneIds);
+      // Transform course_lessons data to match expected format
+      const regularAssignments = (regularAssignmentsResult.data || []).map((lesson: any) => ({
+        id: lesson.id,
+        title: lesson.title,
+        description: lesson.description,
+        due_date: null, // course_lessons doesn't have due_date
+        course_id: lesson.course_chapters.course_id,
+        courses: lesson.course_chapters.courses
+      }));
+      const capstones = capstonesResult.data || [];
 
-      // Map assignments with submission status
-      const assignmentsData = (capstones || []).map((capstone: any) => {
-        const submission = submissions?.find(s => s.capstone_project_id === capstone.id);
+      console.log("Regular assignments found:", regularAssignments.length);
+      console.log("Capstone projects found:", capstones.length);
+      console.log("Regular assignments:", regularAssignments);
+      console.log("Capstones:", capstones);
+
+      // Get ALL assignment IDs (both regular and capstone)
+      const allAssignmentIds = [
+        ...regularAssignments.map(a => a.id),
+        ...capstones.map(c => c.id)
+      ];
+
+      // Get submissions for ALL assignments (only if there are assignments)
+      let submissions: any[] = [];
+      if (allAssignmentIds.length > 0) {
+        const { data: submissionsData } = await supabase
+          .from("capstone_submissions")
+          .select("*")
+          .eq("student_id", user.id)
+          .in("capstone_project_id", allAssignmentIds);
+        submissions = submissionsData || [];
+      }
+
+      // Map regular assignments with submission status
+      const regularAssignmentsData = regularAssignments.map((assignment: any) => {
+        const submission = submissions?.find(s => s.capstone_project_id === assignment.id);
         return {
-          id: capstone.id,
-          title: capstone.title,
-          description: capstone.description,
-          due_date: capstone.due_date,
-          course_title: capstone.courses.title,
-          course_id: capstone.course_id,
+          id: assignment.id,
+          title: assignment.title,
+          description: assignment.description,
+          due_date: assignment.due_date,
+          course_title: assignment.courses.title,
+          course_id: assignment.course_id,
+          type: 'assignment' as const,
           submission: submission ? {
             id: submission.id,
             submitted_at: submission.submitted_at,
@@ -115,7 +187,34 @@ const StudentAssignments = () => {
         };
       });
 
-      setAssignments(assignmentsData);
+      // Map capstone projects with submission status
+      const capstoneData = capstones.map((capstone: any) => {
+        const submission = submissions?.find(s => s.capstone_project_id === capstone.id);
+        return {
+          id: capstone.id,
+          title: capstone.title,
+          description: capstone.description,
+          due_date: capstone.due_date,
+          course_title: capstone.courses.title,
+          course_id: capstone.course_id,
+          type: 'capstone' as const,
+          submission: submission ? {
+            id: submission.id,
+            submitted_at: submission.submitted_at,
+            grade: submission.grade,
+            feedback: submission.feedback
+          } : null
+        };
+      });
+
+      // Combine both types and sort by due date
+      const allAssignments = [...regularAssignmentsData, ...capstoneData].sort((a, b) => {
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      });
+
+      setAssignments(allAssignments);
     } catch (error: any) {
       toast.error("Failed to load assignments");
       console.error(error);
@@ -216,21 +315,51 @@ const StudentAssignments = () => {
 
               {/* Assignments List */}
               {assignments.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No Assignments Yet</h3>
-                    <p className="text-gray-600 mb-4">
-                      You don't have any assignments. Enroll in courses to get started!
-                    </p>
-                    <Button
-                      onClick={() => navigate("/courses")}
-                      className="bg-[#006d2c] hover:bg-[#005523]"
-                    >
-                      Browse Courses
-                    </Button>
-                  </CardContent>
-                </Card>
+                enrolledCourses.length > 0 && studentId ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Upload Assignment or Capstone Project</CardTitle>
+                      <CardDescription>
+                        Submit your work for any of your enrolled courses
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="max-w-2xl mx-auto">
+                        {enrolledCourses.map((enrollment: any) => {
+                          const course = enrollment.courses;
+                          return (
+                            <Card key={course.id} className="mb-4 border-2 hover:border-[#006d2c] transition-colors">
+                              <CardContent className="p-6">
+                                <h3 className="text-lg font-bold mb-4">{course.title}</h3>
+                                <AssignmentUploadWidget
+                                  studentId={studentId}
+                                  capstoneProjectId={course.id}
+                                  onUploaded={fetchAssignments}
+                                />
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No Courses Enrolled</h3>
+                      <p className="text-gray-600 mb-4">
+                        Enroll in courses to upload assignments and capstone projects!
+                      </p>
+                      <Button
+                        onClick={() => navigate("/courses")}
+                        className="bg-[#006d2c] hover:bg-[#005523]"
+                      >
+                        Browse Courses
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )
               ) : (
                 <>
                   {/* Pending Assignments */}
@@ -261,20 +390,23 @@ const StudentAssignments = () => {
                                     })}
                                   </p>
                                 )}
-                                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                                <div className="space-y-3">
                                   <Button
                                     onClick={() => navigate(`/course/${assignment.course_id}`)}
-                                    className="bg-[#006d2c] hover:bg-[#005523] w-full sm:w-auto"
+                                    className="bg-[#006d2c] hover:bg-[#005523] w-full"
                                   >
                                     <ExternalLink className="h-4 w-4 mr-2" />
-                                    View Assignment
+                                    View Assignment Details
                                   </Button>
                                   {studentId && (
-                                    <AssignmentUploadWidget
-                                      studentId={studentId}
-                                      capstoneProjectId={assignment.id}
-                                      onUploaded={fetchAssignments}
-                                    />
+                                    <div className="border-t pt-3">
+                                      <p className="text-sm font-semibold mb-2">Upload Your Submission</p>
+                                      <AssignmentUploadWidget
+                                        studentId={studentId}
+                                        capstoneProjectId={assignment.id}
+                                        onUploaded={fetchAssignments}
+                                      />
+                                    </div>
                                   )}
                                 </div>
                               </div>

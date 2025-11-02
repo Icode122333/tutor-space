@@ -95,10 +95,10 @@ const TeacherAssignments = () => {
   }, [selectedCourseId]);
 
   useEffect(() => {
-    if (capstoneProject) {
+    if (selectedCourseId) {
       fetchSubmissions();
     }
-  }, [capstoneProject]);
+  }, [selectedCourseId, capstoneProject]);
 
   const fetchTeacherCourses = async () => {
     try {
@@ -152,9 +152,30 @@ const TeacherAssignments = () => {
   };
 
   const fetchSubmissions = async () => {
-    if (!capstoneProject) return;
-
     try {
+      // Fetch submissions for BOTH capstone projects AND regular assignments
+      // First, get all assignment IDs for this course
+      const { data: regularAssignments } = await supabase
+        .from("assignments")
+        .select("id")
+        .eq("course_id", selectedCourseId);
+
+      const { data: capstoneProjects } = await supabase
+        .from("capstone_projects")
+        .select("id")
+        .eq("course_id", selectedCourseId);
+
+      const allAssignmentIds = [
+        ...(regularAssignments?.map(a => a.id) || []),
+        ...(capstoneProjects?.map(c => c.id) || [])
+      ];
+
+      if (allAssignmentIds.length === 0) {
+        setSubmissions([]);
+        return;
+      }
+
+      // Fetch all submissions for these assignments
       const { data, error } = await supabase
         .from("capstone_submissions")
         .select(`
@@ -165,11 +186,12 @@ const TeacherAssignments = () => {
             avatar_url
           )
         `)
-        .eq("capstone_project_id", capstoneProject.id)
+        .in("capstone_project_id", allAssignmentIds)
         .order("submitted_at", { ascending: false });
 
       if (error) throw error;
 
+      console.log("Submissions found:", data?.length || 0);
       setSubmissions(data || []);
     } catch (error: any) {
       toast.error("Failed to load submissions");
@@ -398,10 +420,10 @@ const TeacherAssignments = () => {
                               </Badge>
                             )}
                             <Button
-                              variant="outline"
                               onClick={() => navigate(`/create-course?edit=${selectedCourseId}`)}
+                              className="bg-[#006d2c] hover:bg-[#005523]"
                             >
-                              Create Assignment
+                              Edit Assignment
                             </Button>
                           </div>
                         </div>
@@ -450,31 +472,41 @@ const TeacherAssignments = () => {
                                           )}
                                         </div>
                                       </div>
-                                      <div className="flex flex-col items-end gap-2">
+                                      <div className="flex flex-col items-end gap-3">
                                         <div className="flex items-center gap-2">
                                           <Button
                                             size="sm"
                                             variant="outline"
                                             onClick={() => handleViewSubmission(submission.id)}
+                                            className="hover:bg-blue-50"
                                           >
                                             <Eye className="h-4 w-4 mr-1" />
                                             View
                                           </Button>
-                                          <div className="flex items-center gap-2">
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <div className="text-right">
+                                            <label className="text-xs text-muted-foreground block mb-1">Marks (0-100)</label>
                                             <Input
                                               type="number"
                                               min={0}
                                               max={100}
-                                              className="w-24"
+                                              className="w-24 text-center"
                                               value={editGrades[submission.id] ?? (submission.grade?.toString() || "")}
                                               onChange={(e) => handleInlineGradeChange(submission.id, e.target.value)}
-                                              placeholder="Marks"
+                                              placeholder="0"
                                             />
-                                            <Button size="sm" onClick={() => handleSaveInlineGrade(submission.id)}>Save</Button>
                                           </div>
+                                          <Button 
+                                            size="sm" 
+                                            onClick={() => handleSaveInlineGrade(submission.id)}
+                                            className="bg-[#006d2c] hover:bg-[#005523] mt-5"
+                                          >
+                                            Save
+                                          </Button>
                                         </div>
                                         {submission.grade !== null ? (
-                                          <Badge className="bg-green-500">Grade: {submission.grade}/100</Badge>
+                                          <Badge className="bg-green-500">Graded: {submission.grade}/100</Badge>
                                         ) : (
                                           <Badge variant="outline" className="text-orange-500 border-orange-500">Not Graded</Badge>
                                         )}
@@ -529,17 +561,23 @@ const TeacherAssignments = () => {
                   ) : (
                     <Card>
                       <CardContent className="py-12 text-center">
-                        <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No Assignment Created</h3>
-                        <p className="text-gray-600 mb-4">
-                          This course doesn't have a capstone project yet
-                        </p>
-                        <Button
-                          onClick={() => navigate(`/create-course?edit=${selectedCourseId}`)}
-                          className="bg-[#006d2c] hover:bg-[#005523]"
-                        >
-                          Create Assignment
-                        </Button>
+                        <div className="max-w-md mx-auto">
+                          <div className="w-20 h-20 rounded-full bg-[#006d2c]/10 flex items-center justify-center mx-auto mb-4">
+                            <FileText className="h-10 w-10 text-[#006d2c]" />
+                          </div>
+                          <h3 className="text-xl font-bold mb-2">No Assignment Created Yet</h3>
+                          <p className="text-gray-600 mb-6">
+                            Create a capstone project assignment for this course. Students will be able to submit their work and you can grade them.
+                          </p>
+                          <Button
+                            onClick={() => navigate(`/create-course?edit=${selectedCourseId}`)}
+                            className="bg-[#006d2c] hover:bg-[#005523]"
+                            size="lg"
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Create Assignment
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   )}

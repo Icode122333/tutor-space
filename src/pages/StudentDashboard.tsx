@@ -4,13 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Bell, BookOpen, CalendarDays, Clock, User, ChevronLeft, ChevronRight, Award } from "lucide-react";
+import { Search, Bell, BookOpen, CalendarDays, Clock, User, ChevronLeft, ChevronRight, Award, FileText, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { GradesTable } from "@/components/GradesTable";
+import AssignmentUploadWidget from "@/components/AssignmentUploadWidget";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const StudentDashboard = () => {
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [studentId, setStudentId] = useState<string | null>(null);
+  const [assignments, setAssignments] = useState<any[]>([]);
 
   useEffect(() => {
     const getStudentId = async () => {
@@ -34,6 +36,7 @@ const StudentDashboard = () => {
     if (profile) {
       fetchScheduledClasses();
       fetchEnrolledCourses();
+      fetchAssignments();
     }
   }, [profile]);
 
@@ -62,6 +65,74 @@ const StudentDashboard = () => {
       console.error("Error fetching enrolled courses:", error);
     } else {
       setEnrolledCourses(data || []);
+    }
+  };
+
+  const fetchAssignments = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get enrolled courses
+      const { data: enrollments } = await supabase
+        .from("course_enrollments")
+        .select("course_id")
+        .eq("student_id", user.id);
+
+      const courseIds = enrollments?.map(e => e.course_id) || [];
+
+      if (courseIds.length === 0) {
+        setAssignments([]);
+        return;
+      }
+
+      // Get capstone projects for enrolled courses
+      const { data: capstones, error } = await supabase
+        .from("capstone_projects")
+        .select(`
+          id,
+          title,
+          description,
+          due_date,
+          course_id,
+          courses (
+            title
+          )
+        `)
+        .in("course_id", courseIds);
+
+      if (error) throw error;
+
+      // Get submissions for these capstones
+      const capstoneIds = capstones?.map(c => c.id) || [];
+      const { data: submissions } = await supabase
+        .from("capstone_submissions")
+        .select("*")
+        .eq("student_id", user.id)
+        .in("capstone_project_id", capstoneIds);
+
+      // Map assignments with submission status
+      const assignmentsData = (capstones || []).map((capstone: any) => {
+        const submission = submissions?.find(s => s.capstone_project_id === capstone.id);
+        return {
+          id: capstone.id,
+          title: capstone.title,
+          description: capstone.description,
+          due_date: capstone.due_date,
+          course_title: capstone.courses.title,
+          course_id: capstone.course_id,
+          submission: submission ? {
+            id: submission.id,
+            submitted_at: submission.submitted_at,
+            grade: submission.grade,
+            feedback: submission.feedback
+          } : null
+        };
+      });
+
+      setAssignments(assignmentsData);
+    } catch (error: any) {
+      console.error("Error fetching assignments:", error);
     }
   };
 
@@ -529,6 +600,157 @@ const StudentDashboard = () => {
                   </Card>
                 )}
               </div>
+
+              {/* My Assignments Section */}
+              {studentId && enrolledCourses.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-blue-100 rounded-full p-2">
+                      <FileText className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">My Assignments</h2>
+                      <p className="text-sm text-muted-foreground">View and submit your course assignments</p>
+                    </div>
+                  </div>
+
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Total Assignments</CardTitle>
+                        <FileText className="h-4 w-4 text-blue-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{assignments.length}</div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                        <Clock className="h-4 w-4 text-orange-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {assignments.filter(a => !a.submission).length}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Submitted</CardTitle>
+                        <Upload className="h-4 w-4 text-green-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {assignments.filter(a => a.submission).length}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Assignments List */}
+                  {assignments.length === 0 ? (
+                    <Card className="border-2 border-dashed">
+                      <CardContent className="flex flex-col items-center justify-center py-12">
+                        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                          <FileText className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">No Assignments Yet</h3>
+                        <p className="text-sm text-gray-600 text-center mb-4">
+                          You don't have any assignments. Enroll in courses to get started!
+                        </p>
+                        <Button onClick={() => navigate("/courses")} className="bg-[#006d2c] hover:bg-[#005523]">
+                          Browse Courses
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {assignments.map((assignment) => (
+                        <Card key={assignment.id} className={`hover:shadow-lg transition-shadow ${
+                          assignment.submission ? 'border-green-200' : 'border-orange-200'
+                        }`}>
+                          <CardContent className="p-6">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex-1">
+                                <h3 className="text-lg font-bold mb-1">{assignment.title}</h3>
+                                <p className="text-sm text-muted-foreground mb-2">{assignment.course_title}</p>
+                                {assignment.due_date && (
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <Clock className="h-3 w-3" />
+                                    <span>Due: {new Date(assignment.due_date).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'long',
+                                      day: 'numeric'
+                                    })}</span>
+                                  </div>
+                                )}
+                              </div>
+                              {assignment.submission ? (
+                                <Badge className="bg-green-500">
+                                  <Upload className="h-3 w-3 mr-1" />
+                                  Submitted
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-orange-500 border-orange-500">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  Pending
+                                </Badge>
+                              )}
+                            </div>
+
+                            <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                              {assignment.description}
+                            </p>
+
+                            {assignment.submission ? (
+                              <div className="space-y-2">
+                                <p className="text-xs text-muted-foreground">
+                                  Submitted: {new Date(assignment.submission.submitted_at).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                                {assignment.submission.grade !== null && (
+                                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-semibold text-green-900">Grade</span>
+                                      <span className="text-xl font-bold text-green-600">
+                                        {assignment.submission.grade}/100
+                                      </span>
+                                    </div>
+                                    {assignment.submission.feedback && (
+                                      <div className="mt-2">
+                                        <p className="text-xs font-semibold text-green-900 mb-1">Feedback:</p>
+                                        <p className="text-xs text-green-800">{assignment.submission.feedback}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="border-t pt-4">
+                                <p className="text-sm font-semibold mb-3">Upload Your Submission</p>
+                                <AssignmentUploadWidget
+                                  studentId={studentId}
+                                  capstoneProjectId={assignment.id}
+                                  onUploaded={fetchAssignments}
+                                />
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Quiz Scores/Marks Section */}
               {studentId && enrolledCourses.length > 0 && (
