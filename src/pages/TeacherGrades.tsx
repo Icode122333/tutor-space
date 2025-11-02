@@ -195,23 +195,56 @@ const TeacherGrades = () => {
           quizCount = quizAttempts.length;
         }
 
-        // Get assignment grade
-        let assignmentGrade = null;
+        // Get assignment grades from BOTH regular assignments AND capstone
+        let assignmentGrades: number[] = [];
         let assignmentFeedback = null;
         let submissionId = null;
+
+        // 1. Get regular assignment submissions
+        const { data: assignmentSubmissions } = await supabase
+          .from("assignment_submissions")
+          .select("id, grade, feedback, lesson_id")
+          .eq("student_id", studentId)
+          .in("lesson_id", lessonIds);
+
+        if (assignmentSubmissions && assignmentSubmissions.length > 0) {
+          assignmentSubmissions.forEach(sub => {
+            if (sub.grade !== null) {
+              assignmentGrades.push(sub.grade);
+            }
+          });
+          // Use the most recent submission for feedback
+          const latestAssignment = assignmentSubmissions[assignmentSubmissions.length - 1];
+          if (latestAssignment.feedback) {
+            assignmentFeedback = latestAssignment.feedback;
+          }
+          submissionId = latestAssignment.id;
+        }
+
+        // 2. Get capstone submission
         if (capstone) {
-          const { data: submission } = await supabase
+          const { data: capstoneSubmission } = await supabase
             .from("capstone_submissions")
             .select("id, grade, feedback")
             .eq("capstone_project_id", capstone.id)
             .eq("student_id", studentId)
             .single();
 
-          if (submission) {
-            assignmentGrade = submission.grade;
-            assignmentFeedback = submission.feedback;
-            submissionId = submission.id;
+          if (capstoneSubmission) {
+            if (capstoneSubmission.grade !== null) {
+              assignmentGrades.push(capstoneSubmission.grade);
+            }
+            if (capstoneSubmission.feedback) {
+              assignmentFeedback = capstoneSubmission.feedback;
+            }
+            submissionId = capstoneSubmission.id;
           }
+        }
+
+        // Calculate average assignment grade
+        let assignmentGrade = null;
+        if (assignmentGrades.length > 0) {
+          assignmentGrade = assignmentGrades.reduce((a, b) => a + b, 0) / assignmentGrades.length;
         }
 
         // Calculate overall grade (50% quiz, 50% assignment)

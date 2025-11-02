@@ -53,6 +53,7 @@ interface AssignmentScore {
   grade: number | null;
   feedback: string | null;
   submitted_at: string;
+  count?: number; // Number of assignments included in average
 }
 
 const StudentScores = () => {
@@ -157,7 +158,37 @@ const StudentScores = () => {
 
       setQuizScores(quizScoresData);
 
-      // Get assignment score
+      // Get assignment scores from BOTH regular assignments AND capstone
+      const assignmentGrades: number[] = [];
+      let latestFeedback: string | null = null;
+      let latestSubmittedAt: string | null = null;
+
+      // 1. Get regular assignment submissions
+      const assignmentLessons = lessons?.filter(l => l.content_type === 'assignment') || [];
+      const assignmentLessonIds = assignmentLessons.map(l => l.id);
+
+      if (assignmentLessonIds.length > 0) {
+        const { data: assignmentSubmissions } = await supabase
+          .from("assignment_submissions")
+          .select("grade, feedback, submitted_at")
+          .eq("student_id", user.id)
+          .in("lesson_id", assignmentLessonIds)
+          .order("submitted_at", { ascending: false });
+
+        if (assignmentSubmissions && assignmentSubmissions.length > 0) {
+          assignmentSubmissions.forEach(sub => {
+            if (sub.grade !== null) {
+              assignmentGrades.push(sub.grade);
+            }
+          });
+          // Use most recent submission for feedback
+          const latest = assignmentSubmissions[0];
+          if (latest.feedback) latestFeedback = latest.feedback;
+          if (latest.submitted_at) latestSubmittedAt = latest.submitted_at;
+        }
+      }
+
+      // 2. Get capstone submission
       const { data: capstone } = await supabase
         .from("capstone_projects")
         .select("id, title")
@@ -165,23 +196,34 @@ const StudentScores = () => {
         .single();
 
       if (capstone) {
-        const { data: submission } = await supabase
+        const { data: capstoneSubmission } = await supabase
           .from("capstone_submissions")
           .select("grade, feedback, submitted_at")
           .eq("capstone_project_id", capstone.id)
           .eq("student_id", user.id)
           .single();
 
-        if (submission) {
-          setAssignmentScore({
-            title: capstone.title,
-            grade: submission.grade,
-            feedback: submission.feedback,
-            submitted_at: submission.submitted_at
-          });
-        } else {
-          setAssignmentScore(null);
+        if (capstoneSubmission) {
+          if (capstoneSubmission.grade !== null) {
+            assignmentGrades.push(capstoneSubmission.grade);
+          }
+          if (capstoneSubmission.feedback) latestFeedback = capstoneSubmission.feedback;
+          if (capstoneSubmission.submitted_at) latestSubmittedAt = capstoneSubmission.submitted_at;
         }
+      }
+
+      // 3. Calculate average assignment grade
+      if (assignmentGrades.length > 0) {
+        const avgGrade = assignmentGrades.reduce((a, b) => a + b, 0) / assignmentGrades.length;
+        setAssignmentScore({
+          title: assignmentGrades.length > 1 
+            ? `${assignmentGrades.length} Assignments` 
+            : capstone?.title || "Assignment",
+          grade: Math.round(avgGrade),
+          feedback: latestFeedback,
+          submitted_at: latestSubmittedAt || new Date().toISOString(),
+          count: assignmentGrades.length
+        });
       } else {
         setAssignmentScore(null);
       }
@@ -416,7 +458,9 @@ const StudentScores = () => {
                     <CardHeader>
                       <CardTitle>Assignment Score</CardTitle>
                       <CardDescription>
-                        Capstone project grade out of 100
+                        {assignmentScore?.count && assignmentScore.count > 1 
+                          ? `Average grade across ${assignmentScore.count} assignments` 
+                          : "Assignment grade out of 100"}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
