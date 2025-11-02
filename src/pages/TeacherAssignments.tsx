@@ -605,24 +605,156 @@ const TeacherAssignments = () => {
                     </Card>
                   ) : (
                     <Card>
-                      <CardContent className="py-12 text-center">
-                        <div className="max-w-md mx-auto">
-                          <div className="w-20 h-20 rounded-full bg-[#006d2c]/10 flex items-center justify-center mx-auto mb-4">
-                            <FileText className="h-10 w-10 text-[#006d2c]" />
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle className="text-xl">Course Assignments</CardTitle>
+                            <CardDescription className="mt-2">
+                              View and grade student assignment submissions
+                            </CardDescription>
                           </div>
-                          <h3 className="text-xl font-bold mb-2">No Assignment Created Yet</h3>
-                          <p className="text-gray-600 mb-6">
-                            Create a capstone project assignment for this course. Students will be able to submit their work and you can grade them.
-                          </p>
                           <Button
                             onClick={() => navigate(`/create-course?edit=${selectedCourseId}`)}
                             className="bg-[#006d2c] hover:bg-[#005523]"
-                            size="lg"
                           >
-                            <FileText className="h-4 w-4 mr-2" />
-                            Create Assignment
+                            Manage Course
                           </Button>
                         </div>
+                      </CardHeader>
+                      <CardContent>
+                        <Tabs defaultValue="submitted" className="w-full">
+                          <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="submitted">
+                              Submitted ({submittedCount})
+                            </TabsTrigger>
+                            <TabsTrigger value="not-submitted">
+                              Not Submitted ({notSubmittedCount})
+                            </TabsTrigger>
+                          </TabsList>
+
+                          {/* Submitted Tab */}
+                          <TabsContent value="submitted" className="space-y-4 mt-4">
+                            {submissions.length === 0 ? (
+                              <div className="text-center py-12">
+                                <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                                <p className="text-gray-600">No submissions yet</p>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                  Students will see assignments once you add them to the course structure
+                                </p>
+                              </div>
+                            ) : (
+                              submissions.map((submission) => (
+                                <Card key={submission.id} className="hover:shadow-md transition-shadow">
+                                  <CardContent className="p-4">
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex items-start gap-4 flex-1">
+                                        <Avatar className="h-12 w-12">
+                                          {submission.profiles.avatar_url ? (
+                                            <img src={submission.profiles.avatar_url} alt={submission.profiles.full_name} />
+                                          ) : (
+                                            <AvatarFallback className="bg-[#006d2c] text-white">
+                                              {submission.profiles.full_name.charAt(0)}
+                                            </AvatarFallback>
+                                          )}
+                                        </Avatar>
+                                        <div className="flex-1">
+                                          <h4 className="font-semibold">{submission.profiles.full_name}</h4>
+                                          <p className="text-sm text-muted-foreground">{submission.profiles.email}</p>
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            Submitted: {new Date(submission.submitted_at).toLocaleString()}
+                                          </p>
+                                          {submission.description && (
+                                            <div className="mt-2 p-2 bg-gray-50 rounded border">
+                                              <p className="text-xs font-semibold text-gray-700 mb-1">Student Remarks:</p>
+                                              <p className="text-sm text-gray-600">{submission.description}</p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-col items-end gap-3">
+                                        <div className="flex items-center gap-2">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleViewSubmission(submission.id)}
+                                            className="hover:bg-blue-50"
+                                          >
+                                            <Eye className="h-4 w-4 mr-1" />
+                                            View
+                                          </Button>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <div className="text-right">
+                                            <label className="text-xs text-muted-foreground block mb-1">Marks (0-100)</label>
+                                            <Input
+                                              type="number"
+                                              min={0}
+                                              max={100}
+                                              className="w-24 text-center"
+                                              value={editGrades[submission.id] ?? (submission.grade?.toString() || "")}
+                                              onChange={(e) => handleInlineGradeChange(submission.id, e.target.value)}
+                                              placeholder="0"
+                                            />
+                                          </div>
+                                          <Button 
+                                            size="sm" 
+                                            onClick={() => handleSaveInlineGrade(submission.id)}
+                                            className="bg-[#006d2c] hover:bg-[#005523] mt-5"
+                                          >
+                                            Save
+                                          </Button>
+                                        </div>
+                                        {submission.grade !== null ? (
+                                          <Badge className="bg-green-500">Graded: {submission.grade}/100</Badge>
+                                        ) : (
+                                          <Badge variant="outline" className="text-orange-500 border-orange-500">Not Graded</Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))
+                            )}
+                          </TabsContent>
+
+                          {/* Not Submitted Tab */}
+                          <TabsContent value="not-submitted" className="space-y-4 mt-4">
+                            {studentsWhoHaventSubmitted.length === 0 ? (
+                              <div className="text-center py-12">
+                                <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                                <p className="text-gray-600 font-semibold">All students have submitted!</p>
+                              </div>
+                            ) : (
+                              studentsWhoHaventSubmitted.map((student) => (
+                                <Card key={student.student_id} className="border-orange-200">
+                                  <CardContent className="p-4">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-4">
+                                        <Avatar className="h-12 w-12">
+                                          {student.profiles.avatar_url ? (
+                                            <img src={student.profiles.avatar_url} alt={student.profiles.full_name} />
+                                          ) : (
+                                            <AvatarFallback className="bg-gray-500 text-white">
+                                              {student.profiles.full_name.charAt(0)}
+                                            </AvatarFallback>
+                                          )}
+                                        </Avatar>
+                                        <div>
+                                          <h4 className="font-semibold">{student.profiles.full_name}</h4>
+                                          <p className="text-sm text-muted-foreground">{student.profiles.email}</p>
+                                        </div>
+                                      </div>
+                                      <Badge variant="outline" className="text-orange-500 border-orange-500 flex items-center gap-1">
+                                        <AlertCircle className="h-3 w-3" />
+                                        Pending
+                                      </Badge>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))
+                            )}
+                          </TabsContent>
+                        </Tabs>
                       </CardContent>
                     </Card>
                   )}
