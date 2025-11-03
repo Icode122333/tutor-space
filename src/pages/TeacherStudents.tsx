@@ -101,7 +101,7 @@ const TeacherStudents = () => {
           student_id,
           course_id,
           cohort_name,
-          created_at,
+          enrolled_at,
           courses (
             id,
             title
@@ -128,7 +128,7 @@ const TeacherStudents = () => {
         full_name: enrollment.profiles?.full_name || "Unknown",
         email: enrollment.profiles?.email || "",
         avatar_url: enrollment.profiles?.avatar_url || null,
-        enrolled_at: enrollment.created_at,
+        enrolled_at: enrollment.enrolled_at,
         course_id: enrollment.course_id,
         course_title: enrollment.courses?.title || "Unknown Course",
         cohort_name: enrollment.cohort_name,
