@@ -196,6 +196,11 @@ const TeacherStudents = () => {
   });
 
   const cohorts = [...new Set(students.map(s => s.cohort_name).filter(Boolean))];
+  
+  // Debug: Log cohort information
+  console.log("Students data:", students);
+  console.log("Unique cohorts found:", cohorts);
+  console.log("Students with cohorts:", students.filter(s => s.cohort_name));
 
   if (loading) {
     return <LoadingSpinner />;
