@@ -18,13 +18,14 @@ import { useTranslation } from "react-i18next";
 interface Cohort {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   course_id: string;
   teacher_id: string;
-  start_date: string;
-  end_date: string;
-  max_students: number;
-  is_active: boolean;
+  start_date?: string;
+  end_date?: string;
+  max_students?: number;
+  is_active?: boolean;
+  isAlreadyIn?: boolean;
   courses?: {
     title: string;
   };
@@ -61,45 +62,65 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from("cohorts")
+      // Get all unique cohort names from course_enrollments
+      const { data: enrollments, error: enrollError } = await supabase
+        .from("course_enrollments")
         .select(`
-          *,
-          courses (title),
-          profiles (full_name)
+          cohort_name,
+          course_id,
+          courses (
+            id,
+            title,
+            teacher_id,
+            profiles (
+              full_name
+            )
+          )
         `)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
+        .not("cohort_name", "is", null);
 
-      if (error) throw error;
+      if (enrollError) throw enrollError;
 
-      // Filter out cohorts the student is already in or has requested
-      const { data: existingRequests } = await supabase
-        .from("cohort_join_requests")
-        .select("cohort_id")
-        .eq("student_id", user.id)
-        .in("status", ["pending", "approved"]);
+      // Check which cohorts the student is already in
+      const { data: myEnrollments } = await supabase
+        .from("course_enrollments")
+        .select("cohort_name, course_id")
+        .eq("student_id", user.id);
 
-      const requestedCohortIds = new Set(existingRequests?.map(r => r.cohort_id) || []);
-
-      // Get enrollment counts for each cohort
-      const cohortsWithCounts = await Promise.all(
-        (data || [])
-          .filter(cohort => !requestedCohortIds.has(cohort.id))
-          .map(async (cohort) => {
-            const { count } = await supabase
-              .from("course_enrollments")
-              .select("*", { count: "exact", head: true })
-              .eq("cohort_name", cohort.name);
-
-            return {
-              ...cohort,
-              _count: { enrollments: count || 0 },
-            };
-          })
+      const myCohorts = new Set(
+        (myEnrollments || [])
+          .filter(e => e.cohort_name)
+          .map(e => `${e.cohort_name}-${e.course_id}`)
       );
 
-      setCohorts(cohortsWithCounts);
+      // Group by cohort name and course
+      const cohortMap = new Map();
+      (enrollments || []).forEach((enrollment: any) => {
+        if (!enrollment.cohort_name || !enrollment.courses) return;
+        
+        const key = `${enrollment.cohort_name}-${enrollment.course_id}`;
+        
+        if (!cohortMap.has(key)) {
+          cohortMap.set(key, {
+            id: key,
+            name: enrollment.cohort_name,
+            course_id: enrollment.course_id,
+            courses: enrollment.courses,
+            teacher_id: enrollment.courses.teacher_id,
+            profiles: enrollment.courses.profiles,
+            isAlreadyIn: myCohorts.has(key),
+            _count: { enrollments: 0 }
+          });
+        }
+        
+        const cohort = cohortMap.get(key);
+        cohort._count.enrollments += 1;
+      });
+
+      // Convert to array and filter out cohorts student is already in
+      const cohortsArray = Array.from(cohortMap.values());
+      
+      setCohorts(cohortsArray);
     } catch (error: any) {
       console.error("Error fetching cohorts:", error);
       toast.error(t("common.error"), {
@@ -182,12 +203,14 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
               return (
                 <Card
                   key={cohort.id}
-                  className={`cursor-pointer transition-all ${
-                    isSelected
-                      ? "border-[#006D2C] border-2 shadow-md"
-                      : "border-2 hover:border-gray-300"
+                  className={`transition-all ${
+                    cohort.isAlreadyIn
+                      ? "border-green-300 border-2 bg-green-50"
+                      : isSelected
+                      ? "border-[#006D2C] border-2 shadow-md cursor-pointer"
+                      : "border-2 hover:border-gray-300 cursor-pointer"
                   } ${isFull ? "opacity-60" : ""}`}
-                  onClick={() => !isFull && setSelectedCohort(cohort.id)}
+                  onClick={() => !isFull && !cohort.isAlreadyIn && setSelectedCohort(cohort.id)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-3">
@@ -197,11 +220,13 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
                           <p className="text-sm text-gray-600 mb-2">{cohort.description}</p>
                         )}
                       </div>
-                      {isFull ? (
+                      {cohort.isAlreadyIn ? (
+                        <Badge className="bg-green-500">{t("cohort.alreadyInCohort")}</Badge>
+                      ) : isFull ? (
                         <Badge variant="destructive">{t("cohort.full")}</Badge>
                       ) : (
                         <Badge variant="secondary">
-                          {spotsLeft} {t("cohort.spotsLeft")}
+                          {cohort._count?.enrollments || 0} {t("cohort.members")}
                         </Badge>
                       )}
                     </div>
@@ -219,21 +244,17 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
                           <span>{cohort.profiles.full_name}</span>
                         </div>
                       )}
-                      {cohort.start_date && (
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Calendar className="h-4 w-4" />
-                          <span>
-                            {new Date(cohort.start_date).toLocaleDateString()}
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Users className="h-4 w-4" />
+                        <span>{cohort._count?.enrollments || 0} students enrolled</span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               );
             })}
 
-            {selectedCohort && (
+            {selectedCohort && !cohorts.find(c => c.id === selectedCohort)?.isAlreadyIn && (
               <div className="space-y-3 pt-4 border-t">
                 <div>
                   <label className="text-sm font-medium mb-2 block">

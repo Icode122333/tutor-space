@@ -570,7 +570,9 @@
       "requestRejected": "Demande rejetée.",
       "studentMessage": "Message de l'étudiant",
       "messageFrom": "Message de",
-      "noMessage": "Aucun message fourni"
+      "noMessage": "Aucun message fourni",
+      "alreadyInCohort": "Déjà dans la cohorte",
+      "members": "membres"
     }
   }
 }
