@@ -4,24 +4,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Bell, BookOpen, CalendarDays, Clock, User, ChevronLeft, ChevronRight, Award, FileText, Upload } from "lucide-react";
+import { Search, Bell, BookOpen, CalendarDays, Clock, ChevronLeft, ChevronRight, Award } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { GradesTable } from "@/components/GradesTable";
-import AssignmentUploadWidget from "@/components/AssignmentUploadWidget";
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { JoinCohortDialog } from "@/components/JoinCohortDialog";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [studentId, setStudentId] = useState<string | null>(null);
-  const [assignments, setAssignments] = useState<any[]>([]);
+  const [showJoinCohortDialog, setShowJoinCohortDialog] = useState(false);
 
   useEffect(() => {
     const getStudentId = async () => {
@@ -36,7 +39,6 @@ const StudentDashboard = () => {
     if (profile) {
       fetchScheduledClasses();
       fetchEnrolledCourses();
-      fetchAssignments();
     }
   }, [profile]);
 
@@ -65,74 +67,6 @@ const StudentDashboard = () => {
       console.error("Error fetching enrolled courses:", error);
     } else {
       setEnrolledCourses(data || []);
-    }
-  };
-
-  const fetchAssignments = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Get enrolled courses
-      const { data: enrollments } = await supabase
-        .from("course_enrollments")
-        .select("course_id")
-        .eq("student_id", user.id);
-
-      const courseIds = enrollments?.map(e => e.course_id) || [];
-
-      if (courseIds.length === 0) {
-        setAssignments([]);
-        return;
-      }
-
-      // Get capstone projects for enrolled courses
-      const { data: capstones, error } = await supabase
-        .from("capstone_projects")
-        .select(`
-          id,
-          title,
-          description,
-          due_date,
-          course_id,
-          courses (
-            title
-          )
-        `)
-        .in("course_id", courseIds);
-
-      if (error) throw error;
-
-      // Get submissions for these capstones
-      const capstoneIds = capstones?.map(c => c.id) || [];
-      const { data: submissions } = await supabase
-        .from("capstone_submissions")
-        .select("*")
-        .eq("student_id", user.id)
-        .in("capstone_project_id", capstoneIds);
-
-      // Map assignments with submission status
-      const assignmentsData = (capstones || []).map((capstone: any) => {
-        const submission = submissions?.find(s => s.capstone_project_id === capstone.id);
-        return {
-          id: capstone.id,
-          title: capstone.title,
-          description: capstone.description,
-          due_date: capstone.due_date,
-          course_title: capstone.courses.title,
-          course_id: capstone.course_id,
-          submission: submission ? {
-            id: submission.id,
-            submitted_at: submission.submitted_at,
-            grade: submission.grade,
-            feedback: submission.feedback
-          } : null
-        };
-      });
-
-      setAssignments(assignmentsData);
-    } catch (error: any) {
-      console.error("Error fetching assignments:", error);
     }
   };
 
@@ -230,16 +164,17 @@ const StudentDashboard = () => {
                 <SidebarTrigger />
                 <div className="min-w-0 flex-1">
                   <h1 className="text-xl sm:text-2xl font-bold truncate leading-tight">
-                    Hello, {profile?.full_name?.split(' ').pop() || 'Student'} 👋
+                    {t('dashboard.hello')}, {profile?.full_name?.split(' ').pop() || t('onboarding.student')} 👋
                   </h1>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Welcome back!</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t('dashboard.welcomeBack')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 sm:gap-3">
+                <LanguageSelector />
                 <div className="relative hidden sm:block">
                   <input
                     type="text"
-                    placeholder="Search"
+                    placeholder={t('common.search')}
                     className="pl-3 pr-10 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006D2C]/20 w-48"
                   />
                   <Search className="h-4 w-4 text-[#006D2C] absolute right-3 top-1/2 -translate-y-1/2" />
@@ -270,16 +205,16 @@ const StudentDashboard = () => {
                     <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
                       <div className="flex-1 text-white">
                         <h2 className="text-2xl sm:text-3xl font-bold mb-2 leading-tight tracking-wide">
-                          If you want to go far go with team
+                          {t('dashboard.goFarWithTeam')}
                         </h2>
                         <p className="text-xl sm:text-2xl font-semibold mb-4 tracking-wide">
-                          Start with cohort
+                          {t('dashboard.startWithCohort')}
                         </p>
                         <Button
-                          onClick={() => navigate("/courses")}
+                          onClick={() => setShowJoinCohortDialog(true)}
                           className="bg-white text-[#006D2C] hover:bg-gray-100 font-semibold px-6 py-2.5 rounded-full flex items-center gap-2 text-base w-fit"
                         >
-                          Join Now
+                          {t('dashboard.joinNow')}
                           <div className="w-6 h-6 rounded-full bg-[#006D2C] flex items-center justify-center">
                             <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -346,7 +281,15 @@ const StudentDashboard = () => {
                       <div className="space-y-2">
                         {/* Day Headers */}
                         <div className="grid grid-cols-7 gap-1">
-                          {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sat', 'Su'].map((day) => (
+                          {[
+                            t('schedule.mo'),
+                            t('schedule.tu'),
+                            t('schedule.we'),
+                            t('schedule.th'),
+                            t('schedule.fr'),
+                            t('schedule.sat'),
+                            t('schedule.su')
+                          ].map((day) => (
                             <div key={day} className="text-center text-xs font-medium text-gray-500">
                               {day}
                             </div>
@@ -427,8 +370,8 @@ const StudentDashboard = () => {
                       });
 
                       const colors = [
-                        { bg: 'bg-gray-900', icon: 'bg-gray-900', label: 'Course' },
-                        { bg: 'bg-cyan-500', icon: 'bg-cyan-500', label: 'Tutoring' }
+                        { bg: 'bg-gray-900', icon: 'bg-gray-900', label: t('dashboard.course') },
+                        { bg: 'bg-cyan-500', icon: 'bg-cyan-500', label: t('dashboard.tutoring') }
                       ];
                       const color = colors[index % colors.length];
 
@@ -470,7 +413,7 @@ const StudentDashboard = () => {
                       <Card className="border-2 border-dashed">
                         <CardContent className="p-8 text-center">
                           <CalendarDays className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                          <p className="text-sm text-gray-600">No upcoming classes</p>
+                          <p className="text-sm text-gray-600">{t('dashboard.noUpcomingClasses')}</p>
                         </CardContent>
                       </Card>
                     )}
@@ -481,10 +424,10 @@ const StudentDashboard = () => {
               {/* My Courses Section - Full Width Below */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold">My Courses</h2>
+                  <h2 className="text-2xl font-bold">{t('courses.myCourses')}</h2>
                   {enrolledCourses.length > 0 && (
                     <Badge variant="secondary" className="text-sm">
-                      {enrolledCourses.length} {enrolledCourses.length === 1 ? 'Course' : 'Courses'}
+                      {enrolledCourses.length} {enrolledCourses.length === 1 ? t('dashboard.course') : t('dashboard.courses')}
                     </Badge>
                   )}
                 </div>
@@ -559,7 +502,7 @@ const StudentDashboard = () => {
                                 >
                                   {level}
                                 </span>
-                                <span className="text-xs text-gray-500">Enrolled</span>
+                                <span className="text-xs text-gray-500">{t('dashboard.enrolled')}</span>
                               </div>
 
                               {/* Course Title */}
@@ -575,7 +518,7 @@ const StudentDashboard = () => {
                                   navigate(`/course/${course.id}`);
                                 }}
                               >
-                                View
+                                {t('common.view')}
                               </Button>
                             </div>
                           </CardContent>
@@ -589,168 +532,17 @@ const StudentDashboard = () => {
                       <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                         <BookOpen className="h-8 w-8 text-gray-400" />
                       </div>
-                      <h3 className="text-lg font-semibold mb-2">No Courses Yet</h3>
+                      <h3 className="text-lg font-semibold mb-2">{t('dashboard.noCourses')}</h3>
                       <p className="text-sm text-gray-600 text-center mb-4">
-                        You haven't enrolled in any courses yet. Start learning today!
+                        {t('dashboard.notEnrolled')}
                       </p>
                       <Button onClick={() => navigate("/courses")} className="bg-[#006d2c] hover:bg-[#005523]">
-                        Browse Courses
+                        {t('dashboard.browseCourses')}
                       </Button>
                     </CardContent>
                   </Card>
                 )}
               </div>
-
-              {/* My Assignments Section */}
-              {studentId && enrolledCourses.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="bg-blue-100 rounded-full p-2">
-                      <FileText className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold">My Assignments</h2>
-                      <p className="text-sm text-muted-foreground">View and submit your course assignments</p>
-                    </div>
-                  </div>
-
-                  {/* Stats Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-                      <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Total Assignments</CardTitle>
-                        <FileText className="h-4 w-4 text-blue-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">{assignments.length}</div>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
-                      <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Pending</CardTitle>
-                        <Clock className="h-4 w-4 text-orange-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {assignments.filter(a => !a.submission).length}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-                      <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Submitted</CardTitle>
-                        <Upload className="h-4 w-4 text-green-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {assignments.filter(a => a.submission).length}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Assignments List */}
-                  {assignments.length === 0 ? (
-                    <Card className="border-2 border-dashed">
-                      <CardContent className="flex flex-col items-center justify-center py-12">
-                        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                          <FileText className="h-8 w-8 text-gray-400" />
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2">No Assignments Yet</h3>
-                        <p className="text-sm text-gray-600 text-center mb-4">
-                          You don't have any assignments. Enroll in courses to get started!
-                        </p>
-                        <Button onClick={() => navigate("/courses")} className="bg-[#006d2c] hover:bg-[#005523]">
-                          Browse Courses
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {assignments.map((assignment) => (
-                        <Card key={assignment.id} className={`hover:shadow-lg transition-shadow ${
-                          assignment.submission ? 'border-green-200' : 'border-orange-200'
-                        }`}>
-                          <CardContent className="p-6">
-                            <div className="flex items-start justify-between mb-4">
-                              <div className="flex-1">
-                                <h3 className="text-lg font-bold mb-1">{assignment.title}</h3>
-                                <p className="text-sm text-muted-foreground mb-2">{assignment.course_title}</p>
-                                {assignment.due_date && (
-                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                    <Clock className="h-3 w-3" />
-                                    <span>Due: {new Date(assignment.due_date).toLocaleDateString('en-US', {
-                                      year: 'numeric',
-                                      month: 'long',
-                                      day: 'numeric'
-                                    })}</span>
-                                  </div>
-                                )}
-                              </div>
-                              {assignment.submission ? (
-                                <Badge className="bg-green-500">
-                                  <Upload className="h-3 w-3 mr-1" />
-                                  Submitted
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="text-orange-500 border-orange-500">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  Pending
-                                </Badge>
-                              )}
-                            </div>
-
-                            <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                              {assignment.description}
-                            </p>
-
-                            {assignment.submission ? (
-                              <div className="space-y-2">
-                                <p className="text-xs text-muted-foreground">
-                                  Submitted: {new Date(assignment.submission.submitted_at).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </p>
-                                {assignment.submission.grade !== null && (
-                                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-semibold text-green-900">Grade</span>
-                                      <span className="text-xl font-bold text-green-600">
-                                        {assignment.submission.grade}/100
-                                      </span>
-                                    </div>
-                                    {assignment.submission.feedback && (
-                                      <div className="mt-2">
-                                        <p className="text-xs font-semibold text-green-900 mb-1">Feedback:</p>
-                                        <p className="text-xs text-green-800">{assignment.submission.feedback}</p>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="border-t pt-4">
-                                <p className="text-sm font-semibold mb-3">Upload Your Submission</p>
-                                <AssignmentUploadWidget
-                                  studentId={studentId}
-                                  capstoneProjectId={assignment.id}
-                                  onUploaded={fetchAssignments}
-                                />
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* Quiz Scores/Marks Section */}
               {studentId && enrolledCourses.length > 0 && (
@@ -760,8 +552,8 @@ const StudentDashboard = () => {
                       <Award className="h-6 w-6 text-purple-600" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold">My Quiz Scores</h2>
-                      <p className="text-sm text-muted-foreground">Track your quiz performance and marks</p>
+                      <h2 className="text-2xl font-bold">{t('dashboard.myQuizScores')}</h2>
+                      <p className="text-sm text-muted-foreground">{t('dashboard.trackQuizPerformance')}</p>
                     </div>
                   </div>
                   <GradesTable studentId={studentId} showFilters={false} />
@@ -771,6 +563,11 @@ const StudentDashboard = () => {
           </main>
         </div>
       </div>
+
+      <JoinCohortDialog
+        open={showJoinCohortDialog}
+        onOpenChange={setShowJoinCohortDialog}
+      />
     </SidebarProvider>
   );
 };

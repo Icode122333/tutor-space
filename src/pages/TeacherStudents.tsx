@@ -12,6 +12,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { CohortJoinRequests } from "@/components/CohortJoinRequests";
 import {
   Select,
   SelectContent,
@@ -262,6 +263,9 @@ const TeacherStudents = () => {
           {/* Main Content */}
           <main className="flex-1 overflow-auto p-6">
             <div className="container mx-auto space-y-6">
+              {/* Join Requests Section */}
+              <CohortJoinRequests />
+
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card>

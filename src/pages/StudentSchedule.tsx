@@ -11,9 +11,12 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 const StudentSchedule = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -105,19 +108,22 @@ const StudentSchedule = () => {
               <div className="flex items-center gap-4">
                 <SidebarTrigger />
                 <div>
-                  <h1 className="text-2xl font-bold">Class Schedule</h1>
-                  <p className="text-sm text-muted-foreground">View and manage your upcoming classes</p>
+                  <h1 className="text-2xl font-bold">{t('schedule.classSchedule')}</h1>
+                  <p className="text-sm text-muted-foreground">{t('schedule.viewManageClasses')}</p>
                 </div>
               </div>
-              <Avatar className="h-12 w-12 rounded-full shadow-lg border-2 border-white">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt={profile.full_name} className="object-cover" />
-                ) : (
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {profile?.full_name?.charAt(0) || 'S'}
-                  </AvatarFallback>
-                )}
-              </Avatar>
+              <div className="flex items-center gap-3">
+                <LanguageSelector />
+                <Avatar className="h-12 w-12 rounded-full shadow-lg border-2 border-white">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt={profile.full_name} className="object-cover" />
+                  ) : (
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {profile?.full_name?.charAt(0) || 'S'}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              </div>
             </div>
           </header>
 
@@ -128,10 +134,10 @@ const StudentSchedule = () => {
                   <Card>
                     <CardHeader>
                       <div className="flex items-center justify-between">
-                        <CardTitle>Upcoming Classes</CardTitle>
+                        <CardTitle>{t('schedule.upcomingClasses')}</CardTitle>
                         {scheduledClasses.length > 0 && (
                           <Badge className="bg-primary">
-                            {scheduledClasses.length} {scheduledClasses.length === 1 ? 'class' : 'classes'}
+                            {scheduledClasses.length} {scheduledClasses.length === 1 ? t('schedule.class') : t('schedule.classes')}
                           </Badge>
                         )}
                       </div>
@@ -176,7 +182,7 @@ const StudentSchedule = () => {
                                 {isStartingSoon && (
                                   <div className="absolute top-3 right-3 z-10">
                                     <Badge className="bg-red-500 text-white animate-pulse">
-                                      Starting Soon!
+                                      {t('schedule.startingSoon')}
                                     </Badge>
                                   </div>
                                 )}
@@ -184,7 +190,7 @@ const StudentSchedule = () => {
                                 {(isToday || isTomorrow) && !isStartingSoon && (
                                   <div className="absolute top-3 right-3 z-10">
                                     <Badge className="bg-primary text-white">
-                                      {isToday ? 'Today' : 'Tomorrow'}
+                                      {isToday ? t('schedule.today') : t('schedule.tomorrow')}
                                     </Badge>
                                   </div>
                                 )}
@@ -213,20 +219,20 @@ const StudentSchedule = () => {
                                         <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
-                                        <span>90 min</span>
+                                        <span>90 {t('schedule.min')}</span>
                                       </div>
                                     </div>
 
                                     {hoursUntil >= 0 && (
                                       <div className="mt-2 text-xs text-gray-500">
                                         {isStartingSoon ? (
-                                          <span className="text-red-600 font-semibold">Starts in {minutesUntil} minutes</span>
+                                          <span className="text-red-600 font-semibold">{t('schedule.startsIn')} {minutesUntil} {t('schedule.minutes')}</span>
                                         ) : hoursUntil === 0 ? (
-                                          <span>Starts in {minutesUntil} minutes</span>
+                                          <span>{t('schedule.startsIn')} {minutesUntil} {t('schedule.minutes')}</span>
                                         ) : hoursUntil < 24 ? (
-                                          <span>Starts in {hoursUntil}h {minutesUntil}m</span>
+                                          <span>{t('schedule.startsIn')} {hoursUntil}{t('schedule.hours')} {minutesUntil}m</span>
                                         ) : (
-                                          <span>In {Math.floor(hoursUntil / 24)} days</span>
+                                          <span>{Math.floor(hoursUntil / 24)} {t('schedule.days')}</span>
                                         )}
                                       </div>
                                     )}
@@ -240,7 +246,7 @@ const StudentSchedule = () => {
                                       <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                       </svg>
-                                      Join
+                                      {t('schedule.join')}
                                     </Button>
                                   </div>
                                 </div>
@@ -252,8 +258,8 @@ const StudentSchedule = () => {
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center">
                               <CalendarIcon className="h-8 w-8 text-gray-400" />
                             </div>
-                            <p className="text-gray-600 font-medium mb-1">No upcoming classes</p>
-                            <p className="text-sm text-gray-500">Your schedule is clear for now</p>
+                            <p className="text-gray-600 font-medium mb-1">{t('schedule.noUpcomingClasses')}</p>
+                            <p className="text-sm text-gray-500">{t('schedule.scheduleIsClear')}</p>
                           </div>
                         )}
                       </div>
@@ -264,7 +270,7 @@ const StudentSchedule = () => {
                 <div className="lg:col-span-1 order-1 lg:order-2">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Calendar</CardTitle>
+                      <CardTitle>{t('schedule.calendar')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <Calendar

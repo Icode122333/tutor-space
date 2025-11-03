@@ -85,7 +85,7 @@ const MyCourses = () => {
         
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <header className="bg-white border-b sticky top-0 z-10">
+          <header className="bg-white border border-gray-200 rounded-2xl shadow-sm mx-4 mt-4 sticky top-4 z-10">
             <div className="container mx-auto px-4 sm:px-6 py-4">
               <div className="flex items-center gap-4">
                 <SidebarTrigger />

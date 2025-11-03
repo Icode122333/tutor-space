@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Send, MessageSquare, Users, ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from 'react-i18next';
 
 interface CourseGroup {
   course_id: string;
@@ -40,7 +40,8 @@ interface Message {
 }
 
 export default function StudentChat() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { t } = useTranslation();
   const [courseGroups, setCourseGroups] = useState<CourseGroup[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -202,9 +203,9 @@ export default function StudentChat() {
           const teacher = convTeachers?.find(t => t.id === conv.teacher_id);
           const lastMsg = lastMessages?.find(m => m.conversation_id === conv.id);
           const unreadCount = lastMessages?.filter(
-            m => m.conversation_id === conv.id && 
-            !m.is_read && 
-            m.sender_id !== user.id
+            m => m.conversation_id === conv.id &&
+              !m.is_read &&
+              m.sender_id !== user.id
           ).length || 0;
 
           return {
@@ -311,7 +312,7 @@ export default function StudentChat() {
       }
 
       conversationId = newConv.id;
-      
+
       // Update selected conversation with real ID
       setSelectedConversation({
         ...selectedConversation,
@@ -346,9 +347,9 @@ export default function StudentChat() {
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (messageDate.toDateString() === today.toDateString()) {
-      return "Today";
+      return t('schedule.today');
     } else if (messageDate.toDateString() === yesterday.toDateString()) {
-      return "Yesterday";
+      return t('chat.yesterday');
     } else {
       return messageDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     }
@@ -381,11 +382,11 @@ export default function StudentChat() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <Users className="h-5 w-5" />
-                        <h3 className="font-bold text-lg">Course Group Chat</h3>
+                        <h3 className="font-bold text-lg">{t('chat.courseGroupChat')}</h3>
                       </div>
                       <p className="text-2xl font-bold mb-1">{courseGroups[currentGroupIndex]?.course_name}</p>
                       <p className="text-sm text-white/80 mb-4">
-                        Connect and chat with students taking the same course
+                        {t('chat.connectWithStudents')}
                       </p>
                       <Button
                         className="bg-white text-[#006d2c] hover:bg-gray-100 font-semibold"
@@ -394,12 +395,12 @@ export default function StudentChat() {
                           if (link) {
                             window.open(link, '_blank');
                           } else {
-                            toast.error("No WhatsApp group link available for this course");
+                            toast.error(t('chat.noGroupLink'));
                           }
                         }}
                       >
                         <Users className="h-4 w-4 mr-2" />
-                        Join Group Chat
+                        {t('chat.joinGroupChat')}
                       </Button>
                     </div>
                     <div className="hidden md:block">
@@ -443,17 +444,17 @@ export default function StudentChat() {
               <div className="p-4 border-b border-white/10">
                 <h2 className="font-bold text-lg mb-3 flex items-center gap-2 text-white">
                   <MessageSquare className="h-5 w-5" />
-                  Messages
+                  {t('chat.messages')}
                   {conversations.length > 0 && (
                     <Badge variant="secondary" className="ml-auto bg-white text-[#006d2c]">
-                      {conversations.reduce((sum, conv) => sum + conv.unread_count, 0)} new
+                      {conversations.reduce((sum, conv) => sum + conv.unread_count, 0)} {t('chat.newMessages')}
                     </Badge>
                   )}
                 </h2>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
                   <Input
-                    placeholder="Search"
+                    placeholder={t('common.search')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:bg-white/20"
@@ -465,16 +466,15 @@ export default function StudentChat() {
                 {filteredConversations.length === 0 ? (
                   <div className="p-6 text-center text-white/60">
                     <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No conversations yet</p>
+                    <p className="text-sm">{t('chat.noConversationsYet')}</p>
                   </div>
                 ) : (
                   filteredConversations.map((conv) => (
                     <button
                       key={conv.id}
                       onClick={() => setSelectedConversation(conv)}
-                      className={`w-full p-4 border-b border-white/10 hover:bg-white/10 transition-colors text-left ${
-                        selectedConversation?.id === conv.id ? "bg-white/20" : ""
-                      }`}
+                      className={`w-full p-4 border-b border-white/10 hover:bg-white/10 transition-colors text-left ${selectedConversation?.id === conv.id ? "bg-white/20" : ""
+                        }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className="relative">
@@ -499,7 +499,7 @@ export default function StudentChat() {
                             )}
                           </div>
                           <p className="text-sm text-white/80 truncate">
-                            {conv.last_message || "No messages yet"}
+                            {conv.last_message || t('chat.noMessagesYet')}
                           </p>
                           {conv.unread_count > 0 && (
                             <Badge className="mt-1 bg-white text-[#006d2c]">{conv.unread_count}</Badge>
@@ -531,7 +531,7 @@ export default function StudentChat() {
                       <h3 className="font-semibold">{selectedConversation.teacher_name}</h3>
                       <p className="text-xs text-green-600 flex items-center gap-1">
                         <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                        Online
+                        {t('chat.online')}
                       </p>
                     </div>
                   </div>
@@ -543,7 +543,7 @@ export default function StudentChat() {
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center text-muted-foreground">
                         <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                        <p>No messages yet. Start the conversation!</p>
+                        <p>{t('chat.noMessagesYet')} {t('chat.startTheConversation')}</p>
                       </div>
                     </div>
                   ) : (
@@ -566,11 +566,10 @@ export default function StudentChat() {
                             <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}>
                               <div className={`max-w-md ${isOwnMessage ? "order-2" : "order-1"}`}>
                                 <div
-                                  className={`rounded-2xl px-4 py-2 shadow-md ${
-                                    isOwnMessage
-                                      ? "bg-green-500 text-white rounded-br-none"
-                                      : "bg-blue-500 text-white rounded-bl-none"
-                                  }`}
+                                  className={`rounded-2xl px-4 py-2 shadow-md ${isOwnMessage
+                                    ? "bg-green-500 text-white rounded-br-none"
+                                    : "bg-blue-500 text-white rounded-bl-none"
+                                    }`}
                                 >
                                   <p className="text-sm whitespace-pre-wrap">{message.message_text}</p>
                                   <span className="text-xs opacity-70 mt-1 block text-right">
@@ -591,7 +590,7 @@ export default function StudentChat() {
                 <div className="p-4 border-t bg-white shadow-lg">
                   <div className="flex items-center gap-2">
                     <Input
-                      placeholder="Message"
+                      placeholder={t('chat.message')}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyDown={(e) => {
@@ -617,8 +616,8 @@ export default function StudentChat() {
               <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white">
                 <div className="text-center text-muted-foreground">
                   <MessageSquare className="h-24 w-24 mx-auto mb-4 opacity-50" />
-                  <h3 className="text-xl font-semibold mb-2">Select a conversation</h3>
-                  <p>Choose a teacher from the list to start messaging</p>
+                  <h3 className="text-xl font-semibold mb-2">{t('chat.selectConversation')}</h3>
+                  <p>{t('chat.chooseTeacher')}</p>
                 </div>
               </div>
             )}

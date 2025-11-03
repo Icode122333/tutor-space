@@ -6,9 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -103,12 +106,17 @@ const Auth = () => {
             />
           </div>
 
+          {/* Language Selector */}
+          <div className="flex justify-end mb-2">
+            <LanguageSelector />
+          </div>
+
           {/* Header */}
           <div className="space-y-1">
             <h1 className="text-3xl font-bold text-black leading-tight">
               Master Skills, Anytime, Anywhere.
             </h1>
-            <p className="text-gray-500 text-sm">Sign up to start</p>
+            <p className="text-gray-500 text-sm">{t('auth.signUp')} to start</p>
           </div>
 
           {/* Google Auth Button */}
@@ -125,7 +133,7 @@ const Auth = () => {
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
             <span className="text-gray-700 group-hover:text-[#006d2c] transition-colors">
-              Sign in with Google
+              {t('auth.signInWithGoogle')}
             </span>
           </Button>
 
@@ -135,7 +143,7 @@ const Auth = () => {
               <span className="w-full border-t border-gray-200" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="px-3 bg-white text-gray-400">or</span>
+              <span className="px-3 bg-white text-gray-400">{t('common.or', 'or')}</span>
             </div>
           </div>
 
@@ -143,13 +151,13 @@ const Auth = () => {
           <form onSubmit={handleSignIn} className="space-y-3">
             <div className="space-y-1">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                Email*
+                {t('auth.email')}*
               </Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder={t('auth.email')}
                 required
                 className="h-11 px-4 border-gray-300 rounded-lg focus:border-black focus:ring-black"
               />
@@ -157,14 +165,14 @@ const Auth = () => {
 
             <div className="space-y-1">
               <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                Password*
+                {t('auth.password')}*
               </Label>
               <div className="relative">
                 <Input
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
+                  placeholder={t('auth.password')}
                   required
                   minLength={6}
                   className="h-11 px-4 pr-12 border-gray-300 rounded-lg focus:border-black focus:ring-black"
@@ -184,19 +192,19 @@ const Auth = () => {
               disabled={loading}
               className="w-full h-11 bg-black hover:bg-[#006d2c] text-white font-medium rounded-lg transition-colors duration-300"
             >
-              {loading ? "Signing In..." : "Sign In"}
+              {loading ? `${t('auth.signIn')}...` : t('auth.signIn')}
             </Button>
           </form>
 
           {/* Footer */}
           <div className="text-center">
             <p className="text-sm text-gray-500">
-              Don't have an account?{" "}
+              {t('auth.dontHaveAccount')}{" "}
               <button
                 onClick={() => navigate("/signup")}
                 className="text-black font-bold hover:underline"
               >
-                Sign Up
+                {t('auth.signUp')}
               </button>
             </p>
           </div>

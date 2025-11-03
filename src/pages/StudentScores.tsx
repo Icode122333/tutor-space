@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 interface Course {
   id: string;
@@ -58,6 +60,7 @@ interface AssignmentScore {
 
 const StudentScores = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
@@ -286,12 +289,13 @@ const StudentScores = () => {
               <div className="flex items-center gap-4">
                 <SidebarTrigger />
                 <div>
-                  <h1 className="text-2xl font-bold">My Scores</h1>
+                  <h1 className="text-2xl font-bold">{t('grades.myScores')}</h1>
                   <p className="text-sm text-muted-foreground">
-                    Track your academic performance
+                    {t('grades.trackPerformance')}
                   </p>
                 </div>
               </div>
+              <LanguageSelector />
             </div>
           </header>
 
@@ -300,27 +304,27 @@ const StudentScores = () => {
               {/* Course Filter */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Select Course</CardTitle>
+                  <CardTitle>{t('grades.selectCourse')}</CardTitle>
                   <CardDescription>
-                    Choose a course to view detailed scores
+                    {t('grades.trackPerformance')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {courses.length === 0 ? (
                     <div className="text-center py-8">
                       <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-600">No courses found</p>
+                      <p className="text-gray-600">{t('courses.noCourses')}</p>
                       <Button
                         onClick={() => navigate("/courses")}
                         className="mt-4 bg-[#006d2c] hover:bg-[#005523]"
                       >
-                        Browse Courses
+                        {t('dashboard.browseCourses')}
                       </Button>
                     </div>
                   ) : (
                     <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a course" />
+                        <SelectValue placeholder={t('grades.selectCourse')} />
                       </SelectTrigger>
                       <SelectContent>
                         {courses.map((course) => (
@@ -340,7 +344,7 @@ const StudentScores = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Overall Grade</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('grades.overallPerformance')}</CardTitle>
                         <TrendingUp className="h-4 w-4 text-purple-500" />
                       </CardHeader>
                       <CardContent>
@@ -348,14 +352,14 @@ const StudentScores = () => {
                           {overallGrade !== null ? `${overallGrade.toFixed(1)}%` : "N/A"}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Grade: {getGradeLetter(overallGrade)}
+                          {t('assignments.grade')}: {getGradeLetter(overallGrade)}
                         </p>
                       </CardContent>
                     </Card>
 
                     <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Quiz Average</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('grades.quizAverage')}</CardTitle>
                         <Target className="h-4 w-4 text-green-500" />
                       </CardHeader>
                       <CardContent>
@@ -363,14 +367,14 @@ const StudentScores = () => {
                           {quizAverage !== null ? `${quizAverage.toFixed(1)}%` : "N/A"}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {quizScores.length} quizzes taken
+                          {quizScores.length} {t('grades.totalQuizzes')}
                         </p>
                       </CardContent>
                     </Card>
 
                     <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Assignment Grade</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('grades.assignmentAverage')}</CardTitle>
                         <Award className="h-4 w-4 text-orange-500" />
                       </CardHeader>
                       <CardContent>
@@ -396,18 +400,18 @@ const StudentScores = () => {
                       {quizScores.length === 0 ? (
                         <div className="text-center py-8">
                           <Target className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                          <p className="text-gray-600">No quiz scores yet</p>
+                          <p className="text-gray-600">{t('grades.noScoresYet')}</p>
                         </div>
                       ) : (
                         <div className="overflow-x-auto">
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead>Quiz Name</TableHead>
-                                <TableHead className="text-center">Score</TableHead>
-                                <TableHead className="text-center">Out of 100</TableHead>
-                                <TableHead className="text-center">Status</TableHead>
-                                <TableHead>Date</TableHead>
+                                <TableHead>{t('grades.lesson')}</TableHead>
+                                <TableHead className="text-center">{t('grades.score')}</TableHead>
+                                <TableHead className="text-center">{t('grades.percentage')}</TableHead>
+                                <TableHead className="text-center">{t('grades.status')}</TableHead>
+                                <TableHead>{t('grades.date')}</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -428,12 +432,12 @@ const StudentScores = () => {
                                     {quiz.passed ? (
                                       <Badge className="bg-green-500 flex items-center gap-1 w-fit mx-auto">
                                         <CheckCircle2 className="h-3 w-3" />
-                                        Passed
+                                        {t('grades.passed')}
                                       </Badge>
                                     ) : (
                                       <Badge variant="destructive" className="flex items-center gap-1 w-fit mx-auto">
                                         <XCircle className="h-3 w-3" />
-                                        Failed
+                                        {t('grades.failed')}
                                       </Badge>
                                     )}
                                   </TableCell>
@@ -456,11 +460,11 @@ const StudentScores = () => {
                   {/* Assignment Score */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Assignment Score</CardTitle>
+                      <CardTitle>{t('grades.assignmentScores')}</CardTitle>
                       <CardDescription>
                         {assignmentScore?.count && assignmentScore.count > 1 
-                          ? `Average grade across ${assignmentScore.count} assignments` 
-                          : "Assignment grade out of 100"}
+                          ? `${t('grades.average')} ${assignmentScore.count} ${t('assignments.assignments')}` 
+                          : t('grades.assignmentScores')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>

@@ -13,29 +13,31 @@ import {
 } from "@/components/ui/sidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-const generalItems = [
-  { title: "Dashboard", url: "/student/dashboard", icon: Home },
-  { title: "Schedule", url: "/student/schedule", icon: Calendar },
-  { title: "Chat Group", url: "/student/chat", icon: MessageSquare },
-  { title: "Assignments", url: "/student/assignments", icon: FileText },
-  { title: "Scores", url: "/student/scores", icon: TrendingUp },
-  { title: "Certificates", url: "/student/certificates", icon: Award },
-];
-
-const courseItems = [
-  { title: "All Courses", url: "/courses", icon: BookOpen },
-  { title: "My Courses", url: "/student/my-courses", icon: BookMarked },
-];
-
-const otherItems = [
-  { title: "Setting", url: "/student/settings", icon: Settings },
-  { title: "Subscription", url: "/student/subscription", icon: CreditCard },
-];
+import { useTranslation } from 'react-i18next';
 
 export function StudentSidebar() {
   const { state } = useSidebar();
+  const { t } = useTranslation();
   const collapsed = state === "collapsed";
+
+  const generalItems = [
+    { title: t('nav.dashboard'), url: "/student/dashboard", icon: Home },
+    { title: t('nav.schedule'), url: "/student/schedule", icon: Calendar },
+    { title: t('nav.chatGroup'), url: "/student/chat", icon: MessageSquare },
+    { title: t('nav.assignments'), url: "/student/assignments", icon: FileText },
+    { title: t('nav.scores'), url: "/student/scores", icon: TrendingUp },
+    { title: t('nav.certificates'), url: "/student/certificates", icon: Award },
+  ];
+
+  const courseItems = [
+    { title: t('nav.allCourses'), url: "/courses", icon: BookOpen },
+    { title: t('nav.myCourses'), url: "/student/my-courses", icon: BookMarked },
+  ];
+
+  const otherItems = [
+    { title: t('nav.setting'), url: "/student/settings", icon: Settings },
+    { title: t('nav.subscription'), url: "/student/subscription", icon: CreditCard },
+  ];
 
   return (
     <Sidebar collapsible="icon" className="m-4">
@@ -73,7 +75,7 @@ export function StudentSidebar() {
 
           <SidebarGroup className="mt-4 space-y-1">
             <SidebarGroupLabel className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              COURSES
+              {t('nav.courses').toUpperCase()}
             </SidebarGroupLabel>
             <SidebarGroupContent className="px-2">
               <SidebarMenu className="space-y-1">
@@ -101,7 +103,7 @@ export function StudentSidebar() {
 
           <SidebarGroup className="mt-4 space-y-1">
             <SidebarGroupLabel className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              OTHER
+              {t('nav.other')}
             </SidebarGroupLabel>
             <SidebarGroupContent className="px-2">
               <SidebarMenu className="space-y-1">
@@ -131,15 +133,15 @@ export function StudentSidebar() {
             <div className="mt-auto px-4 pb-6">
               <Card className="bg-[#006d2c] text-white border-0 shadow-lg">
                 <CardContent className="p-6 text-center">
-                  <h3 className="font-semibold mb-2">24/7 Support</h3>
-                  <p className="text-sm mb-4 opacity-90">for Student Success</p>
+                  <h3 className="font-semibold mb-2">{t('nav.support247')}</h3>
+                  <p className="text-sm mb-4 opacity-90">{t('nav.forStudentSuccess')}</p>
                   <div className="flex gap-1 justify-center mb-4">
                     {[...Array(5)].map((_, i) => (
                       <span key={i} className="text-yellow-400">★</span>
                     ))}
                   </div>
                   <Button variant="secondary" size="sm" className="w-full bg-white text-[#006d2c] hover:bg-gray-100">
-                    Get Premium
+                    {t('nav.getPremium')}
                   </Button>
                 </CardContent>
               </Card>
