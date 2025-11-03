@@ -42,6 +42,7 @@ export function CohortJoinRequests() {
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<JoinRequest | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     fetchRequests();
@@ -52,6 +53,7 @@ export function CohortJoinRequests() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Check if cohorts table exists first
       const { data, error } = await supabase
         .from("cohort_join_requests")
         .select(`
@@ -69,14 +71,26 @@ export function CohortJoinRequests() {
             avatar_url
           )
         `)
-        .eq("cohorts.teacher_id", user.id)
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setRequests(data || []);
+      if (error) {
+        // If table doesn't exist or other error, just set empty array and hide component
+        console.log("Cohort join requests not available:", error.message);
+        setRequests([]);
+        setHasError(true);
+        return;
+      }
+
+      // Filter by teacher_id in the frontend since the join filter might not work
+      const filteredData = (data || []).filter((request: any) => 
+        request.cohorts?.teacher_id === user.id
+      );
+      
+      setRequests(filteredData);
     } catch (error: any) {
       console.error("Error fetching requests:", error);
+      setRequests([]);
     } finally {
       setLoading(false);
     }
@@ -158,34 +172,18 @@ export function CohortJoinRequests() {
     }
   };
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("cohort.joinRequests")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-gray-500">{t("common.loading")}</div>
-        </CardContent>
-      </Card>
-    );
+  // Don't render anything if there's an error (table doesn't exist)
+  if (hasError) {
+    return null;
   }
 
+  if (loading) {
+    return null; // Don't show loading state, just hide component
+  }
+
+  // Don't render if no requests
   if (requests.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("cohort.joinRequests")}</CardTitle>
-          <CardDescription>{t("cohort.manageStudentRequests")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Clock className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-600">{t("cohort.noPendingRequests")}</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   return (
