@@ -271,11 +271,11 @@ const StudentScores = () => {
     ? quizScores.reduce((sum, q) => sum + q.percentage, 0) / quizScores.length
     : null;
 
-  const overallGrade = quizAverage !== null && assignmentScore?.grade !== null
+  const overallGrade = quizAverage !== null && assignmentScore?.grade !== null && assignmentScore?.grade !== undefined
     ? (quizAverage * 0.5) + (assignmentScore.grade * 0.5)
     : quizAverage !== null
     ? quizAverage
-    : assignmentScore?.grade || null;
+    : (assignmentScore?.grade !== null && assignmentScore?.grade !== undefined) ? assignmentScore.grade : null;
 
   return (
     <SidebarProvider>
@@ -379,10 +379,10 @@ const StudentScores = () => {
                       </CardHeader>
                       <CardContent>
                         <div className={`text-2xl font-bold ${getGradeColor(assignmentScore?.grade ?? null)}`}>
-                          {assignmentScore?.grade !== null && assignmentScore?.grade !== undefined ? `${assignmentScore.grade}%` : "N/A"}
+                          {assignmentScore && assignmentScore.grade !== null && assignmentScore.grade !== undefined ? `${assignmentScore.grade}%` : "N/A"}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {assignmentScore?.grade !== null && assignmentScore?.grade !== undefined ? "Graded" : "Not graded"}
+                          {assignmentScore && assignmentScore.grade !== null && assignmentScore.grade !== undefined ? "Graded" : "Not graded"}
                         </p>
                       </CardContent>
                     </Card>
