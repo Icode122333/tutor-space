@@ -35,6 +35,14 @@ import TeacherStudents from "./pages/TeacherStudents";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
 import RoleDebugger from "./components/RoleDebugger";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminTeacherApprovals from "./pages/AdminTeacherApprovals";
+import AdminUsers from "./pages/AdminUsers";
+import AdminLogs from "./pages/AdminLogs";
+import AdminCourses from "./pages/AdminCourses";
+import AdminModeration from "./pages/AdminModeration";
+import AdminAnalytics from "./pages/AdminAnalytics";
+import AdminSettings from "./pages/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +84,15 @@ const App = () => (
           <Route path="/teacher/onboarding" element={<TeacherOnboarding />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/debug" element={<RoleDebugger />} />
+          {/* Admin Routes */}
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/teacher-approvals" element={<AdminTeacherApprovals />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/logs" element={<AdminLogs />} />
+          <Route path="/admin/courses" element={<AdminCourses />} />
+          <Route path="/admin/moderation" element={<AdminModeration />} />
+          <Route path="/admin/analytics" element={<AdminAnalytics />} />
+          <Route path="/admin/settings" element={<AdminSettings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

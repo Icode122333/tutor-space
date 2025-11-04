@@ -74,6 +74,13 @@ const Auth = () => {
           return;
         }
 
+        // Check if user is admin
+        if (profile.role === "admin") {
+          toast.success("Welcome Admin!");
+          navigate("/admin/dashboard");
+          return;
+        }
+
         // Check if onboarding is completed
         if (!profile.onboarding_completed) {
           toast.info("Please complete your profile setup");

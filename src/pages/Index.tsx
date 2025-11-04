@@ -1,23 +1,74 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BookOpen, GraduationCap, Users, BookOpenCheck, MessageSquare, FileText, Star, Menu, X } from "lucide-react";
+import { BookOpen, GraduationCap, Users, BookOpenCheck, MessageSquare, FileText, Star, Menu, X, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 const Index = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [demoDialogOpen, setDemoDialogOpen] = useState(false);
+  const [currentProjectIndex, setCurrentProjectIndex] = useState(0);
   const [demoFormData, setDemoFormData] = useState({
     name: "",
     email: "",
     phone: "",
     organization: ""
   });
+
+  // Sample capstone projects data
+  const capstoneProjects = [
+    {
+      id: 1,
+      title: "AI-Powered Healthcare Dashboard",
+      description: "A comprehensive analytics platform that predicts patient outcomes using machine learning algorithms and real-time data visualization.",
+      image: "/images/unnamed-removebg-preview.png",
+      student: "Sarah Johnson",
+      tags: ["Machine Learning", "Healthcare", "Python"]
+    },
+    {
+      id: 2,
+      title: "E-Commerce Analytics Suite",
+      description: "Full-stack application providing real-time sales insights, customer behavior analysis, and inventory management for online retailers.",
+      image: "/images/unnamed-removebg-preview.png",
+      student: "Michael Chen",
+      tags: ["React", "Node.js", "Analytics"]
+    },
+    {
+      id: 3,
+      title: "Smart City Traffic Optimizer",
+      description: "IoT-based system that analyzes traffic patterns and optimizes signal timing to reduce congestion in urban areas by 35%.",
+      image: "/images/unnamed-removebg-preview.png",
+      student: "Aisha Patel",
+      tags: ["IoT", "Data Science", "Urban Planning"]
+    },
+    {
+      id: 4,
+      title: "Financial Risk Assessment Tool",
+      description: "Advanced predictive model that evaluates investment risks using historical data, market trends, and sentiment analysis.",
+      image: "/images/unnamed-removebg-preview.png",
+      student: "David Martinez",
+      tags: ["Finance", "AI", "Risk Analysis"]
+    }
+  ];
+
+  const nextProject = () => {
+    setCurrentProjectIndex((prev) => (prev + 1) % capstoneProjects.length);
+  };
+
+  const prevProject = () => {
+    setCurrentProjectIndex((prev) => (prev - 1 + capstoneProjects.length) % capstoneProjects.length);
+  };
+
+  // Auto-advance slider
+  useEffect(() => {
+    const timer = setInterval(nextProject, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleDemoSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,7 +321,7 @@ const Index = () => {
       <section id="courses" className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-black" style={{ fontFamily: 'Inter, Poppins, Manrope, sans-serif' }}>Our Learning Tracks</h2>
+            <h2 className="text-4xl font-bold mb-4 text-[#006d2c]" style={{ fontFamily: 'Roboto, sans-serif' }}>Our Learning Tracks</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Develop your mind & skills by our intense tracks that covers all you need.
             </p>
@@ -308,11 +359,11 @@ const Index = () => {
       <section className="py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900" style={{ fontFamily: 'Inter, Poppins, Manrope, sans-serif' }}>
-              Features We Offer
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-[#006d2c]" style={{ fontFamily: 'Roboto, sans-serif' }}>
+              Why Students Choose Us
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-              Comprehensive tools and resources designed to enhance your learning experience
+              Everything you need to accelerate your learning journey and land your dream career
             </p>
           </div>
 
@@ -331,10 +382,11 @@ const Index = () => {
                   </div>
                 </div>
                 <h3 className="font-bold text-xl mb-3 text-gray-900 text-center group-hover:text-[#006d2c] transition-colors duration-300">
-                  Course Management
+                  Learn at Your Own Pace
                 </h3>
                 <p className="text-sm text-gray-600 text-center leading-relaxed">
-                  Create, organize, and deliver engaging course content with our intuitive management system
+                  No more rigid schedules. Access world-class courses anytime, anywhere. Our intuitive platform adapts to your learning style, 
+                  so you can master skills faster and retain knowledge longer. Your success, your timeline.
                 </p>
               </CardContent>
             </Card>
@@ -352,10 +404,11 @@ const Index = () => {
                   </div>
                 </div>
                 <h3 className="font-bold text-xl mb-3 text-gray-900 text-center group-hover:text-[#006d2c] transition-colors duration-300">
-                  Assignments & Quizzes
+                  Get Instant Feedback
                 </h3>
                 <p className="text-sm text-gray-600 text-center leading-relaxed">
-                  Interactive assessments with automated grading and instant feedback for better learning outcomes
+                  Stop waiting days for grades. Our smart assessment system gives you immediate, detailed feedback on every quiz and assignment. 
+                  Know exactly where you stand and what to improve—turning mistakes into breakthroughs in real-time.
                 </p>
               </CardContent>
             </Card>
@@ -373,51 +426,144 @@ const Index = () => {
                   </div>
                 </div>
                 <h3 className="font-bold text-xl mb-3 text-gray-900 text-center group-hover:text-[#006d2c] transition-colors duration-300">
-                  Real-time Communication
+                  Never Learn Alone
                 </h3>
                 <p className="text-sm text-gray-600 text-center leading-relaxed">
-                  Connect seamlessly with peers and instructors through integrated group chats and discussions
+                  Join a thriving community of learners and mentors. Get unstuck fast with real-time chat, collaborate on projects, 
+                  and build connections that last beyond the classroom. Because the best learning happens together.
                 </p>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </section>
 
-            {/* Capstone Project Card - NEW */}
-            <Card className="group relative overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 bg-white rounded-3xl md:col-span-2 lg:col-span-3">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#006d2c]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <CardContent className="pt-8 pb-8 px-6 relative z-10">
-                <div className="flex flex-col md:flex-row items-center gap-8 max-w-4xl mx-auto">
-                  <div className="flex-shrink-0">
-                    <div className="relative w-64 h-64 flex items-center justify-center">
-                      <img
-                        src="/images/unnamed-removebg-preview.png"
-                        alt="Capstone Project Illustration"
-                        className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-500"
-                      />
-                    </div>
+      {/* Capstone Project Showcase Section */}
+      <section className="py-24 bg-gradient-to-br from-[#006d2c]/5 via-white to-green-50 relative overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-[#006d2c]/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-200/30 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-[#006d2c]" style={{ fontFamily: 'Roboto, sans-serif' }}>
+              Student Success Stories
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+              Real projects. Real impact. See what our students have built and imagine what you'll create next.
+            </p>
+          </div>
+
+          <div className="max-w-6xl mx-auto">
+            {/* Project Slider */}
+            <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden">
+              {/* Main Content */}
+              <div className="grid md:grid-cols-2 gap-0">
+                {/* Image Side */}
+                <div className="relative h-[400px] md:h-[600px] bg-gradient-to-br from-[#006d2c]/10 to-green-100/50 overflow-hidden group">
+                  <div className="absolute inset-0 flex items-center justify-center p-8">
+                    <img
+                      src={capstoneProjects[currentProjectIndex].image}
+                      alt={capstoneProjects[currentProjectIndex].title}
+                      className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700"
+                    />
                   </div>
-                  <div className="flex-1 text-center md:text-left">
-                    <h3 className="font-bold text-2xl mb-4 text-gray-900 group-hover:text-[#006d2c] transition-colors duration-300">
-                      Capstone Project
-                    </h3>
-                    <p className="text-base text-gray-600 leading-relaxed mb-4">
-                      Apply your knowledge in real-world scenarios with comprehensive capstone projects. Work on industry-relevant challenges,
-                      collaborate with peers, and showcase your skills through practical implementations that demonstrate your mastery of the subject matter.
-                    </p>
-                    <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-                      <span className="px-4 py-2 bg-[#006d2c]/10 text-[#006d2c] rounded-full text-sm font-medium">
-                        Real-world Projects
-                      </span>
-                      <span className="px-4 py-2 bg-[#006d2c]/10 text-[#006d2c] rounded-full text-sm font-medium">
-                        Industry Standards
-                      </span>
-                      <span className="px-4 py-2 bg-[#006d2c]/10 text-[#006d2c] rounded-full text-sm font-medium">
-                        Portfolio Building
-                      </span>
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                </div>
+
+                {/* Content Side */}
+                <div className="p-8 md:p-12 flex flex-col justify-center">
+                  <div className="mb-6">
+                    <div className="inline-block px-4 py-2 bg-[#006d2c]/10 text-[#006d2c] rounded-full text-sm font-semibold mb-4">
+                      Project {currentProjectIndex + 1} of {capstoneProjects.length}
                     </div>
+                    <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+                      {capstoneProjects[currentProjectIndex].title}
+                    </h3>
+                    <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-6">
+                      {capstoneProjects[currentProjectIndex].description}
+                    </p>
+                    
+                    {/* Student Info */}
+                    <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#006d2c] to-green-400 flex items-center justify-center text-white font-bold text-lg">
+                        {capstoneProjects[currentProjectIndex].student.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Created by</p>
+                        <p className="font-semibold text-gray-900">{capstoneProjects[currentProjectIndex].student}</p>
+                      </div>
+                    </div>
+
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-2 mb-8">
+                      {capstoneProjects[currentProjectIndex].tags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* CTA Button */}
+                    <Button
+                      onClick={() => navigate("/exhibition")}
+                      className="bg-[#006d2c] hover:bg-[#005523] text-white px-8 py-6 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
+                    >
+                      View All Projects
+                      <ExternalLink className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                    </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+
+              {/* Navigation Controls */}
+              <div className="absolute bottom-8 left-8 flex items-center gap-4 z-20">
+                <button
+                  onClick={prevProject}
+                  className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
+                  aria-label="Previous project"
+                >
+                  <ChevronLeft className="h-6 w-6 text-[#006d2c] group-hover:-translate-x-1 transition-transform" />
+                </button>
+                <button
+                  onClick={nextProject}
+                  className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
+                  aria-label="Next project"
+                >
+                  <ChevronRight className="h-6 w-6 text-[#006d2c] group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+
+              {/* Dots Indicator */}
+              <div className="absolute bottom-8 right-8 flex items-center gap-2 z-20">
+                {capstoneProjects.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentProjectIndex(idx)}
+                    className={`transition-all duration-300 rounded-full ${
+                      idx === currentProjectIndex
+                        ? 'w-8 h-3 bg-[#006d2c]'
+                        : 'w-3 h-3 bg-gray-300 hover:bg-gray-400'
+                    }`}
+                    aria-label={`Go to project ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom CTA */}
+            <div className="text-center mt-12">
+              <p className="text-gray-600 text-lg mb-4">
+                Ready to build something amazing?
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                Your capstone project could be featured here next.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -426,7 +572,7 @@ const Index = () => {
       <section className="py-20 bg-gradient-to-br from-green-50 via-white to-green-100 overflow-hidden">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4 text-black" style={{ fontFamily: 'Inter, Poppins, Manrope, sans-serif' }}>What our happy Students say about us</h2>
+            <h2 className="text-4xl font-bold mb-4 text-[#006d2c]" style={{ fontFamily: 'Roboto, sans-serif' }}>What our happy Students say about us</h2>
           </div>
 
           {/* Animated scrolling container */}
@@ -561,9 +707,10 @@ const Index = () => {
 
         <div className="container mx-auto px-4 text-center relative z-10">
           <h2 
-            className="text-4xl md:text-5xl font-bold mb-4 text-white"
+            className="text-4xl md:text-5xl font-bold mb-4 text-[#006d2c]"
             style={{ 
-              textShadow: '2px 2px 8px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.5)'
+              fontFamily: 'Roboto, sans-serif',
+              textShadow: '2px 2px 8px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 255, 255, 0.3)'
             }}
           >
             Ready to start learning?

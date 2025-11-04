@@ -177,13 +177,6 @@ ON CONFLICT (key) DO NOTHING;
 -- 14. Add comments
 COMMENT ON TABLE public.activity_logs IS 'Tracks all important actions in the system';
 COMMENT ON TABLE public.system_settings IS 'Global system configuration';
-
-DO $$ 
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'course_approvals') THEN
-    COMMENT ON TABLE public.course_approvals IS 'Course approval workflow';
-  END IF;
-END $$;
-
+COMMENT ON TABLE public.course_approvals IS 'Course approval workflow';
 COMMENT ON COLUMN public.profiles.teacher_approved IS 'Whether teacher account is approved by admin';
 COMMENT ON COLUMN public.profiles.is_suspended IS 'Whether user account is suspended';
