@@ -33,10 +33,8 @@ interface ActivityLog {
   entity_id: string | null;
   details: any;
   created_at: string;
-  profiles?: {
-    full_name: string;
-    email: string;
-  };
+  user_full_name: string | null;
+  user_email: string | null;
 }
 
 const AdminLogs = () => {
@@ -84,17 +82,10 @@ const AdminLogs = () => {
 
   const fetchLogs = async () => {
     try {
-      const { data, error } = await supabase
-        .from("activity_logs")
-        .select(`
-          *,
-          profiles:user_id (
-            full_name,
-            email
-          )
-        `)
-        .order("created_at", { ascending: false })
-        .limit(100);
+      const { data, error } = await supabase.rpc("get_activity_logs", {
+        p_limit: 100,
+        p_offset: 0
+      });
 
       if (error) throw error;
       setLogs(data || []);
@@ -113,8 +104,8 @@ const AdminLogs = () => {
       filtered = filtered.filter(
         (log) =>
           log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          log.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          log.profiles?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+          log.user_full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          log.user_email?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -220,8 +211,8 @@ const AdminLogs = () => {
                           </TableCell>
                           <TableCell>
                             <div>
-                              <p className="font-medium">{log.profiles?.full_name || "System"}</p>
-                              <p className="text-sm text-gray-600">{log.profiles?.email}</p>
+                              <p className="font-medium">{log.user_full_name || "System"}</p>
+                              <p className="text-sm text-gray-600">{log.user_email}</p>
                             </div>
                           </TableCell>
                           <TableCell>

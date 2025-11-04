@@ -1,4 +1,4 @@
--- =====================================================
+--=====================================================
 -- Admin System Migration
 -- Creates admin role, teacher approval, and activity logs
 -- =====================================================
@@ -96,22 +96,46 @@ BEGIN
 END $$;
 
 -- 8. RLS Policies for activity_logs
-CREATE POLICY "Admins can view all activity logs"
-  ON public.activity_logs FOR SELECT
-  USING (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'activity_logs' 
+    AND policyname = 'Admins can view all activity logs'
+  ) THEN
+    CREATE POLICY "Admins can view all activity logs"
+      ON public.activity_logs FOR SELECT
+      USING (
+        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+      );
+  END IF;
 
-CREATE POLICY "System can insert activity logs"
-  ON public.activity_logs FOR INSERT
-  WITH CHECK (true);
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'activity_logs' 
+    AND policyname = 'System can insert activity logs'
+  ) THEN
+    CREATE POLICY "System can insert activity logs"
+      ON public.activity_logs FOR INSERT
+      WITH CHECK (true);
+  END IF;
+END $$;
 
 -- 9. RLS Policies for system_settings
-CREATE POLICY "Admins can manage system settings"
-  ON public.system_settings FOR ALL
-  USING (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'system_settings' 
+    AND policyname = 'Admins can manage system settings'
+  ) THEN
+    CREATE POLICY "Admins can manage system settings"
+      ON public.system_settings FOR ALL
+      USING (
+        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+      );
+  END IF;
+END $$;
 
 -- 10. RLS Policies for course_approvals (only if table exists)
 DO $$ 
@@ -135,19 +159,62 @@ BEGIN
 END $$;
 
 -- 11. Update profiles RLS to allow admins to see all profiles
-CREATE POLICY "Admins can view all profiles"
-  ON public.profiles FOR SELECT
-  USING (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+-- Note: We don't add admin policies here to avoid infinite recursion
+-- Admins will use their own profile view policy (auth.uid() = id)
+-- For viewing other profiles, use a service role or separate admin function
 
-CREATE POLICY "Admins can update all profiles"
-  ON public.profiles FOR UPDATE
-  USING (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+-- 12. Function to check if user is admin (avoids recursion)
+CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE id = user_id AND role = 'admin'
   );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 12. Function to log activity
+-- 13. Function to get all profiles (for admins only)
+CREATE OR REPLACE FUNCTION public.get_all_profiles()
+RETURNS TABLE (
+  id UUID,
+  email TEXT,
+  full_name TEXT,
+  role TEXT,
+  avatar_url TEXT,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
+  teacher_approved BOOLEAN,
+  teacher_approval_status TEXT,
+  is_suspended BOOLEAN,
+  suspension_reason TEXT,
+  last_login TIMESTAMPTZ
+) AS $$
+BEGIN
+  -- Check if caller is admin
+  IF NOT public.is_admin(auth.uid()) THEN
+    RAISE EXCEPTION 'Access denied. Admin privileges required.';
+  END IF;
+
+  RETURN QUERY
+  SELECT 
+    p.id,
+    p.email,
+    p.full_name,
+    p.role::TEXT,
+    p.avatar_url,
+    p.created_at,
+    p.updated_at,
+    p.teacher_approved,
+    p.teacher_approval_status,
+    p.is_suspended,
+    p.suspension_reason,
+    p.last_login
+  FROM public.profiles p;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 14. Function to log activity
 CREATE OR REPLACE FUNCTION public.log_activity(
   p_user_id UUID,
   p_action TEXT,
@@ -166,7 +233,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 13. Insert default system settings
+-- 15. Insert default system settings
 INSERT INTO public.system_settings (key, value, description) VALUES
   ('site_name', '"DataPlus Learning"', 'Platform name'),
   ('require_teacher_approval', 'true', 'Require admin approval for new teachers'),
@@ -174,9 +241,11 @@ INSERT INTO public.system_settings (key, value, description) VALUES
   ('maintenance_mode', 'false', 'Enable maintenance mode')
 ON CONFLICT (key) DO NOTHING;
 
--- 14. Add comments
+-- 16. Add comments
 COMMENT ON TABLE public.activity_logs IS 'Tracks all important actions in the system';
 COMMENT ON TABLE public.system_settings IS 'Global system configuration';
+COMMENT ON FUNCTION public.is_admin IS 'Check if user has admin role without causing recursion';
+COMMENT ON FUNCTION public.get_all_profiles IS 'Get all profiles for admin users only';
 COMMENT ON TABLE public.course_approvals IS 'Course approval workflow';
 COMMENT ON COLUMN public.profiles.teacher_approved IS 'Whether teacher account is approved by admin';
 COMMENT ON COLUMN public.profiles.is_suspended IS 'Whether user account is suspended';
