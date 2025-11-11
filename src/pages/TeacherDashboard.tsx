@@ -45,6 +45,13 @@ const TeacherDashboard = () => {
           return;
         }
 
+        // Check if teacher is approved
+        if (profile.role === "teacher" && !profile.teacher_approved) {
+          console.log('Teacher not approved yet, redirecting to pending approval');
+          navigate("/teacher/pending-approval");
+          return;
+        }
+
         if (profile.role !== "teacher") {
           console.log('User is not a teacher, redirecting to student dashboard');
           navigate("/student/dashboard");

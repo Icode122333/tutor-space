@@ -178,7 +178,7 @@ const AdminCourses = () => {
 
         <div className="flex-1 flex flex-col overflow-hidden p-4">
           <header className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-100 mb-6">
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 rounded-t-3xl">
+            <div className="bg-gradient-to-r from-[#006d2c] to-[#008000] p-6 rounded-t-3xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <SidebarTrigger className="text-white" />

@@ -93,8 +93,8 @@ const TeacherOnboarding = () => {
 
       if (profileError) throw profileError;
 
-      toast.success("Profile setup completed successfully!");
-      navigate("/teacher/dashboard");
+      toast.success("Profile setup completed! Your account is pending admin approval.");
+      navigate("/teacher/pending-approval");
     } catch (error: any) {
       console.error("Error completing onboarding:", error);
       toast.error("Failed to complete profile setup. Please try again.");

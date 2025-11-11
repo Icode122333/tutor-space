@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
+import { Button } from "@/components/ui/button";
 import {
   Users,
   GraduationCap,
@@ -28,6 +29,8 @@ import {
   ResponsiveContainer,
   Legend
 } from "recharts";
+
+type TimePeriod = "week" | "month" | "year";
 
 interface Stats {
   totalUsers: number;
@@ -55,10 +58,17 @@ const AdminDashboard = () => {
   });
   const [userGrowth, setUserGrowth] = useState<any[]>([]);
   const [courseStats, setCourseStats] = useState<any[]>([]);
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>("week");
 
   useEffect(() => {
     checkAdminAccess();
   }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      fetchUserGrowth();
+    }
+  }, [timePeriod, loading]);
 
   const checkAdminAccess = async () => {
     try {
@@ -90,63 +100,55 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      // Get user counts
-      const { count: totalUsers } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true });
+      // Use RPC function to get all profiles (bypasses RLS)
+      const { data: allProfiles, error: profilesError } = await supabase.rpc("get_all_profiles");
 
-      const { count: totalStudents } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("role", "student");
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        throw profilesError;
+      }
 
-      const { count: totalTeachers } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("role", "teacher");
-
-      const { count: pendingTeachers } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("role", "teacher")
-        .eq("teacher_approval_status", "pending");
-
-      const { count: suspendedUsers } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("is_suspended", true);
-
-      // Get course counts
-      const { count: totalCourses } = await supabase
-        .from("courses")
-        .select("*", { count: "exact", head: true });
-
-      const { count: pendingCourses } = await supabase
-        .from("courses")
-        .select("*", { count: "exact", head: true })
-        .eq("approval_status", "pending");
+      // Calculate counts from the data
+      const totalUsers = allProfiles?.length || 0;
+      const totalStudents = allProfiles?.filter((p: any) => p.role === "student").length || 0;
+      const totalTeachers = allProfiles?.filter((p: any) => p.role === "teacher").length || 0;
+      const pendingTeachers = allProfiles?.filter(
+        (p: any) => p.role === "teacher" && p.teacher_approval_status === "pending"
+      ).length || 0;
+      const suspendedUsers = allProfiles?.filter((p: any) => p.is_suspended === true).length || 0;
 
       // Get active users (logged in last 7 days)
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      
-      const { count: activeUsers } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .gte("last_login", sevenDaysAgo.toISOString());
+      const activeUsers = allProfiles?.filter((p: any) => {
+        if (!p.last_login) return false;
+        return new Date(p.last_login) >= sevenDaysAgo;
+      }).length || 0;
+
+      // Get course counts (courses table should be accessible)
+      const { data: courses, error: coursesError } = await supabase
+        .from("courses")
+        .select("id, approval_status");
+
+      if (coursesError) {
+        console.error("Error fetching courses:", coursesError);
+      }
+
+      const totalCourses = courses?.length || 0;
+      const pendingCourses = courses?.filter((c: any) => c.approval_status === "pending").length || 0;
 
       setStats({
-        totalUsers: totalUsers || 0,
-        totalStudents: totalStudents || 0,
-        totalTeachers: totalTeachers || 0,
-        pendingTeachers: pendingTeachers || 0,
-        totalCourses: totalCourses || 0,
-        pendingCourses: pendingCourses || 0,
-        activeUsers: activeUsers || 0,
-        suspendedUsers: suspendedUsers || 0,
+        totalUsers,
+        totalStudents,
+        totalTeachers,
+        pendingTeachers,
+        totalCourses,
+        pendingCourses,
+        activeUsers,
+        suspendedUsers,
       });
 
-      // Fetch user growth data (last 7 days)
+      // Fetch user growth data
       await fetchUserGrowth();
       await fetchCourseStats();
     } catch (error: any) {
@@ -158,17 +160,73 @@ const AdminDashboard = () => {
   };
 
   const fetchUserGrowth = async () => {
-    // Mock data for now - you can implement real data later
-    const mockData = [
-      { date: "Mon", students: 12, teachers: 2 },
-      { date: "Tue", students: 15, teachers: 3 },
-      { date: "Wed", students: 18, teachers: 2 },
-      { date: "Thu", students: 22, teachers: 4 },
-      { date: "Fri", students: 25, teachers: 3 },
-      { date: "Sat", students: 20, teachers: 1 },
-      { date: "Sun", students: 18, teachers: 2 },
-    ];
-    setUserGrowth(mockData);
+    try {
+      const now = new Date();
+      let startDate = new Date();
+      let groupBy = "day";
+      let dateFormat = "MM/DD";
+
+      // Calculate date range based on time period
+      if (timePeriod === "week") {
+        startDate.setDate(now.getDate() - 7);
+        groupBy = "day";
+        dateFormat = "ddd";
+      } else if (timePeriod === "month") {
+        startDate.setDate(now.getDate() - 30);
+        groupBy = "day";
+        dateFormat = "MM/DD";
+      } else if (timePeriod === "year") {
+        startDate.setMonth(now.getMonth() - 12);
+        groupBy = "month";
+        dateFormat = "MMM";
+      }
+
+      // Fetch all users created in the time period
+      const { data: users, error } = await supabase
+        .from("profiles")
+        .select("created_at, role")
+        .gte("created_at", startDate.toISOString())
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      // Group users by date
+      const groupedData: { [key: string]: { students: number; teachers: number } } = {};
+
+      users?.forEach((user) => {
+        const date = new Date(user.created_at);
+        let key: string;
+
+        if (timePeriod === "week") {
+          key = date.toLocaleDateString("en-US", { weekday: "short" });
+        } else if (timePeriod === "month") {
+          key = date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" });
+        } else {
+          key = date.toLocaleDateString("en-US", { month: "short" });
+        }
+
+        if (!groupedData[key]) {
+          groupedData[key] = { students: 0, teachers: 0 };
+        }
+
+        if (user.role === "student") {
+          groupedData[key].students++;
+        } else if (user.role === "teacher") {
+          groupedData[key].teachers++;
+        }
+      });
+
+      // Convert to array format for chart
+      const chartData = Object.entries(groupedData).map(([date, counts]) => ({
+        date,
+        students: counts.students,
+        teachers: counts.teachers,
+      }));
+
+      setUserGrowth(chartData);
+    } catch (error: any) {
+      console.error("Error fetching user growth:", error);
+    }
   };
 
   const fetchCourseStats = async () => {
@@ -195,7 +253,7 @@ const AdminDashboard = () => {
         <div className="flex-1 flex flex-col overflow-hidden p-4">
           {/* Header */}
           <header className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-100 mb-6 overflow-hidden">
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6">
+            <div className="bg-gradient-to-r from-[#006d2c] to-[#008000] p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <SidebarTrigger className="text-white" />
@@ -270,7 +328,35 @@ const AdminDashboard = () => {
                 {/* User Growth Chart */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>User Growth (Last 7 Days)</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>User Growth</CardTitle>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant={timePeriod === "week" ? "default" : "outline"}
+                          onClick={() => setTimePeriod("week")}
+                          className={timePeriod === "week" ? "bg-[#006d2c] hover:bg-[#005a24]" : ""}
+                        >
+                          Week
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={timePeriod === "month" ? "default" : "outline"}
+                          onClick={() => setTimePeriod("month")}
+                          className={timePeriod === "month" ? "bg-[#006d2c] hover:bg-[#005a24]" : ""}
+                        >
+                          Month
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={timePeriod === "year" ? "default" : "outline"}
+                          onClick={() => setTimePeriod("year")}
+                          className={timePeriod === "year" ? "bg-[#006d2c] hover:bg-[#005a24]" : ""}
+                        >
+                          Year
+                        </Button>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
@@ -280,8 +366,20 @@ const AdminDashboard = () => {
                         <YAxis />
                         <Tooltip />
                         <Legend />
-                        <Line type="monotone" dataKey="students" stroke="#10b981" strokeWidth={2} />
-                        <Line type="monotone" dataKey="teachers" stroke="#8b5cf6" strokeWidth={2} />
+                        <Line 
+                          type="monotone" 
+                          dataKey="students" 
+                          stroke="#10b981" 
+                          strokeWidth={2}
+                          name="Students"
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="teachers" 
+                          stroke="#8b5cf6" 
+                          strokeWidth={2}
+                          name="Teachers"
+                        />
                       </LineChart>
                     </ResponsiveContainer>
                   </CardContent>

@@ -43,6 +43,8 @@ import AdminCourses from "./pages/AdminCourses";
 import AdminModeration from "./pages/AdminModeration";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminSettings from "./pages/AdminSettings";
+import AdminStudentProgress from "./pages/AdminStudentProgress";
+import TeacherPendingApproval from "./pages/TeacherPendingApproval";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +84,7 @@ const App = () => (
           <Route path="/onboarding" element={<StudentOnboarding />} />
           <Route path="/student/onboarding" element={<StudentOnboarding />} />
           <Route path="/teacher/onboarding" element={<TeacherOnboarding />} />
+          <Route path="/teacher/pending-approval" element={<TeacherPendingApproval />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/debug" element={<RoleDebugger />} />
           {/* Admin Routes */}
@@ -93,6 +96,7 @@ const App = () => (
           <Route path="/admin/moderation" element={<AdminModeration />} />
           <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
+          <Route path="/admin/student-progress" element={<AdminStudentProgress />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
