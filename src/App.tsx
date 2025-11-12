@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import './i18n/config';
+import { SuspensionDialog } from "@/components/SuspensionDialog";
 import Index from "./pages/Index";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -44,6 +45,7 @@ import AdminModeration from "./pages/AdminModeration";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminSettings from "./pages/AdminSettings";
 import AdminStudentProgress from "./pages/AdminStudentProgress";
+import AdminCourseUpdates from "./pages/AdminCourseUpdates";
 import TeacherPendingApproval from "./pages/TeacherPendingApproval";
 
 const queryClient = new QueryClient();
@@ -54,6 +56,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <SuspensionDialog />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/about" element={<About />} />
@@ -97,6 +100,7 @@ const App = () => (
           <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="/admin/student-progress" element={<AdminStudentProgress />} />
+          <Route path="/admin/course-updates" element={<AdminCourseUpdates />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

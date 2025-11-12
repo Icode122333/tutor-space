@@ -30,12 +30,14 @@ import { Button } from "@/components/ui/button";
 interface AdminSidebarProps {
   pendingTeachers?: number;
   pendingCourses?: number;
+  pendingCourseUpdates?: number;
   flaggedContent?: number;
 }
 
 export function AdminSidebar({ 
   pendingTeachers = 0, 
   pendingCourses = 0,
+  pendingCourseUpdates = 0,
   flaggedContent = 0 
 }: AdminSidebarProps) {
   const { state } = useSidebar();
@@ -63,6 +65,7 @@ export function AdminSidebar({
 
   const courseItems = [
     { title: "All Courses", url: "/admin/courses", icon: BookOpen, badge: pendingCourses },
+    { title: "Course Updates", url: "/admin/course-updates", icon: Shield, badge: pendingCourseUpdates },
   ];
 
   const moderationItems = [

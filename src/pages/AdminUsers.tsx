@@ -147,26 +147,12 @@ const AdminUsers = () => {
 
     setProcessing(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          is_suspended: true,
-          suspension_reason: suspensionReason,
-        })
-        .eq("id", selectedUser.id);
+      const { error } = await supabase.rpc("suspend_user", {
+        p_user_id: selectedUser.id,
+        p_suspension_reason: suspensionReason
+      });
 
       if (error) throw error;
-
-      // Log activity
-      await supabase.rpc("log_activity", {
-        p_user_id: user?.id,
-        p_action: "user_suspended",
-        p_entity_type: "profile",
-        p_entity_id: selectedUser.id,
-        p_details: { reason: suspensionReason },
-      });
 
       toast.success(`${selectedUser.full_name} has been suspended`);
       setShowSuspendDialog(false);
@@ -175,7 +161,7 @@ const AdminUsers = () => {
       fetchUsers();
     } catch (error: any) {
       console.error("Error suspending user:", error);
-      toast.error("Failed to suspend user");
+      toast.error(error.message || "Failed to suspend user");
     } finally {
       setProcessing(false);
     }
@@ -184,31 +170,17 @@ const AdminUsers = () => {
   const handleUnsuspend = async (user: UserProfile) => {
     setProcessing(true);
     try {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          is_suspended: false,
-          suspension_reason: null,
-        })
-        .eq("id", user.id);
+      const { error } = await supabase.rpc("unsuspend_user", {
+        p_user_id: user.id
+      });
 
       if (error) throw error;
-
-      // Log activity
-      await supabase.rpc("log_activity", {
-        p_user_id: currentUser?.id,
-        p_action: "user_unsuspended",
-        p_entity_type: "profile",
-        p_entity_id: user.id,
-      });
 
       toast.success(`${user.full_name} has been unsuspended`);
       fetchUsers();
     } catch (error: any) {
       console.error("Error unsuspending user:", error);
-      toast.error("Failed to unsuspend user");
+      toast.error(error.message || "Failed to unsuspend user");
     } finally {
       setProcessing(false);
     }
