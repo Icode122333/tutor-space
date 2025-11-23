@@ -14,7 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Kodchasan', 'sans-serif'],
+        sans: ['Poppins', 'sans-serif'],
+        body: ['Arial', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

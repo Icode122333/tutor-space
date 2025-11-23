@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Users, BookOpen, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CourseCard } from "@/components/CourseCard";
 
 type Course = {
   id: string;
@@ -169,120 +170,29 @@ const BrowseCourses = () => {
             {courses.map((course, index) => {
               const gradient = gradients[index % gradients.length];
               const level = levels[index % levels.length];
-              const enrollmentCount = enrollmentCounts.get(course.id) || 0;
+              const columnIndex = index % 4; // Calculate which column (0-3) for 4-column grid
 
               return (
-                <Card
+                <CourseCard
                   key={course.id}
-                  className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-[#006D2C] cursor-pointer rounded-2xl"
+                  course={{
+                    ...course,
+                    level: level.toLowerCase()
+                  }}
                   onClick={() => {
                     if (userId && enrolledCourseIds.has(course.id)) {
                       navigate(`/course/${course.id}`);
                     } else if (!userId) {
                       navigate("/signup");
+                    } else {
+                      setEnrollingCourseId(course.id);
+                      setDialogOpen(true);
                     }
                   }}
-                >
-                  <CardContent className="p-4">
-                    {/* Course Image */}
-                    <div className={`relative h-48 bg-gradient-to-br ${gradient} overflow-hidden rounded-2xl mb-4 shadow-md`}>
-                      {course.thumbnail_url ? (
-                        <img
-                          src={course.thumbnail_url}
-                          alt={course.title}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <BookOpen className="h-16 w-16 text-white/30" />
-                        </div>
-                      )}
-                      {/* Bookmark Icon */}
-                      <div className="absolute top-3 right-3">
-                        <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm">
-                          <svg
-                            className="w-4 h-4 text-gray-700"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Course Info */}
-                    <div>
-                      {/* Level and Students */}
-                      <div className="flex items-center justify-between mb-3">
-                        <span
-                          className={`text-sm font-semibold ${
-                            level === "Beginner"
-                              ? "text-green-600"
-                              : level === "Intermediate"
-                              ? "text-yellow-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {level}
-                        </span>
-                        <div className="flex items-center gap-1 text-gray-600">
-                          <Users className="h-4 w-4" />
-                          <span className="text-sm font-medium">{enrollmentCount}</span>
-                        </div>
-                      </div>
-
-                      {/* Course Title */}
-                      <h3 className="font-bold text-gray-900 mb-4 line-clamp-2 min-h-[3rem] text-base">
-                        {course.title}
-                      </h3>
-
-                      {/* Action Button */}
-                      {userId ? (
-                        enrolledCourseIds.has(course.id) ? (
-                          <Button
-                            variant="secondary"
-                            className="w-full cursor-not-allowed opacity-60 rounded-full font-medium"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDialogOpen(true);
-                            }}
-                            aria-disabled
-                          >
-                            Enrolled
-                          </Button>
-                        ) : (
-                          <Button
-                            className="w-full bg-[#006D2C] hover:bg-[#005523] text-white rounded-full font-medium"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEnroll(course.id);
-                            }}
-                            disabled={enrollingCourseId === course.id}
-                          >
-                            {enrollingCourseId === course.id ? "Enrolling..." : "Enroll"}
-                          </Button>
-                        )
-                      ) : (
-                        <Button
-                          className="w-full bg-[#006D2C] hover:bg-[#005523] text-white rounded-full font-medium"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate("/signup");
-                          }}
-                        >
-                          View
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                  gradient={gradient}
+                  showTeacher={false}
+                  columnIndex={columnIndex}
+                />
               );
             })}
           </div>

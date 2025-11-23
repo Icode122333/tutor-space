@@ -40,14 +40,85 @@ const TeacherOnboarding = () => {
   }, []);
 
   const checkUserAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate("/auth");
-      return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+
+      // Check if user role matches this onboarding type
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("role, onboarding_completed")
+        .eq("id", user.id)
+        .single();
+
+      // If profile doesn't exist yet, wait and try again
+      if (error || !profile) {
+        console.log("Profile not found, waiting for creation...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const { data: retryProfile } = await supabase
+          .from("profiles")
+          .select("role, onboarding_completed")
+          .eq("id", user.id)
+          .single();
+
+        if (!retryProfile) {
+          console.log("Profile still not found, allowing onboarding to continue");
+          // Pre-fill email if available
+          if (user.email) {
+            setFormData(prev => ({ ...prev, email: user.email! }));
+          }
+          return; // Allow onboarding to continue
+        }
+
+        // Use the retry profile for checks
+        if (retryProfile.onboarding_completed) {
+          if (retryProfile.role === "teacher") {
+            navigate("/teacher/pending-approval", { replace: true });
+          } else {
+            navigate("/student/dashboard", { replace: true });
+          }
+          return;
+        }
+
+        if (retryProfile.role === "student") {
+          navigate("/onboarding", { replace: true });
+          return;
+        }
+
+        // Pre-fill email if available
+        if (user.email) {
+          setFormData(prev => ({ ...prev, email: user.email! }));
+        }
+        return;
+      }
+
+      // If already completed onboarding, redirect appropriately
+      if (profile.onboarding_completed) {
+        if (profile.role === "teacher") {
+          navigate("/teacher/pending-approval", { replace: true });
+        } else {
+          navigate("/student/dashboard", { replace: true });
+        }
+        return;
+      }
+
+      // If student trying to access teacher onboarding, redirect to student onboarding
+      if (profile.role === "student") {
+        navigate("/onboarding", { replace: true });
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking user auth:", error);
+      // Allow onboarding to continue even if there's an error
     }
 
     // Pre-fill email if available
-    if (user.email) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email) {
       setFormData(prev => ({ ...prev, email: user.email! }));
     }
 
@@ -93,8 +164,24 @@ const TeacherOnboarding = () => {
 
       if (profileError) throw profileError;
 
+      // Wait a moment to ensure database update is complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Verify the update was successful
+      const { data: profile, error: fetchError } = await supabase
+        .from("profiles")
+        .select("onboarding_completed")
+        .eq("id", user.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (!profile?.onboarding_completed) {
+        throw new Error("Onboarding update failed");
+      }
+
       toast.success("Profile setup completed! Your account is pending admin approval.");
-      navigate("/teacher/pending-approval");
+      navigate("/teacher/pending-approval", { replace: true });
     } catch (error: any) {
       console.error("Error completing onboarding:", error);
       toast.error("Failed to complete profile setup. Please try again.");

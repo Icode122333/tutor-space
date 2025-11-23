@@ -131,12 +131,12 @@ const StudentDashboard = () => {
       // Check if onboarding is completed
       if (!profileData.onboarding_completed) {
         toast.info("Please complete your profile setup");
-        navigate("/onboarding");
+        navigate("/onboarding", { replace: true });
         return;
       }
 
       if (profileData.role !== "student") {
-        navigate("/teacher/dashboard");
+        navigate("/teacher/dashboard", { replace: true });
         return;
       }
 

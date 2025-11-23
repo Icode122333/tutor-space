@@ -79,12 +79,13 @@ const SignUp = () => {
         // Check if email confirmation is required
         if (data.user.identities && data.user.identities.length === 0) {
           // Email needs to be verified
-          toast.info("Please check your email to verify your account");
+          toast.success("Account created! Please check your email to verify your account.");
           navigate("/verify-email");
           return;
         }
 
         // Email confirmation not required (instant signup enabled)
+        // This happens when email confirmation is disabled in Supabase
         // Wait a moment for the trigger to create the profile
         await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -110,8 +111,8 @@ const SignUp = () => {
           }
         }
 
+        // For instant signup (no email verification), redirect to onboarding
         toast.success("Account created successfully!");
-        // Redirect to appropriate onboarding based on role
         navigate(selectedRole === "teacher" ? "/teacher/onboarding" : "/onboarding");
       }
     } catch (error: any) {
@@ -151,8 +152,8 @@ const SignUp = () => {
               variant={selectedRole === "student" ? "default" : "outline"}
               onClick={() => setSelectedRole("student")}
               className={`w-full h-10 text-sm font-medium rounded-lg transition-colors duration-300 group ${selectedRole === "student"
-                  ? "bg-black hover:bg-[#006d2c] text-white"
-                  : "bg-white border border-gray-300 hover:bg-gray-50"
+                ? "bg-black hover:bg-[#006d2c] text-white"
+                : "bg-white border border-gray-300 hover:bg-gray-50"
                 }`}
             >
               <GraduationCap className="mr-2 h-4 w-4" />
@@ -165,8 +166,8 @@ const SignUp = () => {
               variant={selectedRole === "teacher" ? "default" : "outline"}
               onClick={() => setSelectedRole("teacher")}
               className={`w-full h-10 text-sm font-medium rounded-lg transition-colors duration-300 group ${selectedRole === "teacher"
-                  ? "bg-black hover:bg-[#006d2c] text-white"
-                  : "bg-white border border-gray-300 hover:bg-gray-50"
+                ? "bg-black hover:bg-[#006d2c] text-white"
+                : "bg-white border border-gray-300 hover:bg-gray-50"
                 }`}
             >
               <Users className="mr-2 h-4 w-4" />

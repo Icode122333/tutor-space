@@ -45,9 +45,63 @@ const StudentOnboarding = () => {
   }, []);
 
   const checkUserAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate("/auth");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+
+      // Check if user role matches this onboarding type
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("role, onboarding_completed")
+        .eq("id", user.id)
+        .single();
+
+      // If profile doesn't exist yet, wait and try again
+      if (error || !profile) {
+        console.log("Profile not found, waiting for creation...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const { data: retryProfile } = await supabase
+          .from("profiles")
+          .select("role, onboarding_completed")
+          .eq("id", user.id)
+          .single();
+
+        if (!retryProfile) {
+          console.log("Profile still not found, allowing onboarding to continue");
+          return; // Allow onboarding to continue
+        }
+
+        // Use the retry profile for checks
+        if (retryProfile.onboarding_completed) {
+          navigate(retryProfile.role === "teacher" ? "/teacher/dashboard" : "/student/dashboard", { replace: true });
+          return;
+        }
+
+        if (retryProfile.role === "teacher") {
+          navigate("/teacher/onboarding", { replace: true });
+          return;
+        }
+        return;
+      }
+
+      // If already completed onboarding, redirect to dashboard
+      if (profile.onboarding_completed) {
+        navigate(profile.role === "teacher" ? "/teacher/dashboard" : "/student/dashboard", { replace: true });
+        return;
+      }
+
+      // If teacher trying to access student onboarding, redirect to teacher onboarding
+      if (profile.role === "teacher") {
+        navigate("/teacher/onboarding", { replace: true });
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking user auth:", error);
+      // Allow onboarding to continue even if there's an error
     }
   };
 
@@ -136,20 +190,27 @@ const StudentOnboarding = () => {
 
       if (profileError) throw profileError;
 
-      toast.success("Onboarding completed successfully!");
+      // Wait a moment to ensure database update is complete
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Navigate based on user role
-      const { data: profile } = await supabase
+      // Verify the update was successful
+      const { data: profile, error: fetchError } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, onboarding_completed")
         .eq("id", user.id)
         .single();
 
-      if (profile?.role === "teacher") {
-        navigate("/teacher/dashboard");
-      } else {
-        navigate("/student/dashboard");
+      if (fetchError) throw fetchError;
+
+      if (!profile?.onboarding_completed) {
+        throw new Error("Onboarding update failed");
       }
+
+      toast.success("Onboarding completed successfully!");
+
+      // Always redirect to student dashboard since this is StudentOnboarding
+      // If user is actually a teacher, they should have gone through TeacherOnboarding
+      navigate("/student/dashboard", { replace: true });
     } catch (error: any) {
       console.error("Error completing onboarding:", error);
       toast.error("Failed to complete onboarding. Please try again.");

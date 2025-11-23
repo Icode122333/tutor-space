@@ -42,20 +42,20 @@ const TeacherDashboard = () => {
         if (!profile.onboarding_completed) {
           console.log('Onboarding not completed, redirecting to teacher onboarding');
           toast.info("Please complete your profile setup");
-          navigate("/teacher/onboarding");
+          navigate("/teacher/onboarding", { replace: true });
           return;
         }
 
         // Check if teacher is approved
         if (profile.role === "teacher" && !profile.teacher_approved) {
           console.log('Teacher not approved yet, redirecting to pending approval');
-          navigate("/teacher/pending-approval");
+          navigate("/teacher/pending-approval", { replace: true });
           return;
         }
 
         if (profile.role !== "teacher") {
           console.log('User is not a teacher, redirecting to student dashboard');
-          navigate("/student/dashboard");
+          navigate("/student/dashboard", { replace: true });
           return;
         }
 

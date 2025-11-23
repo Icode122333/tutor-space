@@ -98,9 +98,10 @@ const AuthCallback = () => {
           }
 
           console.log("Profile created successfully with role:", role);
-          toast.success(`Welcome! Let's complete your profile setup.`);
-          // Redirect to appropriate onboarding based on role
-          navigate(role === "teacher" ? "/teacher/onboarding" : "/onboarding");
+          
+          // After email verification, redirect to login page
+          toast.success("Email verified successfully! Please log in to continue.");
+          navigate("/auth");
         } else {
           console.log("Existing user found with role:", existingProfile.role);
           
