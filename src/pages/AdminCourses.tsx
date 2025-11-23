@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
-import { Search, BookOpen, Star, Check, X } from "lucide-react";
+import { Search, BookOpen, Star, Check, X, Trash2, Eye } from "lucide-react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { toast } from "sonner";
 import {
@@ -25,11 +25,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Course {
   id: string;
   title: string;
   description: string | null;
+  summary: string | null;
+  thumbnail_url: string | null;
   approval_status: string;
   is_featured: boolean;
   category: string | null;
@@ -48,6 +60,8 @@ const AdminCourses = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [processing, setProcessing] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     checkAdminAccess();
@@ -165,6 +179,34 @@ const AdminCourses = () => {
     }
   };
 
+  const handleDeleteClick = (course: Course) => {
+    setCourseToDelete(course);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!courseToDelete) return;
+
+    setProcessing(true);
+    try {
+      const { error } = await supabase.rpc("admin_delete_course", {
+        p_course_id: courseToDelete.id
+      });
+
+      if (error) throw error;
+
+      toast.success(`Course "${courseToDelete.title}" has been deleted`);
+      setShowDeleteDialog(false);
+      setCourseToDelete(null);
+      fetchCourses();
+    } catch (error: any) {
+      console.error("Error deleting course:", error);
+      toast.error(error.message || "Failed to delete course");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -232,6 +274,7 @@ const AdminCourses = () => {
                         <TableHead>Teacher</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Featured</TableHead>
+                        <TableHead>Created</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -279,18 +322,40 @@ const AdminCourses = () => {
                               />
                             </Button>
                           </TableCell>
+                          <TableCell className="text-sm text-gray-600">
+                            {new Date(course.created_at).toLocaleDateString()}
+                          </TableCell>
                           <TableCell>
-                            {course.approval_status === "pending" && (
+                            <div className="flex gap-2">
+                              {course.approval_status === "pending" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => approveCourse(course.id)}
+                                  disabled={processing}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Approve
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
-                                onClick={() => approveCourse(course.id)}
-                                disabled={processing}
-                                className="bg-green-600 hover:bg-green-700"
+                                variant="outline"
+                                onClick={() => navigate(`/course/${course.id}`)}
                               >
-                                <Check className="h-4 w-4 mr-1" />
-                                Approve
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
                               </Button>
-                            )}
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteClick(course)}
+                                disabled={processing}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -302,6 +367,29 @@ const AdminCourses = () => {
           </main>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Course</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{courseToDelete?.title}"? This action cannot be undone.
+              All course content, enrollments, and related data will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={processing}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {processing ? "Deleting..." : "Delete Course"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   );
 };

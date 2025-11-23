@@ -18,6 +18,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { CourseCard } from "@/components/CourseCard";
 import { toast } from "sonner";
 
 
@@ -316,145 +317,28 @@ const TeacherDashboard = () => {
                           </Button>
                         </div>
                       ) : (
-                        <div className="space-y-4">
-                          {courses.map((course) => (
-                            <Card
-                              key={course.id}
-                              className="group hover:shadow-lg transition-all duration-300 border-2 hover:border-[#006d2c] cursor-pointer"
-                              onClick={() => navigate(`/course/${course.id}`)}
-                            >
-                              <CardContent className="p-5">
-                                <div className="flex items-start gap-4">
-                                  {/* Course Thumbnail */}
-                                  <div className="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-[#006d2c] to-[#004d20]">
-                                    {course.thumbnail_url ? (
-                                      <img
-                                        src={course.thumbnail_url}
-                                        alt={course.title}
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center">
-                                        <BookOpen className="h-10 w-10 text-white/30" />
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Course Info */}
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between gap-4 mb-3">
-                                      <div className="flex-1">
-                                        <h4 className="font-bold text-gray-900 mb-1 line-clamp-1 group-hover:text-[#006d2c] transition-colors">
-                                          {course.title}
-                                        </h4>
-                                        <Badge variant="outline" className="text-xs">
-                                          {course.level || 'Beginner'}
-                                        </Badge>
-                                      </div>
-                                      
-                                      {/* Actions Menu */}
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            <MoreVertical className="h-4 w-4" />
-                                          </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                          <DropdownMenuItem onClick={(e) => handleEditCourse(course.id, e)}>
-                                            <Edit className="h-4 w-4 mr-2" />
-                                            Edit Course
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/create-course?edit=${course.id}&addChapter=true`);
-                                          }}>
-                                            <Layers className="h-4 w-4 mr-2" />
-                                            Add Chapter
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/course/${course.id}`);
-                                          }}>
-                                            <BookOpen className="h-4 w-4 mr-2" />
-                                            View Course
-                                          </DropdownMenuItem>
-                                          <DropdownMenuSeparator />
-                                          <DropdownMenuItem 
-                                            onClick={(e) => handleDeleteCourse(course.id, e)}
-                                            className="text-destructive focus:text-destructive"
-                                          >
-                                            <Trash2 className="h-4 w-4 mr-2" />
-                                            Delete Course
-                                          </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    </div>
-
-                                    {/* Course Stats */}
-                                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                                      <div className="flex items-center gap-1.5">
-                                        <Layers className="h-4 w-4 text-blue-500" />
-                                        <span>{course.chapter_count || 0} Chapters</span>
-                                      </div>
-                                      <div className="flex items-center gap-1.5">
-                                        <PlayCircle className="h-4 w-4 text-purple-500" />
-                                        <span>{course.lesson_count || 0} Lessons</span>
-                                      </div>
-                                      <div className="flex items-center gap-1.5">
-                                        <Users className="h-4 w-4 text-green-500" />
-                                        <span>{course.enrolled_count || 0} Students</span>
-                                      </div>
-                                      {course.price && (
-                                        <div className="flex items-center gap-1.5 ml-auto">
-                                          <span className="text-[#006d2c] font-bold text-lg">${course.price}</span>
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Quick Actions */}
-                                    <div className="flex gap-2 mt-3">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={(e) => handleEditCourse(course.id, e)}
-                                        className="text-xs"
-                                      >
-                                        <Edit className="h-3 w-3 mr-1" />
-                                        Edit
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigate(`/create-course?edit=${course.id}&addChapter=true`);
-                                        }}
-                                        className="text-xs"
-                                      >
-                                        <Plus className="h-3 w-3 mr-1" />
-                                        Add Content
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigate(`/course/${course.id}`);
-                                        }}
-                                        className="text-xs bg-[#006d2c] hover:bg-[#005523]"
-                                      >
-                                        View Course
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                          {courses.map((course, index) => {
+                            const gradients = [
+                              'from-blue-500 to-purple-600',
+                              'from-green-500 to-teal-600',
+                              'from-orange-500 to-red-600',
+                              'from-pink-500 to-rose-600',
+                              'from-indigo-500 to-blue-600',
+                              'from-yellow-500 to-orange-600',
+                            ];
+                            const gradient = gradients[index % gradients.length];
+                            
+                            return (
+                              <CourseCard
+                                key={course.id}
+                                course={course}
+                                onClick={() => navigate(`/course/${course.id}`)}
+                                gradient={gradient}
+                                showTeacher={false}
+                              />
+                            );
+                          })}
                         </div>
                       )}
                     </CardContent>

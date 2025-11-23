@@ -14,6 +14,7 @@ import { GradesTable } from "@/components/GradesTable";
 import { useTranslation } from 'react-i18next';
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { JoinCohortDialog } from "@/components/JoinCohortDialog";
+import { CourseCard } from "@/components/CourseCard";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -433,7 +434,7 @@ const StudentDashboard = () => {
                 </div>
 
                 {enrolledCourses.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {enrolledCourses.map((enrollment, index) => {
                       const course = enrollment.courses;
                       const gradients = [
@@ -445,84 +446,15 @@ const StudentDashboard = () => {
                         'from-yellow-500 to-orange-600',
                       ];
                       const gradient = gradients[index % gradients.length];
-                      const levels = ["Beginner", "Intermediate", "Advanced"];
-                      const level = levels[index % levels.length];
 
                       return (
-                        <Card
+                        <CourseCard
                           key={course.id}
-                          className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-[#006d2c] cursor-pointer rounded-2xl"
+                          course={course}
                           onClick={() => navigate(`/course/${course.id}`)}
-                        >
-                          <CardContent className="p-4">
-                            {/* Course Image */}
-                            <div className={`relative h-48 bg-gradient-to-br ${gradient} overflow-hidden rounded-2xl mb-4 shadow-md`}>
-                              {course.thumbnail_url ? (
-                                <img
-                                  src={course.thumbnail_url}
-                                  alt={course.title}
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 rounded-2xl"
-                                />
-                              ) : (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <BookOpen className="h-16 w-16 text-white/30" />
-                                </div>
-                              )}
-                              {/* Bookmark Icon */}
-                              <div className="absolute top-3 right-3">
-                                <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm">
-                                  <svg
-                                    className="w-4 h-4 text-gray-700"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                                    />
-                                  </svg>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Course Info */}
-                            <div>
-                              {/* Level */}
-                              <div className="flex items-center justify-between mb-3">
-                                <span
-                                  className={`text-sm font-semibold ${level === "Beginner"
-                                    ? "text-green-600"
-                                    : level === "Intermediate"
-                                      ? "text-yellow-600"
-                                      : "text-red-600"
-                                    }`}
-                                >
-                                  {level}
-                                </span>
-                                <span className="text-xs text-gray-500">{t('dashboard.enrolled')}</span>
-                              </div>
-
-                              {/* Course Title */}
-                              <h3 className="font-bold text-gray-900 mb-4 line-clamp-2 min-h-[3rem] text-base">
-                                {course.title}
-                              </h3>
-
-                              {/* View Button */}
-                              <Button
-                                className="w-full bg-[#006D2C] hover:bg-[#005523] text-white rounded-full font-medium"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/course/${course.id}`);
-                                }}
-                              >
-                                {t('common.view')}
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
+                          gradient={gradient}
+                          showTeacher={true}
+                        />
                       );
                     })}
                   </div>
