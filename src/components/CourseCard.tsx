@@ -26,14 +26,13 @@ interface CourseCardProps {
 }
 
 export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purple-600", showTeacher = false }: CourseCardProps) => {
-  const hasSummary = course.summary && course.summary.trim().length > 0;
-
-  const CardWrapper = hasSummary ? TooltipProvider : 'div';
-  const CardTrigger = hasSummary ? TooltipTrigger : 'div';
+  const summary = course.summary && course.summary.trim().length > 0 
+    ? course.summary 
+    : course.description || "No course summary available yet. Click to view full course details.";
 
   return (
-    <CardWrapper>
-      <CardTrigger asChild={hasSummary}>
+    <TooltipProvider>
+      <TooltipTrigger asChild>
         <Card
           className="group hover:shadow-2xl transition-all duration-300 border-2 hover:border-[#006d2c] cursor-pointer rounded-2xl overflow-hidden"
           onClick={onClick}
@@ -91,16 +90,14 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
             </div>
           </CardContent>
         </Card>
-      </CardTrigger>
+      </TooltipTrigger>
       
-      {hasSummary && (
-        <TooltipContent side="top" className="max-w-sm p-4 bg-white border-2 border-[#006d2c] shadow-xl">
-          <div className="space-y-2">
-            <h4 className="font-bold text-[#006d2c]">Course Overview</h4>
-            <p className="text-sm text-gray-700">{course.summary}</p>
-          </div>
-        </TooltipContent>
-      )}
-    </CardWrapper>
+      <TooltipContent side="top" className="max-w-sm p-4 bg-white border-2 border-[#006d2c] shadow-xl z-50">
+        <div className="space-y-2">
+          <h4 className="font-bold text-[#006d2c]">Course Overview</h4>
+          <p className="text-sm text-gray-700">{summary}</p>
+        </div>
+      </TooltipContent>
+    </TooltipProvider>
   );
 };
