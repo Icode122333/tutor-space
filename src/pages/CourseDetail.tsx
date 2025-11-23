@@ -421,7 +421,33 @@ export default function CourseDetail() {
           </div>
 
           {/* Right Side - Curriculum */}
-          <div>
+          <div className="space-y-6">
+            {/* Assignments Card - At top */}
+            {userId && getCounts().assignments > 0 && (
+              <Card className="border-2 border-orange-200 bg-orange-50/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-orange-100 rounded-full p-3">
+                      <ClipboardList className="h-6 w-6 text-orange-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-orange-900">Assignments</h3>
+                      <p className="text-xs text-orange-700">
+                        {getCounts().assignments} assignment{getCounts().assignments !== 1 ? 's' : ''} available
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => navigate('/student/assignments')}
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    Submit Your Assignment
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Course Curriculum */}
             <CourseCurriculum
               chapters={chapters}
               currentLessonId={currentLessonId || undefined}
@@ -438,7 +464,7 @@ export default function CourseDetail() {
 
             {/* Capstone Project Card */}
             {capstoneProject && userId && (
-              <Card className="mt-6">
+              <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="bg-purple-100 rounded-full p-3">

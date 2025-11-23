@@ -81,15 +81,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen relative">
-      {/* Full background that extends to top */}
-      <div className="fixed inset-0 bg-gradient-to-br from-green-50 via-white to-green-100 -z-10"></div>
-      {/* Subtle vignette overlay */}
-      <div className="fixed inset-0 bg-gradient-to-r from-transparent via-transparent to-black/5 pointer-events-none -z-10"></div>
-      <div className="fixed inset-0 bg-gradient-to-b from-transparent via-transparent to-black/5 pointer-events-none -z-10"></div>
-
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 px-4 pt-4 pb-2">
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20">
+      <nav className="fixed top-0 left-0 right-0 z-50">
+        <div className="bg-white/90 backdrop-blur-md shadow-sm">
           <div className="container mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img
@@ -187,47 +181,42 @@ const Index = () => {
         </div>
       )}
 
-      {/* Hero Section */}
-      <section id="home" className="relative z-10 flex items-center justify-center min-h-[80vh] px-4 overflow-hidden">
-        {/* Gradient Background (Bottom Layer) */}
-        <div className="absolute inset-0 -z-20 bg-gradient-to-br from-green-50 via-white to-green-100"></div>
-        
-        {/* Background Image (Top Layer with opacity) */}
-        <div className="absolute inset-0 -z-10">
-          <img 
-            src="/images/background.webp" 
-            alt="Background" 
-            className="w-full h-full object-cover opacity-70"
-          />
+      {/* Hero Section - Fullscreen */}
+      <section id="home" className="relative flex items-center justify-center h-screen overflow-hidden">
+        {/* Video Background - Fullscreen */}
+        <div className="absolute inset-0 z-0">
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="w-full h-full object-cover"
+          >
+            <source src="/videos/A_group_of_202511231942_dqqwc.mp4" type="video/mp4" />
+          </video>
+          {/* Black overlay for text readability */}
+          <div className="absolute inset-0 bg-black/60"></div>
         </div>
         
-        <div className="text-center max-w-4xl mx-auto relative z-10">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-6 tracking-wide" style={{ fontFamily: 'Roboto, sans-serif', letterSpacing: '0.02em' }}>
-            Get where you're going <span className="text-[#006d2c]">faster</span>
-            <br />
-            with <span className="text-[#006d2c]">DATAPLUS Labs</span>
-          </h1>
-          <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto font-medium" style={{ fontFamily: 'Inter, Poppins, Manrope, sans-serif' }}>
-            Expand your skills in development, testing, analysis, and designing with our comprehensive courses.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div className="container mx-auto px-6 md:px-12 relative z-10 pt-20">
+          <div className="max-w-2xl">
+            <p className="text-sm md:text-base text-white/80 mb-4 uppercase tracking-wider">
+              Welcome to DataPlusLabs
+            </p>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-white mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              Learn Whenever
+              <br />
+              You Are
+            </h1>
+            <p className="text-base md:text-lg text-white/90 mb-8 max-w-xl">
+              Because every student is an experience learner.
+            </p>
             <Button
-              size="lg"
               onClick={() => navigate("/signup")}
               variant="outline"
-              className="bg-white border-gray-300 text-white hover:text-[#006d2c] hover:bg-gray-50 px-8 py-3 text-lg font-medium transition-colors duration-300 group"
+              className="border-2 border-white text-white bg-transparent hover:bg-white hover:text-black px-8 py-3 text-sm uppercase tracking-wider font-semibold transition-all duration-300"
             >
-              <span className="text-black group-hover:text-[#006d2c] transition-colors">
-                Get Started
-              </span>
-            </Button>
-            <Button
-              size="lg"
-              onClick={() => setDemoDialogOpen(true)}
-              className="bg-[#006d2c] hover:bg-[#005523] text-white px-8 py-3 text-lg font-medium transition-colors duration-300"
-            >
-              Request Demo
+              Get Started
             </Button>
           </div>
         </div>
@@ -327,29 +316,59 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-12 max-w-5xl mx-auto mb-20">
+          <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto mb-20">
             {/* Student Track */}
             <div
-              className="group cursor-pointer overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300"
+              className="group cursor-pointer overflow-hidden rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 h-[450px] relative"
               onClick={() => navigate("/auth?role=student")}
             >
               <img
                 src="/images/students.webp"
                 alt="Students"
-                className="w-full h-[600px] object-cover transform group-hover:scale-110 transition-transform duration-500"
+                className="w-full h-full object-cover"
               />
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+              
+              {/* Content Overlay */}
+              <div className="absolute inset-0 flex flex-col justify-end p-8 text-white">
+                <h3 className="text-3xl font-bold mb-2">
+                  Are you a <span className="text-[#00ff88]">student</span>?
+                </h3>
+                <p className="text-white/90 mb-4 text-sm">
+                  We transform your dreams into real results
+                </p>
+                <button className="bg-[#00ff88] hover:bg-[#00dd77] text-black font-semibold px-8 py-3 rounded-full w-fit transition-all duration-300 transform group-hover:scale-105">
+                  Sign up
+                </button>
+              </div>
             </div>
 
             {/* Teacher Track */}
             <div
-              className="group cursor-pointer overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300"
+              className="group cursor-pointer overflow-hidden rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 h-[450px] relative"
               onClick={() => navigate("/auth?role=teacher")}
             >
               <img
                 src="/images/teacher.webp"
                 alt="Teacher"
-                className="w-full h-[600px] object-cover transform group-hover:scale-110 transition-transform duration-500"
+                className="w-full h-full object-cover"
               />
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+              
+              {/* Content Overlay */}
+              <div className="absolute inset-0 flex flex-col justify-end p-8 text-white">
+                <h3 className="text-3xl font-bold mb-2">
+                  Are you a <span className="text-[#00ff88]">teacher</span>?
+                </h3>
+                <p className="text-white/90 mb-4 text-sm">
+                  We transform your passion into real results.
+                </p>
+                <button className="bg-[#00ff88] hover:bg-[#00dd77] text-black font-semibold px-8 py-3 rounded-full w-fit transition-all duration-300 transform group-hover:scale-105">
+                  Sign up
+                </button>
+              </div>
             </div>
           </div>
         </div>

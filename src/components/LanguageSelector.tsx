@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { Globe } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -9,8 +8,18 @@ import {
 } from '@/components/ui/select';
 
 const languages = [
-  { code: 'en', name: 'English', nativeName: 'English' },
-  { code: 'fr', name: 'French', nativeName: 'Français' },
+  { 
+    code: 'en', 
+    name: 'English', 
+    nativeName: 'English', 
+    flagUrl: 'https://flagcdn.com/w40/us.png'
+  },
+  { 
+    code: 'fr', 
+    name: 'French', 
+    nativeName: 'Français', 
+    flagUrl: '/images/flag-france.jpg'
+  },
 ];
 
 export const LanguageSelector = () => {
@@ -21,21 +30,33 @@ export const LanguageSelector = () => {
     document.documentElement.lang = languageCode;
   };
 
+  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
+
   return (
-    <div className="flex items-center gap-2">
-      <Globe className="h-4 w-4" />
-      <Select value={i18n.language} onValueChange={handleLanguageChange}>
-        <SelectTrigger className="w-[140px]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {languages.map((lang) => (
-            <SelectItem key={lang.code} value={lang.code}>
-              {lang.nativeName}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <Select value={i18n.language} onValueChange={handleLanguageChange}>
+      <SelectTrigger className="w-[50px] border-gray-300 px-2">
+        <SelectValue>
+          <img 
+            src={currentLanguage.flagUrl} 
+            alt={currentLanguage.name}
+            className="w-6 h-4 object-cover rounded-sm"
+          />
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {languages.map((lang) => (
+          <SelectItem key={lang.code} value={lang.code}>
+            <div className="flex items-center gap-2">
+              <img 
+                src={lang.flagUrl} 
+                alt={lang.name}
+                className="w-6 h-4 object-cover rounded-sm"
+              />
+              <span>{lang.nativeName}</span>
+            </div>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 };

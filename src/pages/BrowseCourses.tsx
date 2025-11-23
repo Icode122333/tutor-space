@@ -171,6 +171,7 @@ const BrowseCourses = () => {
               const gradient = gradients[index % gradients.length];
               const level = levels[index % levels.length];
               const columnIndex = index % 4; // Calculate which column (0-3) for 4-column grid
+              const isEnrolled = enrolledCourseIds.has(course.id);
 
               return (
                 <CourseCard
@@ -180,18 +181,21 @@ const BrowseCourses = () => {
                     level: level.toLowerCase()
                   }}
                   onClick={() => {
-                    if (userId && enrolledCourseIds.has(course.id)) {
+                    if (userId && isEnrolled) {
                       navigate(`/course/${course.id}`);
                     } else if (!userId) {
                       navigate("/signup");
                     } else {
-                      setEnrollingCourseId(course.id);
-                      setDialogOpen(true);
+                      // Just view the course details, don't auto-enroll
+                      navigate(`/course/${course.id}`);
                     }
                   }}
                   gradient={gradient}
                   showTeacher={false}
                   columnIndex={columnIndex}
+                  isEnrolled={isEnrolled}
+                  showEnrollButton={userId && !isEnrolled}
+                  onEnroll={() => handleEnroll(course.id)}
                 />
               );
             })}

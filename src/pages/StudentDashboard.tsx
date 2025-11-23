@@ -26,6 +26,13 @@ const StudentDashboard = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [studentId, setStudentId] = useState<string | null>(null);
   const [showJoinCohortDialog, setShowJoinCohortDialog] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const sliderImages = [
+    "/images/Gemini_Generated_Image_lrwgaxlrwgaxlrwg.png",
+    "/images/Gemini_Generated_Image_zg4uzxzg4uzxzg4u.png"
+  ];
 
   useEffect(() => {
     const getStudentId = async () => {
@@ -42,6 +49,15 @@ const StudentDashboard = () => {
       fetchEnrolledCourses();
     }
   }, [profile]);
+
+  // Auto-slide effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % sliderImages.length);
+    }, 6000); // Change slide every 6 seconds
+
+    return () => clearInterval(interval);
+  }, [sliderImages.length]);
 
   const fetchEnrolledCourses = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -176,6 +192,8 @@ const StudentDashboard = () => {
                   <input
                     type="text"
                     placeholder={t('common.search')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-3 pr-10 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006D2C]/20 w-48"
                   />
                   <Search className="h-4 w-4 text-[#006D2C] absolute right-3 top-1/2 -translate-y-1/2" />
@@ -200,37 +218,94 @@ const StudentDashboard = () => {
             <div className="max-w-7xl mx-auto space-y-6">
               {/* Top Section - Cohort Banner and Calendar/Upcoming Classes Side by Side */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Cohort Banner - Takes 2 columns */}
+                {/* Banner Slider - Takes 2 columns */}
                 <div className="lg:col-span-2">
-                  <div className="relative overflow-hidden rounded-2xl bg-[#006D2C] px-4 py-2.5 min-h-[280px] flex items-center">
-                    <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
-                      <div className="flex-1 text-white">
-                        <h2 className="text-2xl sm:text-3xl font-bold mb-2 leading-tight tracking-wide">
-                          {t('dashboard.goFarWithTeam')}
-                        </h2>
-                        <p className="text-xl sm:text-2xl font-semibold mb-4 tracking-wide">
-                          {t('dashboard.startWithCohort')}
-                        </p>
-                        <Button
-                          onClick={() => setShowJoinCohortDialog(true)}
-                          className="bg-white text-[#006D2C] hover:bg-gray-100 font-semibold px-6 py-2.5 rounded-full flex items-center gap-2 text-base w-fit"
-                        >
-                          {t('dashboard.joinNow')}
-                          <div className="w-6 h-6 rounded-full bg-[#006D2C] flex items-center justify-center">
-                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </div>
-                        </Button>
-                      </div>
-                      <div className="flex-shrink-0">
-                        <img
-                          src="/images/main widget.webp"
-                          alt="Team collaboration"
-                          className="w-56 sm:w-64 lg:w-80 h-auto object-contain"
+                  <div className="relative overflow-hidden rounded-2xl min-h-[280px] shadow-lg bg-gray-900">
+                    {/* Background Image Slider */}
+                    {sliderImages.map((image, index) => (
+                      <div
+                        key={index}
+                        className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
+                        style={{
+                          opacity: currentSlide === index ? 1 : 0,
+                          zIndex: currentSlide === index ? 1 : 0,
+                        }}
+                      >
+                        <div
+                          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                          style={{
+                            backgroundImage: `url(${image})`,
+                            filter: 'brightness(0.7) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))'
+                          }}
                         />
+                        {/* Dark overlay for better text readability */}
+                        <div className="absolute inset-0 bg-black/50"></div>
+                      </div>
+                    ))}
+
+                    {/* Content - Different for each slide */}
+                    <div className="relative z-10 px-4 py-2.5 min-h-[280px] flex items-center">
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+                        {/* Slide 1 Content - Learn with us */}
+                        {currentSlide === 0 && (
+                          <div className="flex-1 text-white animate-in fade-in slide-in-from-left-4 duration-700">
+                            <h2 className="text-2xl sm:text-4xl font-bold mb-2 leading-tight tracking-wide drop-shadow-md">
+                              Learn with us
+                            </h2>
+                            <p className="text-xl sm:text-2xl font-semibold mb-4 tracking-wide drop-shadow-md">
+                              whenever you are
+                            </p>
+                            <Button
+                              onClick={() => navigate("/courses")}
+                              className="bg-[#006D2C] hover:bg-[#005523] text-white font-semibold px-6 py-2.5 rounded-full flex items-center gap-2 text-base w-fit shadow-lg"
+                            >
+                              Browse Courses
+                              <BookOpen className="w-5 h-5" />
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Slide 2 Content - Cohort */}
+                        {currentSlide === 1 && (
+                          <div className="flex-1 text-white animate-in fade-in slide-in-from-left-4 duration-700">
+                            <h2 className="text-2xl sm:text-3xl font-bold mb-2 leading-tight tracking-wide drop-shadow-md">
+                              {t('dashboard.goFarWithTeam')}
+                            </h2>
+                            <p className="text-xl sm:text-2xl font-semibold mb-4 tracking-wide drop-shadow-md">
+                              {t('dashboard.startWithCohort')}
+                            </p>
+                            <Button
+                              onClick={() => setShowJoinCohortDialog(true)}
+                              className="bg-white text-[#006D2C] hover:bg-gray-100 font-semibold px-6 py-2.5 rounded-full flex items-center gap-2 text-base w-fit shadow-lg"
+                            >
+                              {t('dashboard.joinNow')}
+                              <div className="w-6 h-6 rounded-full bg-[#006D2C] flex items-center justify-center">
+                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </div>
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
+
+                    {/* Slide indicators */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                      {sliderImages.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentSlide(index)}
+                          className={`h-2 rounded-full transition-all shadow-md ${
+                            currentSlide === index 
+                              ? 'bg-white w-8' 
+                              : 'bg-white/50 hover:bg-white/75 w-2'
+                          }`}
+                          aria-label={`Go to slide ${index + 1}`}
+                        />
+                      ))}
+                    </div>
+
                     {/* Decorative circles */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
@@ -433,47 +508,78 @@ const StudentDashboard = () => {
                   )}
                 </div>
 
-                {enrolledCourses.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {enrolledCourses.map((enrollment, index) => {
-                      const course = enrollment.courses;
-                      const gradients = [
-                        'from-blue-500 to-purple-600',
-                        'from-green-500 to-teal-600',
-                        'from-orange-500 to-red-600',
-                        'from-pink-500 to-rose-600',
-                        'from-indigo-500 to-blue-600',
-                        'from-yellow-500 to-orange-600',
-                      ];
-                      const gradient = gradients[index % gradients.length];
+                {(() => {
+                  // Filter courses based on search query
+                  const filteredCourses = enrolledCourses.filter((enrollment) => {
+                    const course = enrollment.courses;
+                    return course.title.toLowerCase().startsWith(searchQuery.toLowerCase());
+                  });
 
-                      return (
-                        <CourseCard
-                          key={course.id}
-                          course={course}
-                          onClick={() => navigate(`/course/${course.id}`)}
-                          gradient={gradient}
-                          showTeacher={true}
-                        />
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <Card className="border-2 border-dashed">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                        <BookOpen className="h-8 w-8 text-gray-400" />
+                  if (filteredCourses.length > 0) {
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {filteredCourses.map((enrollment, index) => {
+                          const course = enrollment.courses;
+                          const gradients = [
+                            'from-blue-500 to-purple-600',
+                            'from-green-500 to-teal-600',
+                            'from-orange-500 to-red-600',
+                            'from-pink-500 to-rose-600',
+                            'from-indigo-500 to-blue-600',
+                            'from-yellow-500 to-orange-600',
+                          ];
+                          const gradient = gradients[index % gradients.length];
+                          const columnIndex = index % 4; // Calculate which column (0-3) for 4-column grid
+
+                          return (
+                            <CourseCard
+                              key={course.id}
+                              course={course}
+                              onClick={() => navigate(`/course/${course.id}`)}
+                              gradient={gradient}
+                              showTeacher={true}
+                              columnIndex={columnIndex}
+                              isEnrolled={true}
+                            />
+                          );
+                        })}
                       </div>
-                      <h3 className="text-lg font-semibold mb-2">{t('dashboard.noCourses')}</h3>
-                      <p className="text-sm text-gray-600 text-center mb-4">
-                        {t('dashboard.notEnrolled')}
-                      </p>
-                      <Button onClick={() => navigate("/courses")} className="bg-[#006d2c] hover:bg-[#005523]">
-                        {t('dashboard.browseCourses')}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
+                    );
+                  } else if (searchQuery && enrolledCourses.length > 0) {
+                    // Show "no results" message when searching but no matches
+                    return (
+                      <Card className="border-2 border-dashed">
+                        <CardContent className="flex flex-col items-center justify-center py-12">
+                          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                            <Search className="h-8 w-8 text-gray-400" />
+                          </div>
+                          <h3 className="text-lg font-semibold mb-2">No courses found</h3>
+                          <p className="text-sm text-gray-600 text-center">
+                            No courses match "{searchQuery}"
+                          </p>
+                        </CardContent>
+                      </Card>
+                    );
+                  } else {
+                    // Show "no courses enrolled" message
+                    return (
+                      <Card className="border-2 border-dashed">
+                        <CardContent className="flex flex-col items-center justify-center py-12">
+                          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                            <BookOpen className="h-8 w-8 text-gray-400" />
+                          </div>
+                          <h3 className="text-lg font-semibold mb-2">{t('dashboard.noCourses')}</h3>
+                          <p className="text-sm text-gray-600 text-center mb-4">
+                            {t('dashboard.notEnrolled')}
+                          </p>
+                          <Button onClick={() => navigate("/courses")} className="bg-[#006d2c] hover:bg-[#005523]">
+                            {t('dashboard.browseCourses')}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+                })()}
               </div>
 
               {/* Quiz Scores/Marks Section */}

@@ -20,9 +20,12 @@ interface CourseCardProps {
   gradient?: string;
   showTeacher?: boolean;
   columnIndex?: number; // To determine popup position
+  isEnrolled?: boolean; // To show enrolled status
+  showEnrollButton?: boolean; // To show enroll button
+  onEnroll?: () => void; // Callback for enroll action
 }
 
-export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purple-600", showTeacher = false, columnIndex = 0 }: CourseCardProps) => {
+export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purple-600", showTeacher = false, columnIndex = 0, isEnrolled = false, showEnrollButton = false, onEnroll }: CourseCardProps) => {
   const [showHoverCard, setShowHoverCard] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
@@ -61,7 +64,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
       onMouseLeave={handleMouseLeave}
     >
       <Card
-        className="group hover:shadow-2xl transition-all duration-300 border-2 hover:border-[#006d2c] cursor-pointer rounded-2xl overflow-hidden h-full flex flex-col"
+        className="group hover:shadow-2xl transition-all duration-300 border border-black cursor-pointer rounded-2xl overflow-hidden h-full flex flex-col"
         onClick={onClick}
       >
         <CardContent className="p-0 flex flex-col h-full">
@@ -98,7 +101,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
 
           {/* Course Info */}
           <div className="p-4 flex-1 flex flex-col">
-            <h3 className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-[#006d2c] transition-colors">
+            <h3 className="font-bold text-lg mb-2 line-clamp-2 transition-colors">
               {course.title}
             </h3>
             
@@ -108,12 +111,35 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
               </p>
             )}
 
-            {showTeacher && course.profiles && (
-              <div className="flex items-center gap-2 text-sm text-gray-500 mt-auto">
-                <Users className="h-4 w-4" />
-                <span>{course.profiles.full_name}</span>
-              </div>
-            )}
+            <div className="mt-auto space-y-2">
+              {showTeacher && course.profiles && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Users className="h-4 w-4" />
+                  <span>{course.profiles.full_name}</span>
+                </div>
+              )}
+              
+              {isEnrolled ? (
+                <Button
+                  disabled
+                  className="w-full bg-gray-300 text-gray-600 cursor-not-allowed"
+                  size="sm"
+                >
+                  Enrolled
+                </Button>
+              ) : showEnrollButton && onEnroll ? (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEnroll();
+                  }}
+                  className="w-full bg-[#006d2c] hover:bg-[#005523] text-white"
+                  size="sm"
+                >
+                  Enroll Now
+                </Button>
+              ) : null}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -125,7 +151,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
             ? 'right-full mr-2 slide-in-from-right-2' 
             : 'left-full ml-2 slide-in-from-left-2'
         }`}>
-          <Card className="border-2 border-[#006d2c] shadow-2xl">
+          <Card className="border border-black shadow-2xl">
             <CardContent className="p-6 space-y-4">
               {/* Title */}
               <h3 className="font-bold text-xl text-gray-900">
