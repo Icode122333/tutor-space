@@ -64,11 +64,11 @@ const Index = () => {
     setCurrentProjectIndex((prev) => (prev - 1 + capstoneProjects.length) % capstoneProjects.length);
   };
 
-  // Auto-advance slider
+  // Auto-advance slider every 6 seconds
   useEffect(() => {
-    const timer = setInterval(nextProject, 5000);
+    const timer = setInterval(nextProject, 6000);
     return () => clearInterval(timer);
-  }, []);
+  }, [currentProjectIndex]);
 
   const handleDemoSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -307,7 +307,7 @@ const Index = () => {
       </section>
 
       {/* Course Tracks Section */}
-      <section id="courses" className="py-20 bg-white">
+      <section id="courses" className="py-20 bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4 text-[#006d2c]" style={{ fontFamily: 'Roboto, sans-serif' }}>Our Learning Tracks</h2>
@@ -316,57 +316,71 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto mb-20">
+          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto mb-20">
             {/* Student Track */}
             <div
-              className="group cursor-pointer overflow-hidden rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 h-[450px] relative"
+              className="group cursor-pointer rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 bg-white overflow-hidden"
               onClick={() => navigate("/auth?role=student")}
             >
-              <img
-                src="/images/students.webp"
-                alt="Students"
-                className="w-full h-full object-cover"
-              />
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+              {/* Image Container - Takes most of the space */}
+              <div className="relative h-96 overflow-hidden bg-gradient-to-br from-orange-50 to-teal-50">
+                <img
+                  src="/images/student.webp"
+                  alt="Student Learning"
+                  className="w-full h-full object-cover"
+                />
+                {/* Badge on image */}
+                <div className="absolute top-6 left-6">
+                  <div className="bg-black text-white text-xs font-semibold px-4 py-1.5 rounded-full">
+                    Student
+                  </div>
+                </div>
+              </div>
               
-              {/* Content Overlay */}
-              <div className="absolute inset-0 flex flex-col justify-end p-8 text-white">
-                <h3 className="text-3xl font-bold mb-2">
-                  Are you a <span className="text-[#00ff88]">student</span>?
+              {/* Content Section - Compact at bottom */}
+              <div className="p-6 bg-white">
+                <h3 className="text-xl font-bold mb-2 text-gray-900">
+                  Learn & Grow
                 </h3>
-                <p className="text-white/90 mb-4 text-sm">
-                  We transform your dreams into real results
+                <p className="text-gray-600 text-sm mb-4">
+                  Master skills, build projects
                 </p>
-                <button className="bg-[#00ff88] hover:bg-[#00dd77] text-black font-semibold px-8 py-3 rounded-full w-fit transition-all duration-300 transform group-hover:scale-105">
-                  Sign up
+                <button className="bg-[#006d2c] hover:bg-[#005523] text-white font-semibold px-6 py-2.5 rounded-lg transition-colors">
+                  Get Started
                 </button>
               </div>
             </div>
 
             {/* Teacher Track */}
             <div
-              className="group cursor-pointer overflow-hidden rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 h-[450px] relative"
+              className="group cursor-pointer rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 bg-white overflow-hidden"
               onClick={() => navigate("/auth?role=teacher")}
             >
-              <img
-                src="/images/teacher.webp"
-                alt="Teacher"
-                className="w-full h-full object-cover"
-              />
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+              {/* Image Container - Takes most of the space */}
+              <div className="relative h-96 overflow-hidden bg-gradient-to-br from-pink-50 to-blue-50">
+                <img
+                  src="/images/teacher1.webp"
+                  alt="Teacher Teaching"
+                  className="w-full h-full object-cover"
+                />
+                {/* Badge on image */}
+                <div className="absolute top-6 left-6">
+                  <div className="bg-black text-white text-xs font-semibold px-4 py-1.5 rounded-full">
+                    Teacher
+                  </div>
+                </div>
+              </div>
               
-              {/* Content Overlay */}
-              <div className="absolute inset-0 flex flex-col justify-end p-8 text-white">
-                <h3 className="text-3xl font-bold mb-2">
-                  Are you a <span className="text-[#00ff88]">teacher</span>?
+              {/* Content Section - Compact at bottom */}
+              <div className="p-6 bg-white">
+                <h3 className="text-xl font-bold mb-2 text-gray-900">
+                  Teach & Inspire
                 </h3>
-                <p className="text-white/90 mb-4 text-sm">
-                  We transform your passion into real results.
+                <p className="text-gray-600 text-sm mb-4">
+                  Share expertise, empower learners
                 </p>
-                <button className="bg-[#00ff88] hover:bg-[#00dd77] text-black font-semibold px-8 py-3 rounded-full w-fit transition-all duration-300 transform group-hover:scale-105">
-                  Sign up
+                <button className="bg-[#006d2c] hover:bg-[#005523] text-white font-semibold px-6 py-2.5 rounded-lg transition-colors">
+                  Get Started
                 </button>
               </div>
             </div>
@@ -457,108 +471,135 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Capstone Project Showcase Section */}
-      <section className="py-24 bg-gradient-to-br from-[#006d2c]/5 via-white to-green-50 relative overflow-hidden">
-        {/* Decorative background elements */}
-        <div className="absolute top-0 left-0 w-96 h-96 bg-[#006d2c]/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-200/30 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
-        
-        <div className="container mx-auto px-4 relative z-10">
+      {/* Student Success Stories Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-[#006d2c]" style={{ fontFamily: 'Roboto, sans-serif' }}>
+            <h2 className="text-4xl font-bold mb-4 text-[#006d2c]" style={{ fontFamily: 'Roboto, sans-serif' }}>
               Student Success Stories
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-              Real projects. Real impact. See what our students have built and imagine what you'll create next.
+              Real projects. Real impact. See what our students have built.
             </p>
           </div>
 
-          <div className="max-w-6xl mx-auto">
-            {/* Project Slider */}
-            <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden">
-              {/* Main Content */}
-              <div className="grid md:grid-cols-2 gap-0">
-                {/* Image Side */}
-                <div className="relative h-[400px] md:h-[600px] bg-gradient-to-br from-[#006d2c]/10 to-green-100/50 overflow-hidden group">
-                  <div className="absolute inset-0 flex items-center justify-center p-8">
-                    <img
-                      src={capstoneProjects[currentProjectIndex].image}
-                      alt={capstoneProjects[currentProjectIndex].title}
-                      className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700"
-                    />
-                  </div>
-                  {/* Gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                </div>
+          <div className="max-w-7xl mx-auto">
+            {/* Horizontal Sliding Carousel */}
+            <div className="relative overflow-hidden px-4">
+              <div 
+                className="flex gap-8 transition-transform duration-700 ease-in-out"
+                style={{ transform: `translateX(calc(-${currentProjectIndex * 100}% - ${currentProjectIndex * 2}rem))` }}
+              >
+                {capstoneProjects.map((project, idx) => (
+                  <div key={project.id} className="min-w-[calc(100%-2rem)] flex-shrink-0">
+                    <Card className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl overflow-hidden mx-auto max-w-5xl">
+                      <div className="grid md:grid-cols-5 gap-0">
+                        {/* Left Side - Student Info */}
+                        <div className="md:col-span-2 p-8 bg-white">
+                          {/* Student Avatar */}
+                          <div className="flex items-center gap-4 mb-8">
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#006d2c] to-green-400 flex items-center justify-center">
+                              <span className="text-white font-bold text-2xl">{project.student.charAt(0)}</span>
+                            </div>
+                            <div>
+                              <p className="font-bold text-xl text-gray-900">{project.student}</p>
+                              <p className="text-sm text-gray-500">Data Scientist</p>
+                            </div>
+                          </div>
 
-                {/* Content Side */}
-                <div className="p-8 md:p-12 flex flex-col justify-center">
-                  <div className="mb-6">
-                    <div className="inline-block px-4 py-2 bg-[#006d2c]/10 text-[#006d2c] rounded-full text-sm font-semibold mb-4">
-                      Project {currentProjectIndex + 1} of {capstoneProjects.length}
-                    </div>
-                    <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
-                      {capstoneProjects[currentProjectIndex].title}
-                    </h3>
-                    <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-6">
-                      {capstoneProjects[currentProjectIndex].description}
-                    </p>
-                    
-                    {/* Student Info */}
-                    <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#006d2c] to-green-400 flex items-center justify-center text-white font-bold text-lg">
-                        {capstoneProjects[currentProjectIndex].student.charAt(0)}
+                          {/* Score Circle */}
+                          <div className="flex justify-center mb-6">
+                            <div className="relative w-32 h-32">
+                              <svg className="w-full h-full transform -rotate-90">
+                                <circle cx="64" cy="64" r="56" stroke="#e5e7eb" strokeWidth="10" fill="none" />
+                                <circle cx="64" cy="64" r="56" stroke="#00ff88" strokeWidth="10" fill="none" 
+                                  strokeDasharray={`${(94/100) * 351.86} 351.86`} strokeLinecap="round" />
+                              </svg>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-4xl font-bold text-gray-900">94</span>
+                                <span className="text-xs text-gray-500 uppercase">Score</span>
+                              </div>
+                            </div>
+                          </div>
+                          <p className="text-center text-sm text-gray-600 mb-8">Ranked in the top 5% of the graduating cohort.</p>
+                        </div>
+
+                        {/* Right Side - Project Details */}
+                        <div className="md:col-span-3 p-8 bg-gradient-to-br from-white to-gray-50">
+                          {/* Project Badge */}
+                          <div className="flex items-center justify-between mb-6">
+                            <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Capstone Project</span>
+                            <span className="text-xs text-green-600 font-bold uppercase">Completed</span>
+                          </div>
+
+                          {/* Project Title */}
+                          <h3 className="text-3xl font-bold text-gray-900 mb-4">{project.title}</h3>
+                          <p className="text-gray-600 mb-8 leading-relaxed">{project.description}</p>
+
+                          {/* Technologies & Distinctions */}
+                          <div className="grid md:grid-cols-2 gap-6 mb-8">
+                            {/* Technologies */}
+                            <div>
+                              <p className="text-sm font-bold text-gray-900 mb-3">Technologies</p>
+                              <div className="flex flex-wrap gap-2">
+                                {project.tags.map((tag, i) => (
+                                  <span key={i} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm font-medium">{tag}</span>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Distinctions */}
+                            <div>
+                              <p className="text-sm font-bold text-gray-900 mb-3">Distinctions</p>
+                              <ul className="space-y-2">
+                                <li className="flex items-center gap-2 text-sm text-gray-700">
+                                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                  Best Capstone 2024
+                                </li>
+                                <li className="flex items-center gap-2 text-sm text-gray-700">
+                                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                  Innovation Award
+                                </li>
+                                <li className="flex items-center gap-2 text-sm text-gray-700">
+                                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                  Published Research
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+
+                          {/* Buttons */}
+                          <div className="flex gap-4">
+                            <Button
+                              onClick={() => navigate("/exhibition")}
+                              className="bg-black hover:bg-gray-800 text-white px-8 py-3 rounded-full font-semibold"
+                            >
+                              View Case Study →
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Created by</p>
-                        <p className="font-semibold text-gray-900">{capstoneProjects[currentProjectIndex].student}</p>
-                      </div>
-                    </div>
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2 mb-8">
-                      {capstoneProjects[currentProjectIndex].tags.map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* CTA Button */}
-                    <Button
-                      onClick={() => navigate("/exhibition")}
-                      className="bg-[#006d2c] hover:bg-[#005523] text-white px-8 py-6 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
-                    >
-                      View All Projects
-                      <ExternalLink className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                    </Button>
+                    </Card>
                   </div>
-                </div>
+                ))}
               </div>
 
-              {/* Navigation Controls */}
-              <div className="absolute bottom-8 left-8 flex items-center gap-4 z-20">
-                <button
-                  onClick={prevProject}
-                  className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
-                  aria-label="Previous project"
-                >
-                  <ChevronLeft className="h-6 w-6 text-[#006d2c] group-hover:-translate-x-1 transition-transform" />
-                </button>
-                <button
-                  onClick={nextProject}
-                  className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
-                  aria-label="Next project"
-                >
-                  <ChevronRight className="h-6 w-6 text-[#006d2c] group-hover:translate-x-1 transition-transform" />
-                </button>
-              </div>
+              {/* Navigation Arrows */}
+              <button
+                onClick={prevProject}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-10"
+              >
+                <ChevronLeft className="w-6 h-6 text-gray-900" />
+              </button>
+              <button
+                onClick={nextProject}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-10"
+              >
+                <ChevronRight className="w-6 h-6 text-gray-900" />
+              </button>
 
               {/* Dots Indicator */}
-              <div className="absolute bottom-8 right-8 flex items-center gap-2 z-20">
+              <div className="flex justify-center gap-2 mt-8">
                 {capstoneProjects.map((_, idx) => (
                   <button
                     key={idx}
@@ -568,20 +609,19 @@ const Index = () => {
                         ? 'w-8 h-3 bg-[#006d2c]'
                         : 'w-3 h-3 bg-gray-300 hover:bg-gray-400'
                     }`}
-                    aria-label={`Go to project ${idx + 1}`}
                   />
                 ))}
               </div>
             </div>
 
-            {/* Bottom CTA */}
+            {/* View All Button */}
             <div className="text-center mt-12">
-              <p className="text-gray-600 text-lg mb-4">
-                Ready to build something amazing?
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                Your capstone project could be featured here next.
-              </p>
+              <Button
+                onClick={() => navigate("/exhibition")}
+                className="bg-[#006d2c] hover:bg-[#005523] text-white px-8 py-3 rounded-lg font-semibold"
+              >
+                View All Projects in Exhibition
+              </Button>
             </div>
           </div>
         </div>
