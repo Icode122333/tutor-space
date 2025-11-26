@@ -302,3 +302,105 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION get_all_student_progress TO authenticated;
+
+
+-- =====================================================
+-- ANNOUNCEMENTS SYSTEM
+-- =====================================================
+
+-- Create announcements table
+CREATE TABLE IF NOT EXISTS public.announcements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  target_audience TEXT NOT NULL CHECK (target_audience IN ('students', 'teachers', 'all')),
+  created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_announcements_target ON public.announcements(target_audience);
+CREATE INDEX IF NOT EXISTS idx_announcements_active ON public.announcements(is_active);
+CREATE INDEX IF NOT EXISTS idx_announcements_created ON public.announcements(created_at DESC);
+
+-- Track which users have read announcements
+CREATE TABLE IF NOT EXISTS public.announcement_reads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  announcement_id UUID NOT NULL REFERENCES public.announcements(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  read_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(announcement_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_announcement_reads_user ON public.announcement_reads(user_id);
+
+-- RLS for announcements
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.announcement_reads ENABLE ROW LEVEL SECURITY;
+
+-- Everyone can view active announcements for their role
+CREATE POLICY "Users can view relevant announcements"
+ON public.announcements FOR SELECT TO authenticated
+USING (
+  is_active = TRUE 
+  AND (expires_at IS NULL OR expires_at > NOW())
+  AND (
+    target_audience = 'all'
+    OR (target_audience = 'students' AND EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'student'))
+    OR (target_audience = 'teachers' AND EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'teacher'))
+    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+);
+
+-- Admins can manage announcements
+CREATE POLICY "Admins can manage announcements"
+ON public.announcements FOR ALL TO authenticated
+USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Users can read their own read status
+CREATE POLICY "Users can view own reads"
+ON public.announcement_reads FOR SELECT TO authenticated
+USING (user_id = auth.uid());
+
+-- Users can mark announcements as read
+CREATE POLICY "Users can mark as read"
+ON public.announcement_reads FOR INSERT TO authenticated
+WITH CHECK (user_id = auth.uid());
+
+-- Function to get unread announcements count
+CREATE OR REPLACE FUNCTION get_unread_announcements_count()
+RETURNS INTEGER
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_user_id UUID;
+  v_role TEXT;
+  v_count INTEGER;
+BEGIN
+  v_user_id := auth.uid();
+  
+  SELECT role INTO v_role FROM public.profiles WHERE id = v_user_id;
+  
+  SELECT COUNT(*) INTO v_count
+  FROM public.announcements a
+  WHERE a.is_active = TRUE
+    AND (a.expires_at IS NULL OR a.expires_at > NOW())
+    AND (
+      a.target_audience = 'all'
+      OR (a.target_audience = 'students' AND v_role = 'student')
+      OR (a.target_audience = 'teachers' AND v_role = 'teacher')
+      OR v_role = 'admin'
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.announcement_reads ar
+      WHERE ar.announcement_id = a.id AND ar.user_id = v_user_id
+    );
+  
+  RETURN v_count;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_unread_announcements_count TO authenticated;

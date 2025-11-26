@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Bell, BookOpen, CalendarDays, Clock, ChevronLeft, ChevronRight, Award } from "lucide-react";
+import { Search, BookOpen, CalendarDays, Clock, ChevronLeft, ChevronRight, Award } from "lucide-react";
+import { NotificationBell } from "@/components/NotificationBell";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
@@ -198,9 +199,7 @@ const StudentDashboard = () => {
                   />
                   <Search className="h-4 w-4 text-[#006D2C] absolute right-3 top-1/2 -translate-y-1/2" />
                 </div>
-                <Button variant="ghost" size="icon" className="hover:bg-[#006D2C]/10">
-                  <Bell className="h-5 w-5 text-[#006D2C]" />
-                </Button>
+                <NotificationBell />
                 <Avatar className="h-9 w-9 border-2 border-[#006D2C]">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="User Avatar" className="object-cover" />

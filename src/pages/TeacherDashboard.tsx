@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Bell, Plus, Users, BookOpen, ClipboardList, TrendingUp, Calendar as CalendarIcon, Edit, Trash2, MoreVertical, Layers, PlayCircle } from "lucide-react";
+import { Search, Plus, Users, BookOpen, ClipboardList, TrendingUp, Calendar as CalendarIcon, Edit, Trash2, MoreVertical, Layers, PlayCircle } from "lucide-react";
+import { NotificationBell } from "@/components/NotificationBell";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -211,10 +212,7 @@ const TeacherDashboard = () => {
                     className="pl-10 pr-4 py-2 rounded-lg border bg-background w-64 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] text-destructive-foreground flex items-center justify-center">5</span>
-                </Button>
+                <NotificationBell />
                 <Avatar>
                   <AvatarImage src={profile?.avatar_url} />
                   <AvatarFallback>{profile?.full_name?.substring(0, 2).toUpperCase() || 'TC'}</AvatarFallback>

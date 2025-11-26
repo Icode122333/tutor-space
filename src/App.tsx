@@ -45,6 +45,7 @@ import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminSettings from "./pages/AdminSettings";
 import AdminStudentProgress from "./pages/AdminStudentProgress";
 import AdminCertificates from "./pages/AdminCertificates";
+import AdminAnnouncements from "./pages/AdminAnnouncements";
 import TeacherPendingApproval from "./pages/TeacherPendingApproval";
 
 const queryClient = new QueryClient();
@@ -99,6 +100,7 @@ const App = () => (
           <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="/admin/student-progress" element={<AdminStudentProgress />} />
           <Route path="/admin/certificates" element={<AdminCertificates />} />
+          <Route path="/admin/announcements" element={<AdminAnnouncements />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
