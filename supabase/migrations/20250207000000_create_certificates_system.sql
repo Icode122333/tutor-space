@@ -220,3 +220,85 @@ $$;
 GRANT EXECUTE ON FUNCTION get_course_completions TO authenticated;
 GRANT EXECUTE ON FUNCTION approve_certificate TO authenticated;
 GRANT EXECUTE ON FUNCTION mark_course_completed TO authenticated;
+
+
+-- =====================================================
+-- ADMIN STUDENT PROGRESS FUNCTION
+-- =====================================================
+
+-- Function to get all student progress (bypasses RLS for admins)
+CREATE OR REPLACE FUNCTION get_all_student_progress()
+RETURNS TABLE (
+  student_id UUID,
+  student_name TEXT,
+  student_email TEXT,
+  course_id UUID,
+  course_title TEXT,
+  teacher_name TEXT,
+  enrolled_at TIMESTAMPTZ,
+  total_lessons BIGINT,
+  completed_lessons BIGINT,
+  progress_percentage INTEGER,
+  last_activity TIMESTAMPTZ
+)
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- Check if user is admin
+  IF NOT EXISTS (
+    SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
+  ) THEN
+    RAISE EXCEPTION 'Only admins can access this function';
+  END IF;
+
+  RETURN QUERY
+  WITH course_lessons AS (
+    SELECT 
+      ch.course_id,
+      COUNT(cl.id) AS total_lessons
+    FROM public.course_chapters ch
+    INNER JOIN public.course_lessons cl ON cl.chapter_id = ch.id
+    GROUP BY ch.course_id
+  ),
+  student_progress AS (
+    SELECT 
+      slp.student_id,
+      ch.course_id,
+      COUNT(slp.id) AS completed_lessons,
+      MAX(slp.completed_at) AS last_completed
+    FROM public.student_lesson_progress slp
+    INNER JOIN public.course_lessons cl ON cl.id = slp.lesson_id
+    INNER JOIN public.course_chapters ch ON ch.id = cl.chapter_id
+    WHERE slp.is_completed = TRUE
+    GROUP BY slp.student_id, ch.course_id
+  )
+  SELECT 
+    p.id AS student_id,
+    p.full_name::TEXT AS student_name,
+    u.email::TEXT AS student_email,
+    ce.course_id,
+    c.title::TEXT AS course_title,
+    tp.full_name::TEXT AS teacher_name,
+    ce.enrolled_at,
+    COALESCE(cls.total_lessons, 0) AS total_lessons,
+    COALESCE(sp.completed_lessons, 0) AS completed_lessons,
+    CASE 
+      WHEN COALESCE(cls.total_lessons, 0) = 0 THEN 0
+      ELSE (COALESCE(sp.completed_lessons, 0) * 100 / cls.total_lessons)::INTEGER
+    END AS progress_percentage,
+    sp.last_completed AS last_activity
+  FROM public.profiles p
+  INNER JOIN auth.users u ON u.id = p.id
+  INNER JOIN public.course_enrollments ce ON ce.student_id = p.id
+  INNER JOIN public.courses c ON c.id = ce.course_id
+  INNER JOIN public.profiles tp ON tp.id = c.teacher_id
+  LEFT JOIN course_lessons cls ON cls.course_id = ce.course_id
+  LEFT JOIN student_progress sp ON sp.student_id = p.id AND sp.course_id = ce.course_id
+  WHERE p.role = 'student'
+  ORDER BY p.full_name, c.title;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_all_student_progress TO authenticated;

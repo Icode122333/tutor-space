@@ -17,7 +17,6 @@ import {
   UserCheck,
   Bell,
   BookOpen,
-  Flag,
   BarChart3,
   Settings,
   FileText,
@@ -31,17 +30,13 @@ import { Button } from "@/components/ui/button";
 interface AdminSidebarProps {
   pendingTeachers?: number;
   pendingCourses?: number;
-  pendingCourseUpdates?: number;
   pendingCertificates?: number;
-  flaggedContent?: number;
 }
 
 export function AdminSidebar({ 
   pendingTeachers = 0, 
   pendingCourses = 0,
-  pendingCourseUpdates = 0,
-  pendingCertificates = 0,
-  flaggedContent = 0 
+  pendingCertificates = 0
 }: AdminSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -69,11 +64,6 @@ export function AdminSidebar({
 
   const courseItems = [
     { title: "All Courses", url: "/admin/courses", icon: BookOpen, badge: pendingCourses },
-    { title: "Course Updates", url: "/admin/course-updates", icon: Shield, badge: pendingCourseUpdates },
-  ];
-
-  const moderationItems = [
-    { title: "Content Review", url: "/admin/moderation", icon: Flag, badge: flaggedContent },
   ];
 
   const systemItems = [
@@ -253,47 +243,6 @@ export function AdminSidebar({
             <SidebarGroupContent className="px-2">
               <SidebarMenu className="space-y-1">
                 {courseItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        end
-                        className={({ isActive }) =>
-                          isActive
-                            ? "bg-[#006d2c] text-white font-medium rounded-xl px-3 py-2.5 flex items-center gap-3 relative"
-                            : "text-gray-300 hover:bg-white/10 hover:text-white rounded-xl px-3 py-2.5 flex items-center gap-3 relative"
-                        }
-                      >
-                        <item.icon className="h-5 w-5 flex-shrink-0" />
-                        {!collapsed && (
-                          <>
-                            <span className="text-sm flex-1">{item.title}</span>
-                            {item.badge && item.badge > 0 && (
-                              <Badge 
-                                variant="destructive" 
-                                className="h-5 w-5 flex items-center justify-center p-0 text-xs"
-                              >
-                                {item.badge}
-                              </Badge>
-                            )}
-                          </>
-                        )}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-
-          {/* Moderation */}
-          <SidebarGroup className="mt-4 space-y-1">
-            <SidebarGroupLabel className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              MODERATION
-            </SidebarGroupLabel>
-            <SidebarGroupContent className="px-2">
-              <SidebarMenu className="space-y-1">
-                {moderationItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
                       <NavLink

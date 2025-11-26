@@ -41,11 +41,9 @@ import AdminTeacherApprovals from "./pages/AdminTeacherApprovals";
 import AdminUsers from "./pages/AdminUsers";
 import AdminLogs from "./pages/AdminLogs";
 import AdminCourses from "./pages/AdminCourses";
-import AdminModeration from "./pages/AdminModeration";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminSettings from "./pages/AdminSettings";
 import AdminStudentProgress from "./pages/AdminStudentProgress";
-import AdminCourseUpdates from "./pages/AdminCourseUpdates";
 import AdminCertificates from "./pages/AdminCertificates";
 import TeacherPendingApproval from "./pages/TeacherPendingApproval";
 
@@ -97,11 +95,9 @@ const App = () => (
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/logs" element={<AdminLogs />} />
           <Route path="/admin/courses" element={<AdminCourses />} />
-          <Route path="/admin/moderation" element={<AdminModeration />} />
           <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="/admin/student-progress" element={<AdminStudentProgress />} />
-          <Route path="/admin/course-updates" element={<AdminCourseUpdates />} />
           <Route path="/admin/certificates" element={<AdminCertificates />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
