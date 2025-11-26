@@ -13,10 +13,14 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface Certificate {
   id: string;
+  course_id: string;
   course_title: string;
   completion_date: string;
   grade: string;
   instructor_name: string;
+  certificate_url: string;
+  status: string;
+  approved_at: string;
 }
 
 const StudentCertificates = () => {
@@ -39,29 +43,49 @@ const StudentCertificates = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // TODO: Fetch from certificates table in database
-    // For now, checking if student has any certificates
-    const mockCertificates: Certificate[] = [];
-    
-    // Example: Uncomment to show mock certificates
-    // const mockCertificates: Certificate[] = [
-    //   {
-    //     id: "1",
-    //     course_title: "Web Development Fundamentals",
-    //     completion_date: "2024-12-15",
-    //     grade: "A+",
-    //     instructor_name: "Prof. John Smith",
-    //   },
-    //   {
-    //     id: "2",
-    //     course_title: "Advanced JavaScript",
-    //     completion_date: "2024-11-20",
-    //     grade: "A",
-    //     instructor_name: "Dr. Sarah Johnson",
-    //   },
-    // ];
+    try {
+      // Fetch approved certificates for the student
+      const { data, error } = await supabase
+        .from("certificates")
+        .select(`
+          id,
+          course_id,
+          certificate_url,
+          status,
+          completion_date,
+          grade,
+          approved_at,
+          courses:course_id (
+            title,
+            profiles:teacher_id (
+              full_name
+            )
+          )
+        `)
+        .eq("student_id", user.id)
+        .eq("status", "approved")
+        .order("approved_at", { ascending: false });
 
-    setCertificates(mockCertificates);
+      if (error) throw error;
+
+      // Transform data to match Certificate interface
+      const transformedCertificates: Certificate[] = (data || []).map((cert: any) => ({
+        id: cert.id,
+        course_id: cert.course_id,
+        course_title: cert.courses?.title || "Unknown Course",
+        completion_date: cert.completion_date,
+        grade: cert.grade || "N/A",
+        instructor_name: cert.courses?.profiles?.full_name || "Unknown Instructor",
+        certificate_url: cert.certificate_url,
+        status: cert.status,
+        approved_at: cert.approved_at
+      }));
+
+      setCertificates(transformedCertificates);
+    } catch (error: any) {
+      console.error("Error fetching certificates:", error);
+      toast.error("Failed to load certificates");
+    }
   };
 
   const checkUser = async () => {
@@ -95,14 +119,22 @@ const StudentCertificates = () => {
     }
   };
 
-  const handleDownload = (certificateId: string) => {
-    toast.success("Certificate download started!");
-    // Implement download logic
+  const handleDownload = (certificate: Certificate) => {
+    if (certificate.certificate_url) {
+      window.open(certificate.certificate_url, '_blank');
+      toast.success("Opening certificate...");
+    } else {
+      toast.error("Certificate URL not available");
+    }
   };
 
-  const handleShare = (certificateId: string) => {
-    toast.success("Share link copied to clipboard!");
-    // Implement share logic
+  const handleShare = (certificate: Certificate) => {
+    if (certificate.certificate_url) {
+      navigator.clipboard.writeText(certificate.certificate_url);
+      toast.success("Certificate link copied to clipboard!");
+    } else {
+      toast.error("Certificate URL not available");
+    }
   };
 
   if (loading) {
@@ -243,15 +275,15 @@ const StudentCertificates = () => {
                             {/* Action Buttons */}
                             <div className="flex gap-3">
                               <Button
-                                onClick={() => handleDownload(cert.id)}
+                                onClick={() => handleDownload(cert)}
                                 className="flex-1 bg-[#006d2c] hover:bg-[#005523] text-white"
                                 size="sm"
                               >
                                 <Download className="h-4 w-4 mr-2" />
-                                Download
+                                View
                               </Button>
                               <Button
-                                onClick={() => handleShare(cert.id)}
+                                onClick={() => handleShare(cert)}
                                 variant="outline"
                                 className="flex-1 border-[#006d2c] text-[#006d2c] hover:bg-[#006d2c]/10"
                                 size="sm"

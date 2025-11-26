@@ -21,7 +21,8 @@ import {
   BarChart3,
   Settings,
   FileText,
-  Shield
+  Shield,
+  Award
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +32,7 @@ interface AdminSidebarProps {
   pendingTeachers?: number;
   pendingCourses?: number;
   pendingCourseUpdates?: number;
+  pendingCertificates?: number;
   flaggedContent?: number;
 }
 
@@ -38,6 +40,7 @@ export function AdminSidebar({
   pendingTeachers = 0, 
   pendingCourses = 0,
   pendingCourseUpdates = 0,
+  pendingCertificates = 0,
   flaggedContent = 0 
 }: AdminSidebarProps) {
   const { state } = useSidebar();
@@ -53,6 +56,7 @@ export function AdminSidebar({
 
   const studentItems = [
     { title: "Student Progress", url: "/admin/student-progress", icon: GraduationCap },
+    { title: "Certificates", url: "/admin/certificates", icon: Award, badge: pendingCertificates },
   ];
 
   const teacherItems = [
