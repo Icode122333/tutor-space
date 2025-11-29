@@ -41,6 +41,10 @@ interface Stats {
   pendingCourses: number;
   activeUsers: number;
   suspendedUsers: number;
+  onlineStudents: number;
+  onlineTeachers: number;
+  onlineUsers: number;
+  activeThisWeek: number;
 }
 
 const AdminDashboard = () => {
@@ -55,6 +59,10 @@ const AdminDashboard = () => {
     pendingCourses: 0,
     activeUsers: 0,
     suspendedUsers: 0,
+    onlineStudents: 0,
+    onlineTeachers: 0,
+    onlineUsers: 0,
+    activeThisWeek: 0,
   });
   const [userGrowth, setUserGrowth] = useState<any[]>([]);
   const [courseStats, setCourseStats] = useState<any[]>([]);
@@ -100,55 +108,91 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      // Use RPC function to get all profiles (bypasses RLS)
-      const { data: allProfiles, error: profilesError } = await supabase.rpc("get_all_profiles");
+      // Try to use the new RPC function first
+      const { data: dashboardStats, error: rpcError } = await supabase.rpc("get_admin_dashboard_stats");
 
-      if (profilesError) {
-        console.error("Error fetching profiles:", profilesError);
-        throw profilesError;
+      if (!rpcError && dashboardStats) {
+        setStats({
+          totalUsers: dashboardStats.totalUsers || 0,
+          totalStudents: dashboardStats.totalStudents || 0,
+          totalTeachers: dashboardStats.totalTeachers || 0,
+          pendingTeachers: dashboardStats.pendingTeachers || 0,
+          totalCourses: dashboardStats.totalCourses || 0,
+          pendingCourses: dashboardStats.pendingCourses || 0,
+          activeUsers: dashboardStats.activeThisWeek || 0,
+          suspendedUsers: dashboardStats.suspendedUsers || 0,
+          onlineStudents: dashboardStats.onlineStudents || 0,
+          onlineTeachers: dashboardStats.onlineTeachers || 0,
+          onlineUsers: dashboardStats.onlineUsers || 0,
+          activeThisWeek: dashboardStats.activeThisWeek || 0,
+        });
+      } else {
+        // Fallback to manual queries if RPC not available
+        const { data: allProfiles, error: profilesError } = await supabase.rpc("get_all_profiles");
+
+        if (profilesError) {
+          console.error("Error fetching profiles:", profilesError);
+          throw profilesError;
+        }
+
+        const totalUsers = allProfiles?.length || 0;
+        const totalStudents = allProfiles?.filter((p: any) => p.role === "student").length || 0;
+        const totalTeachers = allProfiles?.filter((p: any) => p.role === "teacher").length || 0;
+        const pendingTeachers = allProfiles?.filter(
+          (p: any) => p.role === "teacher" && p.teacher_approval_status === "pending"
+        ).length || 0;
+        const suspendedUsers = allProfiles?.filter((p: any) => p.is_suspended === true).length || 0;
+
+        // Active users (active in last 7 days)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const activeUsers = allProfiles?.filter((p: any) => {
+          const lastActivity = p.last_activity || p.last_login || p.updated_at;
+          if (!lastActivity) return false;
+          return new Date(lastActivity) >= sevenDaysAgo;
+        }).length || 0;
+
+        // Online users (active in last 5 minutes)
+        const fiveMinutesAgo = new Date();
+        fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+        
+        const onlineStudents = allProfiles?.filter((p: any) => {
+          if (p.role !== "student") return false;
+          const lastActivity = p.last_activity || p.last_login || p.updated_at;
+          if (!lastActivity) return false;
+          return new Date(lastActivity) >= fiveMinutesAgo;
+        }).length || 0;
+
+        const onlineTeachers = allProfiles?.filter((p: any) => {
+          if (p.role !== "teacher") return false;
+          const lastActivity = p.last_activity || p.last_login || p.updated_at;
+          if (!lastActivity) return false;
+          return new Date(lastActivity) >= fiveMinutesAgo;
+        }).length || 0;
+
+        const { data: courses } = await supabase
+          .from("courses")
+          .select("id, approval_status");
+
+        const totalCourses = courses?.length || 0;
+        const pendingCourses = courses?.filter((c: any) => c.approval_status === "pending").length || 0;
+
+        setStats({
+          totalUsers,
+          totalStudents,
+          totalTeachers,
+          pendingTeachers,
+          totalCourses,
+          pendingCourses,
+          activeUsers,
+          suspendedUsers,
+          onlineStudents,
+          onlineTeachers,
+          onlineUsers: onlineStudents + onlineTeachers,
+          activeThisWeek: activeUsers,
+        });
       }
 
-      // Calculate counts from the data
-      const totalUsers = allProfiles?.length || 0;
-      const totalStudents = allProfiles?.filter((p: any) => p.role === "student").length || 0;
-      const totalTeachers = allProfiles?.filter((p: any) => p.role === "teacher").length || 0;
-      const pendingTeachers = allProfiles?.filter(
-        (p: any) => p.role === "teacher" && p.teacher_approval_status === "pending"
-      ).length || 0;
-      const suspendedUsers = allProfiles?.filter((p: any) => p.is_suspended === true).length || 0;
-
-      // Get active users (logged in last 7 days)
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const activeUsers = allProfiles?.filter((p: any) => {
-        if (!p.last_login) return false;
-        return new Date(p.last_login) >= sevenDaysAgo;
-      }).length || 0;
-
-      // Get course counts (courses table should be accessible)
-      const { data: courses, error: coursesError } = await supabase
-        .from("courses")
-        .select("id, approval_status");
-
-      if (coursesError) {
-        console.error("Error fetching courses:", coursesError);
-      }
-
-      const totalCourses = courses?.length || 0;
-      const pendingCourses = courses?.filter((c: any) => c.approval_status === "pending").length || 0;
-
-      setStats({
-        totalUsers,
-        totalStudents,
-        totalTeachers,
-        pendingTeachers,
-        totalCourses,
-        pendingCourses,
-        activeUsers,
-        suspendedUsers,
-      });
-
-      // Fetch user growth data
       await fetchUserGrowth();
       await fetchCourseStats();
     } catch (error: any) {
@@ -163,65 +207,83 @@ const AdminDashboard = () => {
     try {
       const now = new Date();
       let startDate = new Date();
-      let groupBy = "day";
-      let dateFormat = "MM/DD";
 
       // Calculate date range based on time period
       if (timePeriod === "week") {
-        startDate.setDate(now.getDate() - 7);
-        groupBy = "day";
-        dateFormat = "ddd";
+        startDate.setDate(now.getDate() - 6);
       } else if (timePeriod === "month") {
-        startDate.setDate(now.getDate() - 30);
-        groupBy = "day";
-        dateFormat = "MM/DD";
+        startDate.setDate(now.getDate() - 29);
       } else if (timePeriod === "year") {
-        startDate.setMonth(now.getMonth() - 12);
-        groupBy = "month";
-        dateFormat = "MMM";
+        startDate.setMonth(now.getMonth() - 11);
+        startDate.setDate(1);
       }
 
-      // Fetch all users created in the time period
-      const { data: users, error } = await supabase
-        .from("profiles")
-        .select("created_at, role")
-        .gte("created_at", startDate.toISOString())
-        .order("created_at", { ascending: true });
+      // Use RPC function to bypass RLS and get all profiles
+      const { data: allUsers, error } = await supabase.rpc("get_all_profiles");
 
       if (error) throw error;
 
-      // Group users by date
-      const groupedData: { [key: string]: { students: number; teachers: number } } = {};
+      // Generate all dates/periods in the range
+      const periods: string[] = [];
+      const periodKeys: string[] = [];
+      const tempDate = new Date(startDate);
 
-      users?.forEach((user) => {
-        const date = new Date(user.created_at);
-        let key: string;
-
-        if (timePeriod === "week") {
-          key = date.toLocaleDateString("en-US", { weekday: "short" });
-        } else if (timePeriod === "month") {
-          key = date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" });
-        } else {
-          key = date.toLocaleDateString("en-US", { month: "short" });
+      if (timePeriod === "year") {
+        // Generate 12 months
+        for (let i = 0; i < 12; i++) {
+          const d = new Date(startDate);
+          d.setMonth(startDate.getMonth() + i);
+          periods.push(d.toLocaleDateString("en-US", { month: "short", year: "2-digit" }));
+          periodKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
         }
-
-        if (!groupedData[key]) {
-          groupedData[key] = { students: 0, teachers: 0 };
+      } else {
+        // Generate days
+        const days = timePeriod === "week" ? 7 : 30;
+        for (let i = 0; i < days; i++) {
+          const d = new Date(startDate);
+          d.setDate(startDate.getDate() + i);
+          if (timePeriod === "week") {
+            periods.push(d.toLocaleDateString("en-US", { weekday: "short" }));
+          } else {
+            periods.push(d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" }));
+          }
+          periodKeys.push(d.toISOString().split('T')[0]);
         }
+      }
 
-        if (user.role === "student") {
-          groupedData[key].students++;
-        } else if (user.role === "teacher") {
-          groupedData[key].teachers++;
-        }
+      // Calculate cumulative counts for each period
+      const chartData = periods.map((label, index) => {
+        const periodKey = periodKeys[index];
+        let studentCount = 0;
+        let teacherCount = 0;
+
+        allUsers?.forEach((user) => {
+          const userDate = new Date(user.created_at);
+          let userKey: string;
+
+          if (timePeriod === "year") {
+            userKey = `${userDate.getFullYear()}-${String(userDate.getMonth() + 1).padStart(2, '0')}`;
+            // Count users created up to and including this month
+            if (userKey <= periodKey) {
+              if (user.role === "student") studentCount++;
+              else if (user.role === "teacher") teacherCount++;
+            }
+          } else {
+            userKey = userDate.toISOString().split('T')[0];
+            // Count users created up to and including this day
+            if (userKey <= periodKey) {
+              if (user.role === "student") studentCount++;
+              else if (user.role === "teacher") teacherCount++;
+            }
+          }
+        });
+
+        return {
+          date: label,
+          students: studentCount,
+          teachers: teacherCount,
+        };
       });
-
-      // Convert to array format for chart
-      const chartData = Object.entries(groupedData).map(([date, counts]) => ({
-        date,
-        students: counts.students,
-        teachers: counts.teachers,
-      }));
 
       setUserGrowth(chartData);
     } catch (error: any) {
@@ -268,7 +330,7 @@ const AdminDashboard = () => {
 
           <main className="flex-1 overflow-y-auto px-2">
             <div className="max-w-7xl mx-auto space-y-6">
-              {/* Stats Grid */}
+              {/* Stats Grid - Row 1 */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -278,7 +340,7 @@ const AdminDashboard = () => {
                   <CardContent>
                     <div className="text-2xl font-bold">{stats.totalUsers}</div>
                     <p className="text-xs text-muted-foreground">
-                      {stats.activeUsers} active this week
+                      {stats.activeThisWeek} active this week
                     </p>
                   </CardContent>
                 </Card>
@@ -290,9 +352,10 @@ const AdminDashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{stats.totalStudents}</div>
-                    <p className="text-xs text-muted-foreground">
-                      Enrolled learners
-                    </p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      {stats.onlineStudents} online now
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -303,9 +366,10 @@ const AdminDashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{stats.totalTeachers}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {stats.pendingTeachers} pending approval
-                    </p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                      {stats.onlineTeachers} online now
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -322,6 +386,35 @@ const AdminDashboard = () => {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Online Status Card */}
+              <Card className="bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border-emerald-500/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-emerald-500" />
+                    Currently Online
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center p-3 bg-white/50 rounded-lg">
+                      <div className="text-2xl font-bold text-emerald-600">{stats.onlineUsers}</div>
+                      <p className="text-xs text-muted-foreground">Total Online</p>
+                    </div>
+                    <div className="text-center p-3 bg-white/50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{stats.onlineStudents}</div>
+                      <p className="text-xs text-muted-foreground">Students</p>
+                    </div>
+                    <div className="text-center p-3 bg-white/50 rounded-lg">
+                      <div className="text-2xl font-bold text-purple-600">{stats.onlineTeachers}</div>
+                      <p className="text-xs text-muted-foreground">Teachers</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-center text-muted-foreground mt-3">
+                    Active in the last 15 minutes
+                  </p>
+                </CardContent>
+              </Card>
 
               {/* Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -448,13 +541,13 @@ const AdminDashboard = () => {
                 </Card>
               </div>
 
-              {/* Recent Activity */}
+              {/* System Health */}
               <Card>
                 <CardHeader>
                   <CardTitle>System Health</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg">
                       <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                       <div>
@@ -465,15 +558,22 @@ const AdminDashboard = () => {
                     <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
                       <TrendingUp className="h-5 w-5 text-blue-600" />
                       <div>
-                        <p className="text-sm font-semibold">Active Sessions</p>
-                        <p className="text-xs text-gray-600">{stats.activeUsers} users online</p>
+                        <p className="text-sm font-semibold">Active This Week</p>
+                        <p className="text-xs text-gray-600">{stats.activeThisWeek} users</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg">
-                      <Activity className="h-5 w-5 text-purple-600" />
+                    <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-lg">
+                      <Activity className="h-5 w-5 text-emerald-600" />
                       <div>
-                        <p className="text-sm font-semibold">Database</p>
-                        <p className="text-xs text-gray-600">Healthy</p>
+                        <p className="text-sm font-semibold">Online Now</p>
+                        <p className="text-xs text-gray-600">{stats.onlineUsers} users</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-4 bg-red-50 rounded-lg">
+                      <AlertCircle className="h-5 w-5 text-red-600" />
+                      <div>
+                        <p className="text-sm font-semibold">Suspended</p>
+                        <p className="text-xs text-gray-600">{stats.suspendedUsers} accounts</p>
                       </div>
                     </div>
                   </div>

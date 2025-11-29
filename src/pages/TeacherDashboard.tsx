@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { CourseCard } from "@/components/CourseCard";
 import { toast } from "sonner";
+import { useActivityTracker } from "@/hooks/useActivityTracker";
 
 
 const TeacherDashboard = () => {
@@ -29,6 +30,9 @@ const TeacherDashboard = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [courses, setCourses] = useState<any[]>([]);
   const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
+  
+  // Track user activity for online status
+  useActivityTracker();
 
   useEffect(() => {
     if (!loading) {

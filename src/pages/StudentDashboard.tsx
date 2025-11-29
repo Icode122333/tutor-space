@@ -16,12 +16,16 @@ import { useTranslation } from 'react-i18next';
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { JoinCohortDialog } from "@/components/JoinCohortDialog";
 import { CourseCard } from "@/components/CourseCard";
+import { useActivityTracker } from "@/hooks/useActivityTracker";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  
+  // Track user activity for online status
+  useActivityTracker();
   const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
