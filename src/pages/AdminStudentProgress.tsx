@@ -19,6 +19,7 @@ interface StudentProgress {
   id: string;
   full_name: string;
   email: string;
+  phone: string | null;
   total_courses: number;
   total_lessons: number;
   completed_lessons: number;
@@ -95,6 +96,7 @@ export default function AdminStudentProgress() {
             id: row.student_id,
             full_name: row.student_name || "Unknown",
             email: row.student_email || "",
+            phone: row.student_phone || null,
             total_courses: 1,
             total_lessons: Number(row.total_lessons) || 0,
             completed_lessons: Number(row.completed_lessons) || 0,
@@ -212,7 +214,11 @@ export default function AdminStudentProgress() {
                   <TableBody>
                     {filteredStudents.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-gray-500">No students found</TableCell></TableRow> : filteredStudents.map(student => (
                       <TableRow key={student.id}>
-                        <TableCell><p className="font-medium">{student.full_name}</p><p className="text-sm text-gray-500">{student.email}</p></TableCell>
+                        <TableCell>
+                          <p className="font-medium">{student.full_name}</p>
+                          <p className="text-sm text-gray-500">{student.email}</p>
+                          {student.phone && <p className="text-sm text-blue-600">{student.phone}</p>}
+                        </TableCell>
                         <TableCell><div className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-blue-600" /><span>{student.total_courses}</span></div></TableCell>
                         <TableCell><span className="text-sm">{student.completed_lessons}/{student.total_lessons}</span></TableCell>
                         <TableCell>
@@ -238,7 +244,10 @@ export default function AdminStudentProgress() {
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Progress Details</DialogTitle>
-            <DialogDescription>{selectedStudent?.student.full_name} - {selectedStudent?.student.email}</DialogDescription>
+            <DialogDescription>
+              <span className="block">{selectedStudent?.student.full_name} - {selectedStudent?.student.email}</span>
+              {selectedStudent?.student.phone && <span className="block text-blue-600">{selectedStudent?.student.phone}</span>}
+            </DialogDescription>
           </DialogHeader>
           {selectedStudent && (
             <div className="space-y-4">
