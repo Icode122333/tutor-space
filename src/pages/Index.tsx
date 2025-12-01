@@ -225,42 +225,35 @@ const Index = () => {
       {/* Powered By Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <p className="text-center text-sm text-gray-500 mb-12 font-medium">Powered by DataPlus Labs Technology</p>
+          <p className="text-center text-sm text-gray-500 mb-12 font-medium">Our Partners</p>
           <div className="relative overflow-hidden">
             <div className="flex gap-8 animate-scroll-left">
               {/* First set of logos */}
               <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
                 <img
-                  src="/images/dataplus_logggg-removebg-preview.png"
-                  alt="DataPlus"
+                  src="/images/logos/logo-rwanda-nisr-transparent_0.png"
+                  alt="NISR Rwanda"
                   className="h-12 w-auto object-contain"
                 />
               </div>
               <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
                 <img
-                  src="/images/dataplus_logggg-removebg-preview.png"
-                  alt="DataPlus Analytics"
+                  src="/images/logos/partner1.jpg"
+                  alt="Partner 1"
                   className="h-12 w-auto object-contain"
                 />
               </div>
               <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
                 <img
-                  src="/images/dataplus_logggg-removebg-preview.png"
-                  alt="DataPlus Learning"
+                  src="/images/logos/partner2.jpg"
+                  alt="Partner 2"
                   className="h-12 w-auto object-contain"
                 />
               </div>
               <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
                 <img
-                  src="/images/dataplus_logggg-removebg-preview.png"
-                  alt="DataPlus Solutions"
-                  className="h-12 w-auto object-contain"
-                />
-              </div>
-              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-                <img
-                  src="/images/dataplus_logggg-removebg-preview.png"
-                  alt="DataPlus Academy"
+                  src="/images/logos/partner3.png"
+                  alt="Partner 3"
                   className="h-12 w-auto object-contain"
                 />
               </div>
@@ -268,36 +261,29 @@ const Index = () => {
               {/* Duplicate set for seamless loop */}
               <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
                 <img
-                  src="/images/dataplus_logggg-removebg-preview.png"
-                  alt="DataPlus"
+                  src="/images/logos/logo-rwanda-nisr-transparent_0.png"
+                  alt="NISR Rwanda"
                   className="h-12 w-auto object-contain"
                 />
               </div>
               <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
                 <img
-                  src="/images/dataplus_logggg-removebg-preview.png"
-                  alt="DataPlus Analytics"
+                  src="/images/logos/partner1.jpg"
+                  alt="Partner 1"
                   className="h-12 w-auto object-contain"
                 />
               </div>
               <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
                 <img
-                  src="/images/dataplus_logggg-removebg-preview.png"
-                  alt="DataPlus Learning"
+                  src="/images/logos/partner2.jpg"
+                  alt="Partner 2"
                   className="h-12 w-auto object-contain"
                 />
               </div>
               <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
                 <img
-                  src="/images/dataplus_logggg-removebg-preview.png"
-                  alt="DataPlus Solutions"
-                  className="h-12 w-auto object-contain"
-                />
-              </div>
-              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-                <img
-                  src="/images/dataplus_logggg-removebg-preview.png"
-                  alt="DataPlus Academy"
+                  src="/images/logos/partner3.png"
+                  alt="Partner 3"
                   className="h-12 w-auto object-contain"
                 />
               </div>

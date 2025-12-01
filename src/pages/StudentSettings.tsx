@@ -63,7 +63,7 @@ const StudentSettings = () => {
       setShowResetDialog(false);
       setResetEmail("");
     } catch (error: any) {
-      toast.error(error.message || "Failed to send reset email");
+      toast.error(error.message || t('studentSettings.failedToSendReset'));
     } finally {
       setLoading(false);
     }
@@ -78,7 +78,7 @@ const StudentSettings = () => {
       toast.success(t('settings.signOutSuccess'));
       navigate("/auth");
     } catch (error: any) {
-      toast.error(error.message || "Failed to sign out");
+      toast.error(error.message || t('studentSettings.failedToSignOut'));
     } finally {
       setLoading(false);
     }
@@ -205,10 +205,10 @@ const StudentSettings = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 dark:text-white">
                     <Shield className="h-5 w-5" />
-                    Privacy & Legal
+                    {t('studentSettings.privacyLegal')}
                   </CardTitle>
                   <CardDescription className="dark:text-gray-400">
-                    Review our policies and terms
+                    {t('studentSettings.reviewPolicies')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -218,7 +218,7 @@ const StudentSettings = () => {
                     onClick={() => navigate("/privacy-policy")}
                   >
                     <Shield className="h-4 w-4 mr-2" />
-                    Privacy Policy
+                    {t('studentSettings.privacyPolicy')}
                   </Button>
                 </CardContent>
               </Card>
@@ -248,19 +248,19 @@ const StudentSettings = () => {
                       <AlertDialogHeader>
                         <AlertDialogTitle className="dark:text-white">{t('common.confirm')}</AlertDialogTitle>
                         <AlertDialogDescription className="dark:text-gray-400">
-                          You will be signed out of your account and redirected to the login page.
+                          {t('studentSettings.signOutRedirect')}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel className="dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600">
-                          Cancel
+                          {t('common.cancel')}
                         </AlertDialogCancel>
                         <AlertDialogAction
                           onClick={handleSignOut}
                           disabled={loading}
                           className="bg-red-600 hover:bg-red-700 text-white"
                         >
-                          {loading ? "Signing out..." : "Sign Out"}
+                          {loading ? t('studentSettings.signingOut') : t('settings.signOut')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

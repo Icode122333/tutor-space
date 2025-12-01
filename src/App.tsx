@@ -41,7 +41,6 @@ import AdminTeacherApprovals from "./pages/AdminTeacherApprovals";
 import AdminUsers from "./pages/AdminUsers";
 import AdminLogs from "./pages/AdminLogs";
 import AdminCourses from "./pages/AdminCourses";
-import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminSettings from "./pages/AdminSettings";
 import AdminStudentProgress from "./pages/AdminStudentProgress";
 import AdminCertificates from "./pages/AdminCertificates";
@@ -96,7 +95,6 @@ const App = () => (
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/logs" element={<AdminLogs />} />
           <Route path="/admin/courses" element={<AdminCourses />} />
-          <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="/admin/student-progress" element={<AdminStudentProgress />} />
           <Route path="/admin/certificates" element={<AdminCertificates />} />

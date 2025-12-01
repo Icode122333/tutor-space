@@ -17,7 +17,6 @@ import {
   UserCheck,
   Bell,
   BookOpen,
-  BarChart3,
   Settings,
   FileText,
   Shield,
@@ -67,7 +66,6 @@ export function AdminSidebar({
   ];
 
   const systemItems = [
-    { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
     { title: "Activity Logs", url: "/admin/logs", icon: FileText },
     { title: "Settings", url: "/admin/settings", icon: Settings },
   ];

@@ -391,9 +391,9 @@ const StudentScores = () => {
                   {/* Quiz Scores Table */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Quiz Scores</CardTitle>
+                      <CardTitle>{t('studentScores.quizScores')}</CardTitle>
                       <CardDescription>
-                        Individual quiz results and scores out of 100
+                        {t('studentScores.quizScoresDesc')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -474,7 +474,7 @@ const StudentScores = () => {
                             <div className="flex-1">
                               <h3 className="text-lg font-semibold mb-1">{assignmentScore.title}</h3>
                               <p className="text-sm text-muted-foreground">
-                                Submitted: {new Date(assignmentScore.submitted_at).toLocaleDateString('en-US', {
+                                {t('assignments.submitted')}: {new Date(assignmentScore.submitted_at).toLocaleDateString('en-US', {
                                   year: 'numeric',
                                   month: 'long',
                                   day: 'numeric',
@@ -494,7 +494,7 @@ const StudentScores = () => {
                               </div>
                             ) : (
                               <Badge variant="outline" className="text-orange-500 border-orange-500">
-                                Not Graded Yet
+                                {t('studentScores.notGradedYet')}
                               </Badge>
                             )}
                           </div>
@@ -502,7 +502,7 @@ const StudentScores = () => {
                           {assignmentScore.grade !== null && (
                             <div className="space-y-2">
                               <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Score</span>
+                                <span>{t('studentScores.score')}</span>
                                 <span>{assignmentScore.grade}%</span>
                               </div>
                               <Progress value={assignmentScore.grade} className="h-3" />
@@ -511,7 +511,7 @@ const StudentScores = () => {
 
                           {assignmentScore.feedback && (
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-                              <h4 className="font-semibold text-blue-900 mb-2">Teacher Feedback</h4>
+                              <h4 className="font-semibold text-blue-900 mb-2">{t('studentScores.teacherFeedback')}</h4>
                               <p className="text-sm text-blue-800">{assignmentScore.feedback}</p>
                             </div>
                           )}
@@ -519,7 +519,7 @@ const StudentScores = () => {
                       ) : (
                         <div className="text-center py-8">
                           <Award className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                          <p className="text-gray-600">No assignment submitted yet</p>
+                          <p className="text-gray-600">{t('studentScores.noAssignmentSubmitted')}</p>
                         </div>
                       )}
                     </CardContent>

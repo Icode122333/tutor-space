@@ -7,6 +7,7 @@ import { Users, BookOpen, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CourseCard } from "@/components/CourseCard";
+import { useTranslation } from "react-i18next";
 
 type Course = {
   id: string;
@@ -26,6 +27,7 @@ type EnrollmentCount = {
 
 const BrowseCourses = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrollmentCounts, setEnrollmentCounts] = useState<Map<string, number>>(new Map());
@@ -84,7 +86,7 @@ const BrowseCourses = () => {
       setCourses(coursesData || []);
     } catch (error: any) {
       console.error("Error fetching courses:", error);
-      toast.error("Failed to load courses");
+      toast.error(t('browseCourses.failedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -106,11 +108,11 @@ const BrowseCourses = () => {
       if (error) throw error;
 
       setEnrolledCourseIds(prev => new Set(prev).add(courseId));
-      toast.success("Enrolled successfully! Redirecting to course...");
+      toast.success(t('browseCourses.enrolledSuccess'));
       navigate(`/course/${courseId}`);
     } catch (error: any) {
       console.error("Error enrolling in course:", error);
-      toast.error(error.message || "Failed to enroll in course");
+      toast.error(error.message || t('browseCourses.failedToEnroll'));
     } finally {
       setEnrollingCourseId(null);
     }
@@ -130,7 +132,7 @@ const BrowseCourses = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-lg text-gray-600">Loading courses...</p>
+        <p className="text-lg text-gray-600">{t('browseCourses.loadingCourses')}</p>
       </div>
     );
   }
@@ -151,13 +153,13 @@ const BrowseCourses = () => {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Browse Courses</h1>
-                <p className="text-sm text-gray-600">Discover and enroll in courses</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('browseCourses.title')}</h1>
+                <p className="text-sm text-gray-600">{t('browseCourses.subtitle')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-[#006D2C]" />
-              <span className="text-sm font-medium text-gray-700">{courses.length} Courses</span>
+              <span className="text-sm font-medium text-gray-700">{courses.length} {t('browseCourses.coursesCount')}</span>
             </div>
           </div>
         </div>
@@ -203,8 +205,8 @@ const BrowseCourses = () => {
         ) : (
           <div className="text-center py-16">
             <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Courses Available</h3>
-            <p className="text-gray-600">Check back later for new courses</p>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('browseCourses.noCoursesAvailable')}</h3>
+            <p className="text-gray-600">{t('browseCourses.checkBackLater')}</p>
           </div>
         )}
       </main>
@@ -212,14 +214,14 @@ const BrowseCourses = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Already enrolled</DialogTitle>
+            <DialogTitle>{t('browseCourses.alreadyEnrolled')}</DialogTitle>
             <DialogDescription>
-              You are already enrolled in this course. Check it in the My Courses section.
+              {t('browseCourses.alreadyEnrolledDesc')}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Close</Button>
-            <Button onClick={() => navigate("/student/my-courses")}>Go to My Courses</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t('common.close')}</Button>
+            <Button onClick={() => navigate("/student/my-courses")}>{t('browseCourses.goToMyCourses')}</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Download, Search, Trophy, TrendingUp, TrendingDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface QuizGrade {
   id: string;
@@ -30,6 +31,7 @@ interface GradesTableProps {
 }
 
 export function GradesTable({ teacherId, studentId, showFilters = true }: GradesTableProps) {
+  const { t } = useTranslation();
   const [grades, setGrades] = useState<QuizGrade[]>([]);
   const [filteredGrades, setFilteredGrades] = useState<QuizGrade[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,11 +134,11 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
 
       const formattedGrades: QuizGrade[] = (data || []).map((attempt: any) => ({
         id: attempt.id,
-        student_name: attempt.student?.full_name || "Unknown",
+        student_name: attempt.student?.full_name || t('gradesTable.unknown'),
         student_email: attempt.student?.email || "",
-        course_title: attempt.lesson?.chapter?.course?.title || "Unknown Course",
-        chapter_title: attempt.lesson?.chapter?.title || "Unknown Chapter",
-        lesson_title: attempt.lesson?.title || "Unknown Quiz",
+        course_title: attempt.lesson?.chapter?.course?.title || t('gradesTable.unknownCourse'),
+        chapter_title: attempt.lesson?.chapter?.title || t('gradesTable.unknownChapter'),
+        lesson_title: attempt.lesson?.title || t('gradesTable.unknownQuiz'),
         score: attempt.score,
         total_points: attempt.total_points,
         percentage: Math.round((attempt.score / attempt.total_points) * 100),
@@ -156,8 +158,8 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
     } catch (error) {
       console.error("Error fetching grades:", error);
       toast({
-        title: "Error",
-        description: "Failed to load grades",
+        title: t('common.error'),
+        description: t('gradesTable.failedToLoad'),
         variant: "destructive",
       });
     } finally {
@@ -226,7 +228,7 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
       <Card>
         <CardContent className="py-12 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-          <p className="text-muted-foreground mt-4">Loading grades...</p>
+          <p className="text-muted-foreground mt-4">{t('gradesTable.loadingGrades')}</p>
         </CardContent>
       </Card>
     );
@@ -240,7 +242,7 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Attempts</p>
+                <p className="text-sm text-muted-foreground">{t('gradesTable.totalAttempts')}</p>
                 <p className="text-2xl font-bold">{filteredGrades.length}</p>
               </div>
               <Trophy className="h-8 w-8 text-primary" />
@@ -252,7 +254,7 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Average Score</p>
+                <p className="text-sm text-muted-foreground">{t('gradesTable.averageScore')}</p>
                 <p className="text-2xl font-bold">{getAverageScore()}%</p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-600" />
@@ -264,7 +266,7 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Pass Rate</p>
+                <p className="text-sm text-muted-foreground">{t('gradesTable.passRate')}</p>
                 <p className="text-2xl font-bold">{getPassRate()}%</p>
               </div>
               <TrendingDown className="h-8 w-8 text-blue-600" />
@@ -277,10 +279,10 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Quiz Grades</CardTitle>
+            <CardTitle>{t('gradesTable.quizGrades')}</CardTitle>
             <Button onClick={exportToCSV} variant="outline" size="sm">
               <Download className="h-4 w-4 mr-2" />
-              Export CSV
+              {t('gradesTable.exportCSV')}
             </Button>
           </div>
         </CardHeader>
@@ -290,7 +292,7 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search student, course, or quiz..."
+                  placeholder={t('gradesTable.searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -298,10 +300,10 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
               </div>
               <Select value={courseFilter} onValueChange={setCourseFilter}>
                 <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="All courses" />
+                  <SelectValue placeholder={t('gradesTable.allCourses')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Courses</SelectItem>
+                  <SelectItem value="all">{t('gradesTable.allCourses')}</SelectItem>
                   {courses.map((course) => (
                     <SelectItem key={course.id} value={course.title}>
                       {course.title}
@@ -316,20 +318,20 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
             <Table>
               <TableHeader>
                 <TableRow>
-                  {!studentId && <TableHead>Student</TableHead>}
-                  <TableHead>Course</TableHead>
-                  <TableHead>Quiz</TableHead>
-                  <TableHead>Marks</TableHead>
-                  <TableHead>Percentage</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
+                  {!studentId && <TableHead>{t('gradesTable.student')}</TableHead>}
+                  <TableHead>{t('gradesTable.course')}</TableHead>
+                  <TableHead>{t('gradesTable.quiz')}</TableHead>
+                  <TableHead>{t('gradesTable.marks')}</TableHead>
+                  <TableHead>{t('gradesTable.percentage')}</TableHead>
+                  <TableHead>{t('gradesTable.status')}</TableHead>
+                  <TableHead>{t('gradesTable.date')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredGrades.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No quiz grades found
+                      {t('gradesTable.noQuizGrades')}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -358,7 +360,7 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
                       </TableCell>
                       <TableCell>
                         <Badge variant={grade.passed ? "default" : "destructive"}>
-                          {grade.passed ? "Passed" : "Failed"}
+                          {grade.passed ? t('gradesTable.passed') : t('gradesTable.failed')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">

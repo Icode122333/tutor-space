@@ -405,7 +405,7 @@ const StudentAssignments = () => {
                     size="lg"
                   >
                     <Upload className="h-5 w-5 mr-2" />
-                    Upload Assignment
+                    {t('studentAssignments.uploadAssignment')}
                   </Button>
                 </div>
               </div>
@@ -415,23 +415,23 @@ const StudentAssignments = () => {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-6 bg-white">
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-                <div className="text-xs text-gray-600 mt-1">Total</div>
+                <div className="text-xs text-gray-600 mt-1">{t('studentAssignments.total')}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-600">{stats.pending}</div>
-                <div className="text-xs text-gray-600 mt-1">Pending</div>
+                <div className="text-xs text-gray-600 mt-1">{t('studentAssignments.pending')}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">{stats.submitted}</div>
-                <div className="text-xs text-gray-600 mt-1">Submitted</div>
+                <div className="text-xs text-gray-600 mt-1">{t('studentAssignments.submitted')}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">{stats.graded}</div>
-                <div className="text-xs text-gray-600 mt-1">Graded</div>
+                <div className="text-xs text-gray-600 mt-1">{t('studentAssignments.graded')}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">{stats.avgGrade.toFixed(0)}%</div>
-                <div className="text-xs text-gray-600 mt-1">Avg Grade</div>
+                <div className="text-xs text-gray-600 mt-1">{t('studentAssignments.avgGrade')}</div>
               </div>
             </div>
           </header>
@@ -443,7 +443,7 @@ const StudentAssignments = () => {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search assignments..."
+                    placeholder={t('studentAssignments.searchAssignments')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 bg-white border-gray-200 rounded-xl"
@@ -455,10 +455,10 @@ const StudentAssignments = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="submitted">Submitted</SelectItem>
-                    <SelectItem value="graded">Graded</SelectItem>
+                    <SelectItem value="all">{t('studentAssignments.allStatus')}</SelectItem>
+                    <SelectItem value="pending">{t('studentAssignments.pending')}</SelectItem>
+                    <SelectItem value="submitted">{t('studentAssignments.submitted')}</SelectItem>
+                    <SelectItem value="graded">{t('studentAssignments.graded')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -468,18 +468,18 @@ const StudentAssignments = () => {
                 <Card className="border-2 border-dashed border-gray-300 rounded-2xl">
                   <CardContent className="py-16 text-center">
                     <FileText className="h-20 w-20 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">No Assignments Found</h3>
+                    <h3 className="text-xl font-semibold mb-2">{t('studentAssignments.noAssignmentsFound')}</h3>
                     <p className="text-gray-600 mb-6">
                       {enrolledCourses.length === 0 
-                        ? "Enroll in courses to see assignments"
-                        : "No assignments match your search"}
+                        ? t('studentAssignments.enrollInCourses')
+                        : t('studentAssignments.noAssignmentsMatch')}
                     </p>
                     {enrolledCourses.length === 0 && (
                       <Button
                         onClick={() => navigate("/courses")}
                         className="bg-[#006d2c] hover:bg-[#005523]"
                       >
-                        Browse Courses
+                        {t('slider.browseCourses')}
                       </Button>
                     )}
                   </CardContent>
@@ -501,7 +501,7 @@ const StudentAssignments = () => {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
                                 <Badge variant="outline" className="text-xs">
-                                  {assignment.type === 'capstone' ? 'Capstone' : 'Assignment'}
+                                  {assignment.type === 'capstone' ? t('studentAssignments.capstone') : t('studentAssignments.assignment')}
                                 </Badge>
                                 <Badge className={`${status.color} text-white`}>
                                   <StatusIcon className="h-3 w-3 mr-1" />
@@ -522,7 +522,7 @@ const StudentAssignments = () => {
                           {assignment.due_date && (
                             <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                               <Calendar className="h-4 w-4" />
-                              <span>Due: {new Date(assignment.due_date).toLocaleDateString('en-US', {
+                              <span>{t('studentAssignments.due')}: {new Date(assignment.due_date).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
                                 year: 'numeric'
@@ -533,7 +533,7 @@ const StudentAssignments = () => {
                           {assignment.submission ? (
                             <div className={`${status.bgColor} rounded-xl p-4 space-y-3`}>
                               <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-gray-700">Submitted</span>
+                                <span className="text-sm font-medium text-gray-700">{t('studentAssignments.submitted')}</span>
                                 <span className="text-xs text-gray-600">
                                   {new Date(assignment.submission.submitted_at).toLocaleDateString()}
                                 </span>
@@ -543,7 +543,7 @@ const StudentAssignments = () => {
                                 <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                                   <div className="flex items-center gap-2">
                                     <Award className="h-5 w-5 text-green-600" />
-                                    <span className="font-semibold text-gray-900">Grade</span>
+                                    <span className="font-semibold text-gray-900">{t('studentAssignments.grade')}</span>
                                   </div>
                                   <span className="text-3xl font-bold text-green-600">
                                     {assignment.submission.grade}
@@ -554,7 +554,7 @@ const StudentAssignments = () => {
                               
                               {assignment.submission.feedback && (
                                 <div className="pt-3 border-t border-gray-200">
-                                  <p className="text-xs font-semibold text-gray-700 mb-1">Feedback:</p>
+                                  <p className="text-xs font-semibold text-gray-700 mb-1">{t('studentAssignments.feedback')}:</p>
                                   <p className="text-sm text-gray-600">{assignment.submission.feedback}</p>
                                 </div>
                               )}
@@ -565,7 +565,7 @@ const StudentAssignments = () => {
                               variant="outline"
                               className="w-full border-2 hover:border-[#006d2c] hover:text-[#006d2c]"
                             >
-                              View Details
+                              {t('studentAssignments.viewDetails')}
                             </Button>
                           )}
                         </CardContent>
@@ -583,18 +583,18 @@ const StudentAssignments = () => {
       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Upload Assignment</DialogTitle>
+            <DialogTitle className="text-2xl">{t('studentAssignments.uploadAssignment')}</DialogTitle>
             <DialogDescription>
-              Select a course and assignment to submit your work
+              {t('studentAssignments.selectCourseAssignment')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label>Course</Label>
+              <Label>{t('studentAssignments.course')}</Label>
               <Select value={selectedCourse} onValueChange={setSelectedCourse}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a course" />
+                  <SelectValue placeholder={t('studentAssignments.selectCourse')} />
                 </SelectTrigger>
                 <SelectContent>
                   {enrolledCourses.map((enrollment: any) => (
@@ -608,10 +608,10 @@ const StudentAssignments = () => {
 
             {selectedCourse && (
               <div className="space-y-2">
-                <Label>Assignment</Label>
+                <Label>{t('studentAssignments.assignment')}</Label>
                 <Select value={selectedAssignment} onValueChange={setSelectedAssignment}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select an assignment" />
+                    <SelectValue placeholder={t('studentAssignments.selectAssignment')} />
                   </SelectTrigger>
                   <SelectContent>
                     {courseAssignments.map((assignment) => (
@@ -627,7 +627,7 @@ const StudentAssignments = () => {
             {selectedAssignment && (
               <>
                 <div className="space-y-2">
-                  <Label>Upload File</Label>
+                  <Label>{t('studentAssignments.uploadFile')}</Label>
                   <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-[#006d2c] transition-colors">
                     <Input
                       type="file"
@@ -638,17 +638,17 @@ const StudentAssignments = () => {
                     <label htmlFor="file-upload" className="cursor-pointer">
                       <Upload className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                       <p className="text-sm font-medium text-gray-700">
-                        {uploadFile ? uploadFile.name : "Click to upload or drag and drop"}
+                        {uploadFile ? uploadFile.name : t('studentAssignments.clickToUpload')}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">PDF, DOC, DOCX up to 10MB</p>
+                      <p className="text-xs text-gray-500 mt-1">{t('studentAssignments.fileTypes')}</p>
                     </label>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Remarks (Optional)</Label>
+                  <Label>{t('studentAssignments.remarksOptional')}</Label>
                   <Textarea
-                    placeholder="Add any notes or comments about your submission..."
+                    placeholder={t('studentAssignments.remarksPlaceholder')}
                     value={remarks}
                     onChange={(e) => setRemarks(e.target.value)}
                     rows={3}
@@ -660,7 +660,7 @@ const StudentAssignments = () => {
                   disabled={uploading || !uploadFile}
                   className="w-full bg-[#006d2c] hover:bg-[#005523] h-12 text-lg"
                 >
-                  {uploading ? "Uploading..." : "Submit Assignment"}
+                  {uploading ? t('studentAssignments.uploading') : t('studentAssignments.submitAssignment')}
                 </Button>
               </>
             )}

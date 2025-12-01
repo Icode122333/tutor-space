@@ -246,7 +246,7 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
                       )}
                       <div className="flex items-center gap-2 text-gray-600">
                         <Users className="h-4 w-4" />
-                        <span>{cohort._count?.enrollments || 0} students enrolled</span>
+                        <span>{cohort._count?.enrollments || 0} {t("cohort.studentsEnrolled")}</span>
                       </div>
                     </div>
                   </CardContent>

@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Clock, Users, CheckCircle, Star } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface CourseCardProps {
   course: {
@@ -26,12 +27,13 @@ interface CourseCardProps {
 }
 
 export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purple-600", showTeacher = false, columnIndex = 0, isEnrolled = false, showEnrollButton = false, onEnroll }: CourseCardProps) => {
+  const { t } = useTranslation();
   const [showHoverCard, setShowHoverCard] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const summary = course.summary && course.summary.trim().length > 0 
     ? course.summary 
-    : course.description || "Explore this course to learn new skills and advance your knowledge.";
+    : course.description || t('courseCard.exploreDescription');
 
   // Show popup on left for columns 3 and 4 (index 2 and 3)
   const showPopupOnLeft = columnIndex >= 2;
@@ -52,9 +54,9 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
 
   // Sample learning points - in production, these would come from the database
   const learningPoints = [
-    "Master key concepts and fundamentals",
-    "Build practical projects and applications",
-    "Learn industry best practices",
+    t('courseCard.masterConcepts'),
+    t('courseCard.buildProjects'),
+    t('courseCard.learnBestPractices'),
   ];
 
   return (
@@ -125,7 +127,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
                   className="w-full bg-gray-300 text-gray-600 cursor-not-allowed"
                   size="sm"
                 >
-                  Enrolled
+                  {t('courseCard.enrolled')}
                 </Button>
               ) : showEnrollButton && onEnroll ? (
                 <Button
@@ -136,7 +138,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
                   className="w-full bg-[#006d2c] hover:bg-[#005523] text-white"
                   size="sm"
                 >
-                  Enroll Now
+                  {t('courseCard.enrollNow')}
                 </Button>
               ) : null}
             </div>
@@ -161,7 +163,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
               {/* Badges */}
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge className="bg-green-100 text-green-800">
-                  Bestseller
+                  {t('courseCard.bestseller')}
                 </Badge>
                 {course.level && (
                   <Badge variant="outline">
@@ -171,7 +173,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
                 <div className="flex items-center gap-1 text-sm">
                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                   <span className="font-semibold">4.6</span>
-                  <span className="text-gray-500">(1,234 ratings)</span>
+                  <span className="text-gray-500">(1,234 {t('courseCard.ratings')})</span>
                 </div>
               </div>
 
@@ -183,7 +185,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
               {/* What you'll learn */}
               <div className="space-y-2">
                 <h4 className="font-semibold text-sm text-gray-900">
-                  What you'll learn:
+                  {t('courseCard.whatYouWillLearn')}
                 </h4>
                 <ul className="space-y-2">
                   {learningPoints.map((point, index) => (
@@ -199,11 +201,11 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
               <div className="flex items-center gap-4 text-sm text-gray-600 pt-2 border-t">
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
-                  <span>12 hours</span>
+                  <span>12 {t('courseCard.hours')}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <BookOpen className="h-4 w-4" />
-                  <span>All Levels</span>
+                  <span>{t('courseCard.allLevels')}</span>
                 </div>
               </div>
 
@@ -211,7 +213,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
               {showTeacher && course.profiles && (
                 <div className="flex items-center gap-2 text-sm text-gray-600 pt-2 border-t">
                   <Users className="h-4 w-4" />
-                  <span>By {course.profiles.full_name}</span>
+                  <span>{t('courseCard.by')} {course.profiles.full_name}</span>
                 </div>
               )}
 
@@ -223,7 +225,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
                   onClick();
                 }}
               >
-                View Course Details
+                {t('courseCard.viewCourseDetails')}
               </Button>
             </CardContent>
           </Card>

@@ -253,16 +253,16 @@ const StudentDashboard = () => {
                         {currentSlide === 0 && (
                           <div className="flex-1 text-white animate-in fade-in slide-in-from-left-4 duration-700">
                             <h2 className="text-2xl sm:text-4xl font-bold mb-2 leading-tight tracking-wide drop-shadow-md">
-                              Learn with us
+                              {t('slider.learnWithUs')}
                             </h2>
                             <p className="text-xl sm:text-2xl font-semibold mb-4 tracking-wide drop-shadow-md">
-                              whenever you are
+                              {t('slider.wheneverYouAre')}
                             </p>
                             <Button
                               onClick={() => navigate("/courses")}
                               className="bg-[#006D2C] hover:bg-[#005523] text-white font-semibold px-6 py-2.5 rounded-full flex items-center gap-2 text-base w-fit shadow-lg"
                             >
-                              Browse Courses
+                              {t('slider.browseCourses')}
                               <BookOpen className="w-5 h-5" />
                             </Button>
                           </div>
@@ -556,9 +556,9 @@ const StudentDashboard = () => {
                           <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                             <Search className="h-8 w-8 text-gray-400" />
                           </div>
-                          <h3 className="text-lg font-semibold mb-2">No courses found</h3>
+                          <h3 className="text-lg font-semibold mb-2">{t('searchResults.noCoursesFound')}</h3>
                           <p className="text-sm text-gray-600 text-center">
-                            No courses match "{searchQuery}"
+                            {t('searchResults.noCoursesMatch')} "{searchQuery}"
                           </p>
                         </CardContent>
                       </Card>
