@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, FileText, Play } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ExternalLink, FileText, Play, CheckCircle2, Clock, BookOpen, Target, ChevronRight, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import PdfJsInlineViewer from "@/components/PdfJsInlineViewer";
+import { cn } from "@/lib/utils";
 
 interface CourseContentPlayerProps {
   lesson: {
@@ -29,11 +31,9 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
   const [pdfError, setPdfError] = useState(false);
 
   useEffect(() => {
-    // Auto-mark video lessons as started when loaded
     if (lesson && studentId && lesson.content_type === "video") {
       markLessonProgress(false);
     }
-    // Resolve storage URLs for document-like content
     const resolve = async () => {
       if (!lesson) return setResolvedUrl(null);
       const raw = (lesson.file_url || lesson.content_url) || "";
@@ -43,16 +43,13 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
         return;
       }
       try {
-        // Assume the path belongs to the 'lesson-files' bucket
         const cleaned = raw.replace(/^\/+/, "");
         const path = cleaned.replace(/^lesson-files\//, "");
-        // Prefer a signed URL (works with private buckets and external viewers)
         const { data: signed, error } = await supabase.storage.from("lesson-files").createSignedUrl(path, 3600);
         if (!error && signed?.signedUrl) {
           setResolvedUrl(signed.signedUrl);
           return;
         }
-        // Fallback to a public URL if bucket/object is public
         const { data: pub } = supabase.storage.from("lesson-files").getPublicUrl(path);
         if (pub?.publicUrl) {
           setResolvedUrl(pub.publicUrl);
@@ -108,26 +105,52 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
     return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
   };
 
-  const getOfficeViewerUrl = (url: string) => {
-    return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+  const getContentTypeIcon = (type: string) => {
+    switch (type) {
+      case "video": return <Play className="h-4 w-4" />;
+      case "pdf":
+      case "document": return <FileText className="h-4 w-4" />;
+      default: return <BookOpen className="h-4 w-4" />;
+    }
   };
 
-  const getEmojiForProgress = (p: number) => {
-    if (p < 25) return "😢";
-    if (p < 50) return "🙂";
-    if (p < 75) return "😊";
-    return "🤩";
+  const getContentTypeLabel = (type: string) => {
+    switch (type) {
+      case "video": return "Video Lesson";
+      case "pdf": return "PDF Document";
+      case "document": return "Document";
+      case "url": return "External Resource";
+      case "quiz": return "Quiz";
+      case "assignment": return "Assignment";
+      default: return "Lesson";
+    }
   };
 
   if (!lesson) {
     return (
-      <Card className="h-full flex items-center justify-center">
-        <CardContent className="text-center py-12">
-          <Play className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold mb-2">No lesson selected</h3>
-          <p className="text-muted-foreground">
-            Select a lesson from the curriculum to begin
-          </p>
+      <Card className="border-0 shadow-xl rounded-2xl overflow-hidden">
+        <CardContent className="p-0">
+          {/* Empty State with Premium Design */}
+          <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 min-h-[400px] flex items-center justify-center">
+            {/* Decorative Elements */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#0A400C]/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#0A400C]/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+            
+            <div className="relative text-center p-8">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-[#0A400C] to-[#116315] flex items-center justify-center shadow-xl shadow-[#0A400C]/20">
+                <Play className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Ready to Learn?</h3>
+              <p className="text-gray-500 max-w-sm mx-auto">
+                Select a lesson from the curriculum to start your learning journey
+              </p>
+              <div className="mt-6 flex items-center justify-center gap-2 text-sm text-[#0A400C]">
+                <Sparkles className="h-4 w-4" />
+                <span>Pick a lesson to begin</span>
+                <ChevronRight className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -135,50 +158,18 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
 
   return (
     <div className="space-y-4">
-      <Card>
+      {/* Main Content Card */}
+      <Card className="border-0 shadow-xl rounded-2xl overflow-hidden">
         <CardContent className="p-0">
-          {/* Top Bar: Progress + Mark as Done */}
-          {studentId && lesson && lesson.content_type !== "quiz" && (
-            <div className="flex flex-col gap-3 p-4 border-b bg-white">
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <div className="relative w-full h-3 rounded-full bg-white border border-[#0A400C]/30 overflow-hidden">
-                    <div
-                      className="h-full transition-all bg-gradient-to-r from-[#0A400C] via-green-600 to-emerald-500"
-                      style={{ width: `${Math.round(progressPercent)}%` }}
-                    />
-                    <div
-                      className="absolute -top-2 translate-x-1/2 right-0 text-base"
-                      style={{ right: `calc(${Math.max(0, Math.min(100, Math.round(progressPercent)))}% - 10px)` }}
-                    >
-                      {getEmojiForProgress(progressPercent)}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-sm font-semibold text-[#0A400C] whitespace-nowrap">
-                  {Math.round(progressPercent)}% Complete
-                </div>
-              </div>
-              <div>
-                <Button
-                  onClick={() => markLessonProgress(true)}
-                  disabled={markingComplete || !!lesson.is_completed}
-                  className="bg-[#0A400C] hover:bg-[#083308]"
-                >
-                  {lesson.is_completed ? "Completed" : (markingComplete ? "Marking..." : "Mark as Done")}
-                </Button>
-              </div>
-            </div>
-          )}
-
+          {/* Video Content */}
           {lesson.content_type === "video" && (
-            <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
+            <div className="relative w-full bg-black rounded-t-2xl overflow-hidden" style={{ paddingTop: "56.25%" }}>
               {(() => {
                 const embedUrl = getYouTubeEmbedUrl(lesson.content_url);
                 if (embedUrl) {
                   return (
                     <iframe
-                      className="absolute top-0 left-0 w-full h-full rounded-t-lg"
+                      className="absolute top-0 left-0 w-full h-full"
                       src={embedUrl}
                       title={lesson.title}
                       frameBorder="0"
@@ -188,12 +179,12 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
                   );
                 }
                 return (
-                  <div className="absolute top-0 left-0 w-full h-full bg-muted flex items-center justify-center">
+                  <div className="absolute top-0 left-0 w-full h-full bg-gray-900 flex items-center justify-center">
                     <div className="text-center p-6">
-                      <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-muted-foreground">
-                        Unable to load video. Please check the URL.
-                      </p>
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/10 flex items-center justify-center">
+                        <FileText className="h-8 w-8 text-white/50" />
+                      </div>
+                      <p className="text-white/70">Unable to load video. Please check the URL.</p>
                     </div>
                   </div>
                 );
@@ -201,8 +192,9 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
             </div>
           )}
 
+          {/* PDF/Document Content */}
           {(lesson.content_type === "pdf" || lesson.content_type === "document" || lesson.content_type === "assignment") && (
-            <div className="relative w-full rounded-t-lg overflow-hidden" style={{ minHeight: "60vh" }}>
+            <div className="relative w-full bg-gray-50" style={{ minHeight: "65vh" }}>
               {(() => {
                 const raw = (lesson.file_url || lesson.content_url) || "";
                 const isUploaded = !!lesson.file_url;
@@ -213,8 +205,11 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
                 if (isPDF && isUploaded) {
                   if (!candidate) {
                     return (
-                      <div className="w-full h-[60vh] flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0A400C]" />
+                      <div className="w-full h-[65vh] flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#0A400C]/20 border-t-[#0A400C] mx-auto mb-4" />
+                          <p className="text-gray-500">Loading document...</p>
+                        </div>
                       </div>
                     );
                   }
@@ -222,7 +217,7 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
                     return <PdfJsInlineViewer src={candidate} onError={() => setPdfError(true)} />;
                   }
                   return (
-                    <div className="relative w-full h-[60vh]">
+                    <div className="relative w-full h-[65vh]">
                       <iframe
                         src={`${candidate}#toolbar=1&navpanes=1&scrollbar=1`}
                         title={lesson.title}
@@ -234,12 +229,18 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
 
                 const urlToOpen = candidate || raw;
                 return (
-                  <div className="p-12 bg-muted flex items-center justify-center">
-                    <div className="text-center">
-                      <FileText className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground mb-4 break-all">{urlToOpen}</p>
-                      <Button onClick={() => window.open(urlToOpen, "_blank")}>
-                        <ExternalLink className="h-4 w-4 mr-2" /> Open in new tab
+                  <div className="h-[40vh] flex items-center justify-center">
+                    <div className="text-center p-8">
+                      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl">
+                        <FileText className="h-10 w-10 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">External Document</h3>
+                      <p className="text-sm text-gray-500 mb-6 max-w-sm break-all">{urlToOpen}</p>
+                      <Button 
+                        onClick={() => window.open(urlToOpen, "_blank")}
+                        className="bg-[#0A400C] hover:bg-[#083308] rounded-xl px-6"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" /> Open Document
                       </Button>
                     </div>
                   </div>
@@ -248,35 +249,139 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
             </div>
           )}
 
+          {/* URL Content */}
           {lesson.content_type === "url" && (
-            <div className="p-12 bg-muted flex items-center justify-center">
-              <div className="text-center">
-                <FileText className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mb-4 break-all">{lesson.content_url}</p>
-                <Button onClick={() => window.open(lesson.content_url, "_blank")}> 
-                  <ExternalLink className="h-4 w-4 mr-2" /> Open in new tab
+            <div className="h-[40vh] flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+              <div className="text-center p-8">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-xl">
+                  <ExternalLink className="h-10 w-10 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">External Resource</h3>
+                <p className="text-sm text-gray-500 mb-6 max-w-sm break-all">{lesson.content_url}</p>
+                <Button 
+                  onClick={() => window.open(lesson.content_url, "_blank")}
+                  className="bg-[#0A400C] hover:bg-[#083308] rounded-xl px-6"
+                > 
+                  <ExternalLink className="h-4 w-4 mr-2" /> Open Link
                 </Button>
               </div>
             </div>
           )}
+
+          {/* Lesson Info Bar */}
+          <div className="p-5 bg-white border-t">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              {/* Left: Lesson Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className="bg-[#0A400C]/10 text-[#0A400C] hover:bg-[#0A400C]/20">
+                    {getContentTypeIcon(lesson.content_type)}
+                    <span className="ml-1.5">{getContentTypeLabel(lesson.content_type)}</span>
+                  </Badge>
+                  {lesson.duration && (
+                    <Badge variant="outline" className="text-gray-500">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {lesson.duration} min
+                    </Badge>
+                  )}
+                  {lesson.is_completed && (
+                    <Badge className="bg-green-100 text-green-700">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Completed
+                    </Badge>
+                  )}
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 truncate">{lesson.title}</h2>
+              </div>
+
+              {/* Right: Mark Complete Button */}
+              {studentId && lesson.content_type !== "quiz" && (
+                <Button
+                  onClick={() => markLessonProgress(true)}
+                  disabled={markingComplete || !!lesson.is_completed}
+                  className={cn(
+                    "rounded-xl px-6 transition-all",
+                    lesson.is_completed 
+                      ? "bg-green-100 text-green-700 hover:bg-green-100 cursor-default" 
+                      : "bg-[#0A400C] hover:bg-[#083308] shadow-lg shadow-[#0A400C]/20 hover:shadow-xl hover:scale-[1.02]"
+                  )}
+                >
+                  {lesson.is_completed ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Completed
+                    </>
+                  ) : markingComplete ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Target className="h-4 w-4 mr-2" />
+                      Mark Complete
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="text-2xl font-bold mb-2">{lesson.title}</h2>
-          {lesson.description && (
-            <p className="text-muted-foreground whitespace-pre-wrap">
+      {/* Progress Card */}
+      {studentId && (
+        <Card className="border-0 shadow-lg rounded-2xl overflow-hidden bg-gradient-to-r from-[#0A400C] to-[#116315]">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <Target className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-white/70 text-sm">Course Progress</p>
+                  <p className="text-white font-bold text-xl">{Math.round(progressPercent)}%</p>
+                </div>
+              </div>
+              {progressPercent >= 100 && (
+                <Badge className="bg-white/20 text-white border-0">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Course Complete!
+                </Badge>
+              )}
+            </div>
+            {/* Progress Bar */}
+            <div className="relative h-3 bg-white/20 rounded-full overflow-hidden">
+              <div 
+                className="absolute inset-y-0 left-0 bg-white rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${progressPercent}%` }}
+              />
+              <div 
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-white/50 to-transparent rounded-full"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <p className="text-white/60 text-xs mt-2">Keep going! You're making great progress.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Description Card */}
+      {lesson.description && (
+        <Card className="border-0 shadow-lg rounded-2xl">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[#0A400C]/10 flex items-center justify-center">
+                <BookOpen className="h-5 w-5 text-[#0A400C]" />
+              </div>
+              <h3 className="font-bold text-gray-900">About This Lesson</h3>
+            </div>
+            <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
               {lesson.description}
             </p>
-          )}
-          {lesson.duration && (
-            <div className="mt-4 text-sm text-muted-foreground">
-              Duration: {lesson.duration} minutes
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

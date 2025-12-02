@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Play, FileText, Link, ClipboardList, CheckCircle2, Circle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ChevronDown, ChevronUp, Play, FileText, Link, ClipboardList, CheckCircle2, Circle, Clock, BookOpen, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Lesson {
@@ -44,20 +45,33 @@ export function CourseCurriculum({ chapters, currentLessonId, onLessonClick, wel
     setExpandedChapters(newExpanded);
   };
 
-  const getLessonIcon = (contentType: string) => {
+  const getLessonIcon = (contentType: string, isCompleted?: boolean) => {
+    const iconClass = isCompleted ? "text-[#0A400C]" : "text-gray-400";
     switch (contentType) {
       case "video":
-        return <Play className="h-4 w-4" />;
+        return <Play className={cn("h-4 w-4", iconClass)} />;
       case "pdf":
       case "document":
-        return <FileText className="h-4 w-4" />;
+        return <FileText className={cn("h-4 w-4", iconClass)} />;
       case "url":
-        return <Link className="h-4 w-4" />;
+        return <Link className={cn("h-4 w-4", iconClass)} />;
       case "quiz":
       case "assignment":
-        return <ClipboardList className="h-4 w-4" />;
+        return <ClipboardList className={cn("h-4 w-4", iconClass)} />;
       default:
-        return <Play className="h-4 w-4" />;
+        return <Play className={cn("h-4 w-4", iconClass)} />;
+    }
+  };
+
+  const getContentTypeLabel = (contentType: string) => {
+    switch (contentType) {
+      case "video": return "Video";
+      case "pdf": return "PDF";
+      case "document": return "Document";
+      case "url": return "Link";
+      case "quiz": return "Quiz";
+      case "assignment": return "Assignment";
+      default: return "Lesson";
     }
   };
 
@@ -66,107 +80,225 @@ export function CourseCurriculum({ chapters, currentLessonId, onLessonClick, wel
     if (minutes < 60) return `${minutes} min`;
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
+  // Calculate total progress
+  const totalLessons = chapters.reduce((sum, ch) => sum + ch.lessons.length, 0);
+  const completedLessons = chapters.reduce((sum, ch) => sum + ch.lessons.filter(l => l.is_completed).length, 0);
+
   return (
-    <Card className="h-fit sticky top-6">
-      <CardContent className="p-0">
+    <Card className="h-fit sticky top-6 border-0 shadow-xl rounded-2xl overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-[#0A400C] to-[#116315] p-5">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+            <BookOpen className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-bold text-white text-lg">Course Content</h3>
+            <p className="text-white/70 text-sm">{chapters.length} chapters • {totalLessons} lessons</p>
+          </div>
+        </div>
+        {/* Mini Progress */}
         <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/80">Your Progress</span>
+            <span className="text-white font-semibold">{completedLessons}/{totalLessons}</span>
+          </div>
+          <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-white rounded-full transition-all duration-500"
+              style={{ width: `${totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <CardContent className="p-0 max-h-[600px] overflow-y-auto">
+        <div className="divide-y divide-gray-100">
+          {/* Welcome Video */}
           {welcomeVideoUrl && (
             <button
               onClick={onSelectWelcome}
               className={cn(
-                "w-full px-4 py-3 flex items-center gap-3 transition-colors text-left border-b",
-                isWelcomeSelected ? "bg-primary/10 hover:bg-primary/20" : "hover:bg-muted/50"
+                "w-full p-4 flex items-center gap-4 transition-all text-left group",
+                isWelcomeSelected 
+                  ? "bg-gradient-to-r from-[#0A400C]/10 to-[#0A400C]/5 border-l-4 border-[#0A400C]" 
+                  : "hover:bg-gray-50"
               )}
             >
-              <div className="flex-shrink-0 text-[#0A400C]">
-                <Play className="h-4 w-4" />
+              <div className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center transition-all",
+                isWelcomeSelected 
+                  ? "bg-[#0A400C] shadow-lg shadow-[#0A400C]/30" 
+                  : "bg-gradient-to-br from-purple-500 to-pink-500"
+              )}>
+                <Sparkles className="h-5 w-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold truncate">Welcome Video</div>
-                <div className="text-xs text-muted-foreground">Start here</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-gray-900">Welcome Video</span>
+                  <Badge className="bg-purple-100 text-purple-700 text-xs">Start Here</Badge>
+                </div>
+                <p className="text-sm text-gray-500 mt-0.5">Introduction to the course</p>
               </div>
             </button>
           )}
+
+          {/* Chapters */}
           {chapters.map((chapter, chapterIndex) => {
             const isExpanded = expandedChapters.has(chapter.id);
             const completedCount = chapter.lessons.filter((l) => l.is_completed).length;
-            const totalLessons = chapter.lessons.length;
+            const totalChapterLessons = chapter.lessons.length;
+            const chapterProgress = totalChapterLessons > 0 ? (completedCount / totalChapterLessons) * 100 : 0;
+            const isChapterComplete = completedCount === totalChapterLessons && totalChapterLessons > 0;
             
             return (
-              <div key={chapter.id} className={cn(
-                "border-b last:border-b-0",
-                chapterIndex === 0 && "rounded-t-lg overflow-hidden"
-              )}>
+              <div key={chapter.id}>
+                {/* Chapter Header */}
                 <button
                   onClick={() => toggleChapter(chapter.id)}
-                  className="w-full px-4 py-3 flex items-center justify-between bg-[#0A400C] text-white hover:bg-[#0A400C]/90 transition-colors"
+                  className={cn(
+                    "w-full p-4 flex items-center gap-4 transition-all text-left group",
+                    isExpanded ? "bg-gray-50" : "hover:bg-gray-50"
+                  )}
                 >
-                  <div className="flex-1 text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-white">
-                        {String(chapterIndex + 1).padStart(2, "0")}. {chapter.title}
+                  {/* Chapter Number Circle */}
+                  <div className={cn(
+                    "w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg transition-all",
+                    isChapterComplete 
+                      ? "bg-[#0A400C] text-white shadow-lg shadow-[#0A400C]/20" 
+                      : "bg-gray-100 text-gray-600 group-hover:bg-gray-200"
+                  )}>
+                    {isChapterComplete ? (
+                      <CheckCircle2 className="h-6 w-6" />
+                    ) : (
+                      String(chapterIndex + 1).padStart(2, "0")
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-gray-900 truncate">
+                        {chapter.title}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      {chapter.total_duration && (
-                        <span className="text-xs text-white/80">
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <BookOpen className="h-3 w-3" />
+                        {totalChapterLessons} lessons
+                      </span>
+                      {chapter.total_duration && chapter.total_duration > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
                           {formatDuration(chapter.total_duration)}
                         </span>
                       )}
-                      <span className="text-xs text-white/80">
-                        {completedCount}/{totalLessons} completed
+                      <span className={cn(
+                        "font-medium",
+                        isChapterComplete ? "text-[#0A400C]" : "text-gray-500"
+                      )}>
+                        {completedCount}/{totalChapterLessons}
                       </span>
                     </div>
+                    {/* Chapter Progress Bar */}
+                    <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className={cn(
+                          "h-full rounded-full transition-all duration-500",
+                          isChapterComplete 
+                            ? "bg-[#0A400C]" 
+                            : "bg-gradient-to-r from-[#0A400C] to-emerald-500"
+                        )}
+                        style={{ width: `${chapterProgress}%` }}
+                      />
+                    </div>
                   </div>
-                  {isExpanded ? (
-                    <ChevronUp className="h-4 w-4 text-white" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-white" />
-                  )}
+
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                    isExpanded ? "bg-[#0A400C] text-white" : "bg-gray-100 text-gray-500"
+                  )}>
+                    {isExpanded ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </div>
                 </button>
 
+                {/* Lessons */}
                 {isExpanded && (
-                  <div className="bg-muted/30">
-                    {chapter.lessons.map((lesson) => (
-                      <button
-                        key={lesson.id}
-                        onClick={() => onLessonClick(lesson.id)}
-                        className={cn(
-                          "w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left border-t",
-                          currentLessonId === lesson.id && "bg-primary/10 hover:bg-primary/20"
-                        )}
-                      >
-                        <div className="flex-shrink-0">
-                          {lesson.is_completed ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          ) : (
-                            <Circle className="h-5 w-5 text-muted-foreground" />
+                  <div className="bg-gray-50/50 border-t border-gray-100">
+                    {chapter.lessons.map((lesson, lessonIndex) => {
+                      const isActive = currentLessonId === lesson.id;
+                      
+                      return (
+                        <button
+                          key={lesson.id}
+                          onClick={() => onLessonClick(lesson.id)}
+                          className={cn(
+                            "w-full pl-8 pr-4 py-3 flex items-center gap-3 transition-all text-left group",
+                            isActive 
+                              ? "bg-[#0A400C]/10 border-l-4 border-[#0A400C]" 
+                              : "hover:bg-white border-l-4 border-transparent"
                           )}
-                        </div>
-                        
-                        <div className="flex-shrink-0 text-muted-foreground">
-                          {getLessonIcon(lesson.content_type)}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">
-                            {lesson.title}
+                        >
+                          {/* Completion Status */}
+                          <div className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all",
+                            lesson.is_completed 
+                              ? "bg-[#0A400C] shadow-sm" 
+                              : isActive 
+                                ? "bg-[#0A400C]/20 ring-2 ring-[#0A400C]" 
+                                : "bg-white border border-gray-200 group-hover:border-gray-300"
+                          )}>
+                            {lesson.is_completed ? (
+                              <CheckCircle2 className="h-4 w-4 text-white" />
+                            ) : (
+                              <span className="text-xs font-medium text-gray-500">
+                                {lessonIndex + 1}
+                              </span>
+                            )}
                           </div>
-                          {lesson.duration && (
-                            <div className="text-xs text-muted-foreground">
-                              {lesson.duration} min
-                            </div>
-                          )}
-                        </div>
+                          
+                          {/* Content Type Icon */}
+                          <div className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                            lesson.is_completed ? "bg-[#0A400C]/10" : "bg-gray-100"
+                          )}>
+                            {getLessonIcon(lesson.content_type, lesson.is_completed)}
+                          </div>
 
-                        {currentLessonId === lesson.id && (
-                          <div className="flex-shrink-0 w-1 h-8 bg-primary rounded-full" />
-                        )}
-                      </button>
-                    ))}
+                          {/* Lesson Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className={cn(
+                              "text-sm font-medium truncate transition-colors",
+                              isActive ? "text-[#0A400C]" : lesson.is_completed ? "text-gray-700" : "text-gray-600"
+                            )}>
+                              {lesson.title}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal">
+                                {getContentTypeLabel(lesson.content_type)}
+                              </Badge>
+                              {lesson.duration && (
+                                <span className="text-xs text-gray-400 flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {lesson.duration}m
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Active Indicator */}
+                          {isActive && (
+                            <div className="w-2 h-2 rounded-full bg-[#0A400C] animate-pulse" />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
