@@ -1,67 +1,59 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Hook to track user activity and update last_activity in the database
  * This enables accurate "online users" counting in the admin dashboard
+ * OPTIMIZED: Reduced frequency and removed expensive event listeners
  */
 export const useActivityTracker = () => {
+  const lastUpdateRef = useRef<number>(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  const updateActivity = useCallback(async () => {
+    // Throttle: Only update if 60 seconds have passed since last update
+    const now = Date.now();
+    if (now - lastUpdateRef.current < 60000) return;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        lastUpdateRef.current = now;
+        await supabase.rpc('update_user_activity');
+      }
+    } catch (error) {
+      // Silently fail - don't disrupt user experience
+      console.debug('Activity update failed:', error);
+    }
+  }, []);
+
   useEffect(() => {
-    const updateActivity = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Call the RPC function to update last_activity
-          await supabase.rpc('update_user_activity');
-        }
-      } catch (error) {
-        // Silently fail - don't disrupt user experience
-        console.debug('Activity update failed:', error);
+    // Update activity on mount (with small delay to not block initial render)
+    const initialTimeout = setTimeout(updateActivity, 1000);
+
+    // Update activity every 3 minutes (reduced from 2 minutes)
+    intervalRef.current = setInterval(updateActivity, 3 * 60 * 1000);
+
+    // Only listen to click events (removed scroll, mousemove, keypress)
+    // These are expensive and unnecessary for activity tracking
+    const handleClick = () => updateActivity();
+    window.addEventListener('click', handleClick, { passive: true });
+
+    // Update on visibility change (when user returns to tab)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        updateActivity();
       }
     };
-
-    // Update activity immediately on mount
-    updateActivity();
-
-    // Update activity every 2 minutes while the user is active
-    intervalRef.current = setInterval(updateActivity, 2 * 60 * 1000);
-
-    // Also update on user interactions
-    const handleActivity = () => {
-      updateActivity();
-    };
-
-    // Listen for user activity events
-    window.addEventListener('click', handleActivity);
-    window.addEventListener('keypress', handleActivity);
-    window.addEventListener('scroll', handleActivity);
-    window.addEventListener('mousemove', handleActivity);
-
-    // Debounce the activity updates to avoid too many calls
-    let activityTimeout: NodeJS.Timeout | null = null;
-    const debouncedActivity = () => {
-      if (activityTimeout) clearTimeout(activityTimeout);
-      activityTimeout = setTimeout(updateActivity, 30000); // Update at most every 30 seconds
-    };
-
-    window.addEventListener('click', debouncedActivity);
-    window.addEventListener('keypress', debouncedActivity);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
+      clearTimeout(initialTimeout);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      if (activityTimeout) {
-        clearTimeout(activityTimeout);
-      }
-      window.removeEventListener('click', handleActivity);
-      window.removeEventListener('keypress', handleActivity);
-      window.removeEventListener('scroll', handleActivity);
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('click', debouncedActivity);
-      window.removeEventListener('keypress', debouncedActivity);
+      window.removeEventListener('click', handleClick);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, []);
+  }, [updateActivity]);
 };

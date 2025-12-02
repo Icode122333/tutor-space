@@ -36,30 +36,45 @@ const StudentSchedule = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from("scheduled_classes")
+    // Single optimized query: Get enrollments with scheduled classes in one go
+    const { data: enrollments, error } = await supabase
+      .from("course_enrollments")
       .select(`
-        *,
-        courses (
-          title
+        course_id,
+        courses!inner (
+          id,
+          title,
+          scheduled_classes (
+            id,
+            title,
+            scheduled_time,
+            meet_link,
+            course_id
+          )
         )
       `)
-      .gte("scheduled_time", new Date().toISOString())
-      .order("scheduled_time", { ascending: true });
+      .eq("student_id", user.id);
 
     if (error) {
       console.error("Error fetching scheduled classes:", error);
-    } else {
-      const { data: enrollments } = await supabase
-        .from("course_enrollments")
-        .select("course_id")
-        .eq("student_id", user.id);
-
-      const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
-      const filteredClasses = data?.filter(c => enrolledCourseIds.includes(c.course_id)) || [];
-      
-      setScheduledClasses(filteredClasses);
+      return;
     }
+
+    // Flatten and filter scheduled classes
+    const now = new Date().toISOString();
+    const allClasses = enrollments?.flatMap(e => 
+      (e.courses?.scheduled_classes || []).map(sc => ({
+        ...sc,
+        courses: { title: e.courses?.title }
+      }))
+    ) || [];
+
+    // Filter future classes and sort
+    const filteredClasses = allClasses
+      .filter(c => c.scheduled_time >= now)
+      .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
+    
+    setScheduledClasses(filteredClasses);
   };
 
   const checkUser = async () => {

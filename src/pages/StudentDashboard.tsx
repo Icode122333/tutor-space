@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, BookOpen, CalendarDays, Clock, ChevronLeft, ChevronRight, Award } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -22,6 +22,7 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
+  const [coursesLoading, setCoursesLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   
   // Track user activity for online status
@@ -50,10 +51,16 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     if (profile) {
-      fetchScheduledClasses();
       fetchEnrolledCourses();
     }
   }, [profile]);
+
+  // Fetch scheduled classes after enrolled courses are loaded
+  useEffect(() => {
+    if (enrolledCourses.length > 0) {
+      fetchScheduledClasses();
+    }
+  }, [enrolledCourses]);
 
   // Auto-slide effect
   useEffect(() => {
@@ -65,8 +72,12 @@ const StudentDashboard = () => {
   }, [sliderImages.length]);
 
   const fetchEnrolledCourses = async () => {
+    setCoursesLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setCoursesLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from("course_enrollments")
@@ -90,45 +101,28 @@ const StudentDashboard = () => {
     } else {
       setEnrolledCourses(data || []);
     }
+    setCoursesLoading(false);
   };
 
   const fetchScheduledClasses = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    console.log("Fetching scheduled classes for user:", user.id);
+    // Optimized: Use enrolled courses data we already have, or fetch in single query
+    if (enrolledCourses.length > 0) {
+      const enrolledCourseIds = enrolledCourses.map(e => e.courses?.id).filter(Boolean);
+      
+      const { data, error } = await supabase
+        .from("scheduled_classes")
+        .select(`*, courses (title)`)
+        .in("course_id", enrolledCourseIds)
+        .gte("scheduled_time", new Date().toISOString())
+        .order("scheduled_time", { ascending: true })
+        .limit(5); // Only need a few for dashboard
 
-    const { data, error } = await supabase
-      .from("scheduled_classes")
-      .select(`
-        *,
-        courses (
-          title
-        )
-      `)
-      .gte("scheduled_time", new Date().toISOString())
-      .order("scheduled_time", { ascending: true });
-
-    console.log("Scheduled classes query result:", { data, error });
-
-    if (error) {
-      console.error("Error fetching scheduled classes:", error);
-    } else {
-      // Filter to only show classes for enrolled courses
-      const { data: enrollments, error: enrollError } = await supabase
-        .from("course_enrollments")
-        .select("course_id")
-        .eq("student_id", user.id);
-
-      console.log("Enrollments:", { enrollments, enrollError });
-
-      const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
-      console.log("Enrolled course IDs:", enrolledCourseIds);
-
-      const filteredClasses = data?.filter(c => enrolledCourseIds.includes(c.course_id)) || [];
-      console.log("Filtered scheduled classes:", filteredClasses);
-
-      setScheduledClasses(filteredClasses);
+      if (!error) {
+        setScheduledClasses(data || []);
+      }
     }
   };
 
@@ -504,14 +498,32 @@ const StudentDashboard = () => {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold">{t('courses.myCourses')}</h2>
-                  {enrolledCourses.length > 0 && (
+                  {!coursesLoading && enrolledCourses.length > 0 && (
                     <Badge variant="secondary" className="text-sm">
                       {enrolledCourses.length} {enrolledCourses.length === 1 ? t('dashboard.course') : t('dashboard.courses')}
                     </Badge>
                   )}
                 </div>
 
-                {(() => {
+                {coursesLoading ? (
+                  // Skeleton loader for courses
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <Card key={i} className="overflow-hidden rounded-2xl border animate-pulse">
+                        <div className="h-40 bg-gradient-to-br from-gray-200 to-gray-300" />
+                        <CardContent className="p-4 space-y-3">
+                          <div className="h-5 bg-gray-200 rounded w-3/4" />
+                          <div className="h-4 bg-gray-200 rounded w-full" />
+                          <div className="h-4 bg-gray-200 rounded w-2/3" />
+                          <div className="flex items-center gap-2 pt-2">
+                            <div className="h-4 w-4 bg-gray-200 rounded-full" />
+                            <div className="h-3 bg-gray-200 rounded w-24" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (() => {
                   // Filter courses based on search query
                   const filteredCourses = enrolledCourses.filter((enrollment) => {
                     const course = enrollment.courses;

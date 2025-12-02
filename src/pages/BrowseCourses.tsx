@@ -129,10 +129,53 @@ const BrowseCourses = () => {
 
   const levels = ["Beginner", "Intermediate", "Advanced"];
 
+  // Skeleton loader component for courses - compact cards for 4 per row
+  const CourseSkeletonLoader = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+        <div key={i} className="rounded-xl border overflow-hidden animate-pulse bg-white">
+          <div className="h-32 bg-gradient-to-br from-gray-200 to-gray-300" />
+          <div className="p-3 space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-3/4" />
+            <div className="h-3 bg-gray-200 rounded w-full" />
+            <div className="h-8 bg-gray-200 rounded-lg w-full mt-2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-lg text-gray-600">{t('browseCourses.loadingCourses')}</p>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white border-b sticky top-0 z-10">
+          <div className="container mx-auto px-4 sm:px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate(-1)}
+                  className="hover:bg-gray-100"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('browseCourses.title')}</h1>
+                  <p className="text-sm text-gray-600">{t('browseCourses.subtitle')}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-[#006D2C]" />
+                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 sm:px-6 py-8">
+          <CourseSkeletonLoader />
+        </main>
       </div>
     );
   }
@@ -168,7 +211,7 @@ const BrowseCourses = () => {
       {/* Courses Grid */}
       <main className="container mx-auto px-4 sm:px-6 py-8">
         {courses.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {courses.map((course, index) => {
               const gradient = gradients[index % gradients.length];
               const level = levels[index % levels.length];

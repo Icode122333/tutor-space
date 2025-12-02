@@ -123,9 +123,24 @@ export default function CourseDetail() {
   const fetchChapters = async () => {
     if (!id) return;
 
+    // OPTIMIZED: Single query to get chapters with lessons using join
     const { data: chaptersData, error: chaptersError } = await supabase
       .from("course_chapters")
-      .select("*")
+      .select(`
+        id,
+        title,
+        order_index,
+        course_lessons (
+          id,
+          title,
+          description,
+          content_type,
+          content_url,
+          file_url,
+          duration,
+          order_index
+        )
+      `)
       .eq("course_id", id)
       .order("order_index");
 
@@ -134,47 +149,44 @@ export default function CourseDetail() {
       return;
     }
 
-    const chaptersWithLessons = await Promise.all(
-      (chaptersData || []).map(async (chapter) => {
-        const { data: lessonsData, error: lessonsError } = await supabase
-          .from("course_lessons")
-          .select("*")
-          .eq("chapter_id", chapter.id)
-          .order("order_index");
-
-        if (lessonsError) {
-          console.error("Error fetching lessons:", lessonsError);
-          return { ...chapter, lessons: [], total_duration: 0 };
-        }
-
-        // Fetch progress if user is logged in
-        const lessonsWithProgress = userId ? await Promise.all(
-          (lessonsData || []).map(async (lesson) => {
-            const { data: progressData } = await supabase
-              .from("student_lesson_progress")
-              .select("is_completed")
-              .eq("student_id", userId)
-              .eq("lesson_id", lesson.id)
-              .single();
-
-            return {
-              ...lesson,
-              is_completed: progressData?.is_completed || false,
-            };
-          })
-        ) : lessonsData;
-
-        const totalDuration = lessonsWithProgress.reduce((sum, l) => sum + (l.duration || 0), 0);
-
-        return {
-          id: chapter.id,
-          title: chapter.title,
-          order_index: chapter.order_index,
-          lessons: lessonsWithProgress,
-          total_duration: totalDuration,
-        };
-      })
+    // Get all lesson IDs for progress query
+    const allLessonIds = (chaptersData || []).flatMap(ch => 
+      (ch.course_lessons || []).map(l => l.id)
     );
+
+    // OPTIMIZED: Single query for ALL lesson progress instead of N queries
+    let progressMap = new Map<string, boolean>();
+    if (userId && allLessonIds.length > 0) {
+      const { data: progressData } = await supabase
+        .from("student_lesson_progress")
+        .select("lesson_id, is_completed")
+        .eq("student_id", userId)
+        .in("lesson_id", allLessonIds);
+
+      if (progressData) {
+        progressData.forEach(p => progressMap.set(p.lesson_id, p.is_completed));
+      }
+    }
+
+    // Map chapters with lessons and progress
+    const chaptersWithLessons = (chaptersData || []).map(chapter => {
+      const lessons = (chapter.course_lessons || [])
+        .sort((a, b) => a.order_index - b.order_index)
+        .map(lesson => ({
+          ...lesson,
+          is_completed: progressMap.get(lesson.id) || false,
+        }));
+
+      const totalDuration = lessons.reduce((sum, l) => sum + (l.duration || 0), 0);
+
+      return {
+        id: chapter.id,
+        title: chapter.title,
+        order_index: chapter.order_index,
+        lessons,
+        total_duration: totalDuration,
+      };
+    });
 
     setChapters(chaptersWithLessons);
 
