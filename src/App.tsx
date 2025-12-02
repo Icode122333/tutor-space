@@ -28,6 +28,7 @@ import MyCourses from "./pages/MyCourses";
 import StudentSettings from "./pages/StudentSettings";
 import StudentAssignments from "./pages/StudentAssignments";
 import StudentScores from "./pages/StudentScores";
+import StudentSubscription from "./pages/StudentSubscription";
 import TeacherSettings from "./pages/TeacherSettings";
 import TeacherAssignments from "./pages/TeacherAssignments";
 import TeacherGrades from "./pages/TeacherGrades";
@@ -72,6 +73,7 @@ const App = () => (
           <Route path="/student/assignments" element={<StudentAssignments />} />
           <Route path="/student/scores" element={<StudentScores />} />
           <Route path="/student/settings" element={<StudentSettings />} />
+          <Route path="/student/subscription" element={<StudentSubscription />} />
           <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
           <Route path="/teacher/schedule" element={<TeacherSchedule />} />
           <Route path="/teacher/chat" element={<TeacherChat />} />

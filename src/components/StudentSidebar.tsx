@@ -1,4 +1,4 @@
-import { BookOpen, Calendar, MessageSquare, Award, GraduationCap, BookMarked, Settings, CreditCard, Home, FileText, TrendingUp } from "lucide-react";
+import { LayoutGrid, CalendarDays, MessagesSquare, Trophy, GraduationCap, Compass, Library, Cog, Wallet, ClipboardList, BarChart3 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar,
@@ -21,22 +21,22 @@ export function StudentSidebar() {
   const collapsed = state === "collapsed";
 
   const generalItems = [
-    { title: t('nav.dashboard'), url: "/student/dashboard", icon: Home },
-    { title: t('nav.schedule'), url: "/student/schedule", icon: Calendar },
-    { title: t('nav.chatGroup'), url: "/student/chat", icon: MessageSquare },
-    { title: t('nav.assignments'), url: "/student/assignments", icon: FileText },
-    { title: t('nav.scores'), url: "/student/scores", icon: TrendingUp },
-    { title: t('nav.certificates'), url: "/student/certificates", icon: Award },
+    { title: t('nav.dashboard'), url: "/student/dashboard", icon: LayoutGrid },
+    { title: t('nav.schedule'), url: "/student/schedule", icon: CalendarDays },
+    { title: t('nav.chatGroup'), url: "/student/chat", icon: MessagesSquare },
+    { title: t('nav.assignments'), url: "/student/assignments", icon: ClipboardList },
+    { title: t('nav.scores'), url: "/student/scores", icon: BarChart3 },
+    { title: t('nav.certificates'), url: "/student/certificates", icon: Trophy },
   ];
 
   const courseItems = [
-    { title: t('nav.allCourses'), url: "/courses", icon: BookOpen },
-    { title: t('nav.myCourses'), url: "/student/my-courses", icon: BookMarked },
+    { title: t('nav.allCourses'), url: "/courses", icon: Compass },
+    { title: t('nav.myCourses'), url: "/student/my-courses", icon: Library },
   ];
 
   const otherItems = [
-    { title: t('nav.setting'), url: "/student/settings", icon: Settings },
-    { title: t('nav.subscription'), url: "/student/subscription", icon: CreditCard },
+    { title: t('nav.setting'), url: "/student/settings", icon: Cog },
+    { title: t('nav.subscription'), url: "/student/subscription", icon: Wallet },
   ];
 
   return (

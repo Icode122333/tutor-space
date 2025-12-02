@@ -1,11 +1,25 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { 
+  Calendar as CalendarIcon, 
+  Clock, 
+  Video, 
+  ChevronLeft, 
+  ChevronRight,
+  BookOpen,
+  Users,
+  Play,
+  Bell,
+  CalendarDays,
+  Sun,
+  CalendarRange,
+  Radio
+} from "lucide-react";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
@@ -21,6 +35,7 @@ const StudentSchedule = () => {
   const [profile, setProfile] = useState<any>(null);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   useEffect(() => {
     checkUser();
@@ -36,7 +51,6 @@ const StudentSchedule = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Single optimized query: Get enrollments with scheduled classes in one go
     const { data: enrollments, error } = await supabase
       .from("course_enrollments")
       .select(`
@@ -60,16 +74,14 @@ const StudentSchedule = () => {
       return;
     }
 
-    // Flatten and filter scheduled classes
     const now = new Date().toISOString();
     const allClasses = enrollments?.flatMap(e => 
-      (e.courses?.scheduled_classes || []).map(sc => ({
+      (e.courses?.scheduled_classes || []).map((sc: any) => ({
         ...sc,
         courses: { title: e.courses?.title }
       }))
     ) || [];
 
-    // Filter future classes and sort
     const filteredClasses = allClasses
       .filter(c => c.scheduled_time >= now)
       .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
@@ -108,32 +120,52 @@ const StudentSchedule = () => {
     }
   };
 
+  // Get stats
+  const todayClasses = scheduledClasses.filter(sc => {
+    const classDate = new Date(sc.scheduled_time);
+    return classDate.toDateString() === new Date().toDateString();
+  }).length;
+
+  const thisWeekClasses = scheduledClasses.filter(sc => {
+    const classDate = new Date(sc.scheduled_time);
+    const today = new Date();
+    const weekEnd = new Date(today);
+    weekEnd.setDate(today.getDate() + 7);
+    return classDate >= today && classDate <= weekEnd;
+  }).length;
+
   if (loading) {
     return <LoadingSpinner />;
   }
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-50 via-white to-gray-100">
         <StudentSidebar />
         
-        <div className="flex-1 flex flex-col">
-          <header className="border-b bg-card px-6 py-4 rounded-2xl shadow-lg mx-4 mt-4">
+        <div className="flex-1 flex flex-col p-4 gap-6">
+          {/* Header */}
+          <header className="bg-gradient-to-r from-[#0A400C] via-[#0d5210] to-[#116315] rounded-2xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <SidebarTrigger />
+                <SidebarTrigger className="text-white hover:bg-white/10" />
                 <div>
-                  <h1 className="text-2xl font-bold">{t('schedule.classSchedule')}</h1>
-                  <p className="text-sm text-muted-foreground">{t('schedule.viewManageClasses')}</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <CalendarIcon className="h-5 w-5 text-white/80" />
+                    <span className="text-white/80 text-sm font-medium">{t('schedule.classSchedule')}</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                    {t('schedule.viewManageClasses')}
+                  </h1>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <LanguageSelector />
-                <Avatar className="h-12 w-12 rounded-full shadow-lg border-2 border-white">
+                <Avatar className="h-11 w-11 ring-2 ring-white/30 ring-offset-2 ring-offset-[#0A400C]">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt={profile.full_name} className="object-cover" />
                   ) : (
-                    <AvatarFallback className="bg-primary text-primary-foreground">
+                    <AvatarFallback className="bg-white text-[#0A400C] font-bold">
                       {profile?.full_name?.charAt(0) || 'S'}
                     </AvatarFallback>
                   )}
@@ -142,175 +174,302 @@ const StudentSchedule = () => {
             </div>
           </header>
 
-          <main className="flex-1 p-6 overflow-auto">
-            <div className="max-w-7xl mx-auto">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 order-2 lg:order-1">
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle>{t('schedule.upcomingClasses')}</CardTitle>
-                        {scheduledClasses.length > 0 && (
-                          <Badge className="bg-primary">
-                            {scheduledClasses.length} {scheduledClasses.length === 1 ? t('schedule.class') : t('schedule.classes')}
-                          </Badge>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {scheduledClasses.length > 0 ? (
-                          scheduledClasses.map((scheduledClass, index) => {
-                            const classDate = new Date(scheduledClass.scheduled_time);
-                            const now = new Date();
-                            const isToday = classDate.toDateString() === now.toDateString();
-                            const isTomorrow = classDate.toDateString() === new Date(now.getTime() + 86400000).toDateString();
-                            const dayName = classDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-                            const monthName = classDate.toLocaleDateString('en-US', { month: 'short' });
-                            const dayNumber = classDate.getDate();
-                            const timeString = classDate.toLocaleTimeString('en-US', { 
-                              hour: 'numeric', 
-                              minute: '2-digit',
-                              hour12: true 
-                            });
+          {/* Stats Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <Card className="border-0 shadow-md rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <CalendarDays className="h-5 w-5 text-blue-600" strokeWidth={1.5} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{scheduledClasses.length}</p>
+                  <p className="text-xs text-gray-500">{t('schedule.upcomingClasses')}</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="border-0 shadow-md rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-lg bg-green-50 flex items-center justify-center">
+                  <Sun className="h-5 w-5 text-green-600" strokeWidth={1.5} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{todayClasses}</p>
+                  <p className="text-xs text-gray-500">{t('schedule.today')}</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="border-0 shadow-md rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-lg bg-purple-50 flex items-center justify-center">
+                  <CalendarRange className="h-5 w-5 text-purple-600" strokeWidth={1.5} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{thisWeekClasses}</p>
+                  <p className="text-xs text-gray-500">This Week</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="border-0 shadow-md rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-lg bg-orange-50 flex items-center justify-center">
+                  <Radio className="h-5 w-5 text-orange-600" strokeWidth={1.5} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">Live</p>
+                  <p className="text-xs text-gray-500">Class Type</p>
+                </div>
+              </div>
+            </Card>
+          </div>
 
-                            const timeUntil = classDate.getTime() - now.getTime();
-                            const hoursUntil = Math.floor(timeUntil / (1000 * 60 * 60));
-                            const minutesUntil = Math.floor((timeUntil % (1000 * 60 * 60)) / (1000 * 60));
-                            const isStartingSoon = hoursUntil === 0 && minutesUntil <= 30 && minutesUntil > 0;
+          {/* Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+            {/* Classes List - 2 columns */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* Section Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#0A400C] flex items-center justify-center">
+                    <Video className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">{t('schedule.upcomingClasses')}</h2>
+                    <p className="text-sm text-gray-500">Your scheduled live sessions</p>
+                  </div>
+                </div>
+                {scheduledClasses.length > 0 && (
+                  <Badge className="bg-[#0A400C]/10 text-[#0A400C] hover:bg-[#0A400C]/20 px-3 py-1">
+                    {scheduledClasses.length} {scheduledClasses.length === 1 ? t('schedule.class') : t('schedule.classes')}
+                  </Badge>
+                )}
+              </div>
 
-                            const gradients = [
-                              'from-blue-500 to-purple-600',
-                              'from-green-500 to-teal-600',
-                              'from-orange-500 to-red-600',
-                              'from-pink-500 to-rose-600',
-                              'from-indigo-500 to-blue-600',
-                            ];
-                            const gradient = gradients[index % gradients.length];
+              {/* Classes Cards */}
+              <div className="space-y-4">
+                {scheduledClasses.length > 0 ? (
+                  scheduledClasses.map((scheduledClass) => {
+                    const classDate = new Date(scheduledClass.scheduled_time);
+                    const now = new Date();
+                    const isToday = classDate.toDateString() === now.toDateString();
+                    const isTomorrow = classDate.toDateString() === new Date(now.getTime() + 86400000).toDateString();
+                    const dayName = classDate.toLocaleDateString('en-US', { weekday: 'short' });
+                    const monthName = classDate.toLocaleDateString('en-US', { month: 'short' });
+                    const dayNumber = classDate.getDate();
+                    const timeString = classDate.toLocaleTimeString('en-US', { 
+                      hour: 'numeric', 
+                      minute: '2-digit',
+                      hour12: true 
+                    });
 
-                            return (
-                              <div
-                                key={scheduledClass.id}
-                                className="group relative overflow-hidden rounded-2xl bg-white border-2 border-gray-200 hover:border-primary transition-all duration-300 hover:shadow-lg cursor-pointer"
-                                onClick={() => window.open(scheduledClass.meet_link, '_blank')}
-                              >
-                                {isStartingSoon && (
-                                  <div className="absolute top-3 right-3 z-10">
-                                    <Badge className="bg-red-500 text-white animate-pulse">
-                                      {t('schedule.startingSoon')}
+                    const timeUntil = classDate.getTime() - now.getTime();
+                    const hoursUntil = Math.floor(timeUntil / (1000 * 60 * 60));
+                    const minutesUntil = Math.floor((timeUntil % (1000 * 60 * 60)) / (1000 * 60));
+                    const isStartingSoon = hoursUntil === 0 && minutesUntil <= 30 && minutesUntil > 0;
+                    const isLive = hoursUntil === 0 && minutesUntil <= 0 && minutesUntil > -90;
+
+                    return (
+                      <Card 
+                        key={scheduledClass.id}
+                        className={`group border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden rounded-2xl ${
+                          isLive ? 'ring-2 ring-red-500 ring-offset-2' : 
+                          isStartingSoon ? 'ring-2 ring-orange-400 ring-offset-2' : ''
+                        }`}
+                      >
+                        <CardContent className="p-0">
+                          <div className="flex">
+                            {/* Date Column */}
+                            <div className={`w-24 sm:w-28 flex-shrink-0 p-4 flex flex-col items-center justify-center text-white ${
+                              isLive ? 'bg-gradient-to-br from-red-500 to-red-600' :
+                              isStartingSoon ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+                              isToday ? 'bg-gradient-to-br from-[#0A400C] to-[#116315]' :
+                              'bg-gradient-to-br from-gray-700 to-gray-800'
+                            }`}>
+                              {isLive && (
+                                <div className="flex items-center gap-1 mb-1">
+                                  <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                                  <span className="text-xs font-bold">LIVE</span>
+                                </div>
+                              )}
+                              <span className="text-xs font-medium opacity-80">{monthName}</span>
+                              <span className="text-4xl font-bold leading-none my-1">{dayNumber}</span>
+                              <span className="text-xs font-medium opacity-80">{dayName}</span>
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 p-5 bg-white">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 min-w-0">
+                                  {/* Status Badge */}
+                                  <div className="flex items-center gap-2 mb-2">
+                                    {isLive ? (
+                                      <Badge className="bg-red-500 text-white animate-pulse">
+                                        <span className="w-1.5 h-1.5 bg-white rounded-full mr-1.5 animate-ping" />
+                                        Live Now
+                                      </Badge>
+                                    ) : isStartingSoon ? (
+                                      <Badge className="bg-orange-500 text-white">
+                                        <Bell className="h-3 w-3 mr-1" />
+                                        {t('schedule.startingSoon')}
+                                      </Badge>
+                                    ) : isToday ? (
+                                      <Badge className="bg-[#0A400C] text-white">{t('schedule.today')}</Badge>
+                                    ) : isTomorrow ? (
+                                      <Badge variant="outline" className="border-[#0A400C] text-[#0A400C]">{t('schedule.tomorrow')}</Badge>
+                                    ) : null}
+                                    <Badge variant="outline" className="text-gray-500">
+                                      <Video className="h-3 w-3 mr-1" />
+                                      Live Session
                                     </Badge>
                                   </div>
-                                )}
 
-                                {(isToday || isTomorrow) && !isStartingSoon && (
-                                  <div className="absolute top-3 right-3 z-10">
-                                    <Badge className="bg-primary text-white">
-                                      {isToday ? t('schedule.today') : t('schedule.tomorrow')}
-                                    </Badge>
-                                  </div>
-                                )}
+                                  {/* Title */}
+                                  <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1 group-hover:text-[#0A400C] transition-colors">
+                                    {scheduledClass.title}
+                                  </h3>
+                                  
+                                  {/* Course Name */}
+                                  <p className="text-sm text-gray-500 mb-3 flex items-center gap-1.5">
+                                    <BookOpen className="h-4 w-4" />
+                                    {scheduledClass.courses?.title}
+                                  </p>
 
-                                <div className="relative p-5 flex gap-4">
-                                  <div className={`flex-shrink-0 w-20 h-20 rounded-xl bg-gradient-to-br ${gradient} flex flex-col items-center justify-center text-white shadow-lg`}>
-                                    <span className="text-xs font-semibold opacity-90">{monthName}</span>
-                                    <span className="text-3xl font-bold leading-none">{dayNumber}</span>
-                                    <span className="text-xs font-medium opacity-90">{dayName}</span>
-                                  </div>
-
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-gray-900 mb-1 line-clamp-1">
-                                      {scheduledClass.title}
-                                    </h4>
-                                    <p className="text-sm text-gray-600 mb-3 line-clamp-1">
-                                      {scheduledClass.courses?.title}
-                                    </p>
-                                    
-                                    <div className="flex items-center gap-4 text-sm">
-                                      <div className="flex items-center gap-1.5 text-gray-700">
-                                        <CalendarIcon className="h-4 w-4 text-primary" />
-                                        <span className="font-medium">{timeString}</span>
-                                      </div>
-                                      <div className="flex items-center gap-1.5 text-gray-600">
-                                        <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <span>90 {t('schedule.min')}</span>
-                                      </div>
+                                  {/* Time Info */}
+                                  <div className="flex flex-wrap items-center gap-4 text-sm">
+                                    <div className="flex items-center gap-1.5 text-gray-700">
+                                      <Clock className="h-4 w-4 text-[#0A400C]" />
+                                      <span className="font-semibold">{timeString}</span>
                                     </div>
-
-                                    {hoursUntil >= 0 && (
-                                      <div className="mt-2 text-xs text-gray-500">
+                                    <div className="flex items-center gap-1.5 text-gray-500">
+                                      <Users className="h-4 w-4" />
+                                      <span>90 {t('schedule.min')}</span>
+                                    </div>
+                                    {hoursUntil >= 0 && !isLive && (
+                                      <div className={`text-xs px-2 py-1 rounded-full ${
+                                        isStartingSoon ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'
+                                      }`}>
                                         {isStartingSoon ? (
-                                          <span className="text-red-600 font-semibold">{t('schedule.startsIn')} {minutesUntil} {t('schedule.minutes')}</span>
+                                          <span className="font-semibold">{t('schedule.startsIn')} {minutesUntil}m</span>
                                         ) : hoursUntil === 0 ? (
-                                          <span>{t('schedule.startsIn')} {minutesUntil} {t('schedule.minutes')}</span>
+                                          <span>{t('schedule.startsIn')} {minutesUntil}m</span>
                                         ) : hoursUntil < 24 ? (
-                                          <span>{t('schedule.startsIn')} {hoursUntil}{t('schedule.hours')} {minutesUntil}m</span>
+                                          <span>{t('schedule.startsIn')} {hoursUntil}h {minutesUntil}m</span>
                                         ) : (
-                                          <span>{Math.floor(hoursUntil / 24)} {t('schedule.days')}</span>
+                                          <span>{Math.floor(hoursUntil / 24)} {t('schedule.days')} left</span>
                                         )}
                                       </div>
                                     )}
                                   </div>
-
-                                  <div className="flex-shrink-0 flex items-center">
-                                    <Button
-                                      size="sm"
-                                      className="bg-primary hover:bg-primary/90 text-white"
-                                    >
-                                      <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                      </svg>
-                                      {t('schedule.join')}
-                                    </Button>
-                                  </div>
                                 </div>
+
+                                {/* Join Button */}
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (scheduledClass.meet_link) {
+                                      window.open(scheduledClass.meet_link, '_blank');
+                                    } else {
+                                      toast.error("Meeting link not available");
+                                    }
+                                  }}
+                                  className={`flex-shrink-0 rounded-xl px-5 h-11 font-semibold shadow-lg transition-all hover:scale-105 ${
+                                    isLive ? 'bg-red-500 hover:bg-red-600' :
+                                    isStartingSoon ? 'bg-orange-500 hover:bg-orange-600' :
+                                    'bg-[#0A400C] hover:bg-[#083308]'
+                                  }`}
+                                >
+                                  <Play className="h-4 w-4 mr-2" fill="currentColor" />
+                                  {isLive ? 'Join Now' : t('schedule.join')}
+                                </Button>
                               </div>
-                            );
-                          })
-                        ) : (
-                          <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-gray-300">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center">
-                              <CalendarIcon className="h-8 w-8 text-gray-400" />
                             </div>
-                            <p className="text-gray-600 font-medium mb-1">{t('schedule.noUpcomingClasses')}</p>
-                            <p className="text-sm text-gray-500">{t('schedule.scheduleIsClear')}</p>
                           </div>
-                        )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                ) : (
+                  <Card className="border-0 shadow-lg rounded-2xl overflow-hidden">
+                    <CardContent className="p-0">
+                      <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-12 text-center">
+                        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-white shadow-lg flex items-center justify-center">
+                          <CalendarIcon className="h-10 w-10 text-gray-300" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('schedule.noUpcomingClasses')}</h3>
+                        <p className="text-gray-500 mb-6 max-w-sm mx-auto">{t('schedule.scheduleIsClear')}</p>
+                        <Button 
+                          onClick={() => navigate('/courses')}
+                          className="bg-[#0A400C] hover:bg-[#083308] rounded-xl px-6"
+                        >
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          Browse Courses
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
-                </div>
-
-                <div className="lg:col-span-1 order-1 lg:order-2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{t('schedule.calendar')}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        className="rounded-md border-0"
-                        modifiers={{
-                          scheduled: scheduledClasses.map(sc => new Date(sc.scheduled_time))
-                        }}
-                        modifiersStyles={{
-                          scheduled: {
-                            backgroundColor: '#ef4444',
-                            color: 'white',
-                            borderRadius: '50%',
-                            fontWeight: 'bold'
-                          }
-                        }}
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
+                )}
               </div>
             </div>
-          </main>
+
+            {/* Calendar Sidebar - 1 column */}
+            <div className="space-y-4">
+              {/* Calendar Card */}
+              <Card className="border-0 shadow-lg rounded-2xl overflow-hidden">
+                <div className="bg-gradient-to-r from-[#0A400C] to-[#116315] p-4">
+                  <div className="flex items-center justify-between">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => {
+                        const newDate = new Date(currentMonth);
+                        newDate.setMonth(newDate.getMonth() - 1);
+                        setCurrentMonth(newDate);
+                      }}
+                      className="text-white hover:bg-white/10 h-8 w-8"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <h3 className="font-bold text-white">
+                      {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </h3>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => {
+                        const newDate = new Date(currentMonth);
+                        newDate.setMonth(newDate.getMonth() + 1);
+                        setCurrentMonth(newDate);
+                      }}
+                      className="text-white hover:bg-white/10 h-8 w-8"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    month={currentMonth}
+                    onMonthChange={setCurrentMonth}
+                    className="rounded-md border-0 w-full"
+                    modifiers={{
+                      scheduled: scheduledClasses.map((sc: any) => new Date(sc.scheduled_time))
+                    }}
+                    modifiersStyles={{
+                      scheduled: {
+                        backgroundColor: '#0A400C',
+                        color: 'white',
+                        borderRadius: '8px',
+                        fontWeight: 'bold'
+                      }
+                    }}
+                  />
+                </CardContent>
+              </Card>
+
+            </div>
+          </div>
         </div>
       </div>
     </SidebarProvider>
