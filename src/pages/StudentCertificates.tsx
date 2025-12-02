@@ -10,6 +10,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { useTranslation } from "react-i18next";
 
 interface Certificate {
   id: string;
@@ -25,6 +26,7 @@ interface Certificate {
 
 const StudentCertificates = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
@@ -84,7 +86,7 @@ const StudentCertificates = () => {
       setCertificates(transformedCertificates);
     } catch (error: any) {
       console.error("Error fetching certificates:", error);
-      toast.error("Failed to load certificates");
+      toast.error(t('certificates.failedToLoad'));
     }
   };
 
@@ -122,18 +124,18 @@ const StudentCertificates = () => {
   const handleDownload = (certificate: Certificate) => {
     if (certificate.certificate_url) {
       window.open(certificate.certificate_url, '_blank');
-      toast.success("Opening certificate...");
+      toast.success(t('certificates.openingCertificate'));
     } else {
-      toast.error("Certificate URL not available");
+      toast.error(t('certificates.certificateUrlNotAvailable'));
     }
   };
 
   const handleShare = (certificate: Certificate) => {
     if (certificate.certificate_url) {
       navigator.clipboard.writeText(certificate.certificate_url);
-      toast.success("Certificate link copied to clipboard!");
+      toast.success(t('certificates.certificateLinkCopied'));
     } else {
-      toast.error("Certificate URL not available");
+      toast.error(t('certificates.certificateUrlNotAvailable'));
     }
   };
 
@@ -152,8 +154,8 @@ const StudentCertificates = () => {
               <div className="flex items-center gap-4">
                 <SidebarTrigger />
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">My Certificates</h1>
-                  <p className="text-sm text-gray-600">View and download your course completion certificates</p>
+                  <h1 className="text-2xl font-bold text-gray-900">{t('certificates.myCertificates')}</h1>
+                  <p className="text-sm text-gray-600">{t('certificates.viewDownload')}</p>
                 </div>
               </div>
               <Avatar className="h-12 w-12 rounded-full shadow-lg border-2 border-white">
@@ -176,7 +178,7 @@ const StudentCertificates = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Total Certificates</p>
+                        <p className="text-sm text-gray-600 mb-1">{t('certificates.totalCertificates')}</p>
                         <p className="text-3xl font-bold text-[#006d2c]">{certificates.length}</p>
                       </div>
                       <div className="w-14 h-14 rounded-full bg-[#006d2c]/10 flex items-center justify-center">
@@ -190,7 +192,7 @@ const StudentCertificates = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Courses Completed</p>
+                        <p className="text-sm text-gray-600 mb-1">{t('certificates.coursesCompleted')}</p>
                         <p className="text-3xl font-bold text-blue-600">{certificates.length}</p>
                       </div>
                       <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center">
@@ -204,10 +206,10 @@ const StudentCertificates = () => {
               {/* Certificates Grid */}
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">Your Certificates</h2>
+                  <h2 className="text-xl font-bold text-gray-900">{t('certificates.yourCertificates')}</h2>
                   {certificates.length > 0 && (
                     <Badge className="bg-[#006d2c] text-white">
-                      {certificates.length} {certificates.length === 1 ? 'certificate' : 'certificates'}
+                      {certificates.length} {certificates.length === 1 ? t('certificates.certificate') : t('certificates.certificatesPlural')}
                     </Badge>
                   )}
                 </div>
@@ -241,7 +243,7 @@ const StudentCertificates = () => {
                             <div className="relative text-center">
                               <Award className="h-16 w-16 text-white mx-auto mb-2 drop-shadow-lg" />
                               <Badge className="bg-white/20 text-white border-white/30">
-                                Certificate of Completion
+                                {t('certificates.certificateOfCompletion')}
                               </Badge>
                             </div>
                             {/* Decorative elements */}
@@ -258,7 +260,7 @@ const StudentCertificates = () => {
                                 {cert.course_title}
                               </h3>
                               <p className="text-sm text-gray-600">
-                                Instructor: {cert.instructor_name}
+                                {t('certificates.instructor')}: {cert.instructor_name}
                               </p>
                             </div>
 
@@ -268,7 +270,7 @@ const StudentCertificates = () => {
                                 <span>{formattedDate}</span>
                               </div>
                               <Badge variant="secondary" className="bg-[#006d2c]/10 text-[#006d2c]">
-                                Grade: {cert.grade}
+                                {t('certificates.grade')}: {cert.grade}
                               </Badge>
                             </div>
 
@@ -280,7 +282,7 @@ const StudentCertificates = () => {
                                 size="sm"
                               >
                                 <Download className="h-4 w-4 mr-2" />
-                                View
+                                {t('certificates.viewBtn')}
                               </Button>
                               <Button
                                 onClick={() => handleShare(cert)}
@@ -289,7 +291,7 @@ const StudentCertificates = () => {
                                 size="sm"
                               >
                                 <Share2 className="h-4 w-4 mr-2" />
-                                Share
+                                {t('certificates.share')}
                               </Button>
                             </div>
                           </CardContent>
@@ -317,15 +319,15 @@ const StudentCertificates = () => {
                           className="w-64 h-64 mx-auto object-contain opacity-90"
                         />
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">No certificate</h3>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2">{t('certificates.noCertificate')}</h3>
                       <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                        Take course to earn certificate
+                        {t('certificates.takeCourse')}
                       </p>
                       <Button
                         onClick={() => navigate("/student/dashboard")}
                         className="bg-[#006d2c] hover:bg-[#005523] text-white"
                       >
-                        Browse Courses
+                        {t('slider.browseCourses')}
                       </Button>
                     </CardContent>
                   </Card>
@@ -340,23 +342,22 @@ const StudentCertificates = () => {
                       <Award className="h-6 w-6 text-[#006d2c]" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-2">About Your Certificates</h3>
+                      <h3 className="font-semibold text-gray-900 mb-2">{t('certificates.aboutCertificates')}</h3>
                       <p className="text-sm text-gray-600 mb-3">
-                        All certificates are digitally signed and verified. You can download them as PDF files
-                        or share them directly on LinkedIn and other professional networks.
+                        {t('certificates.aboutCertificatesDesc')}
                       </p>
                       <ul className="text-sm text-gray-600 space-y-1">
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-4 w-4 text-[#006d2c]" />
-                          Verified and authenticated
+                          {t('certificates.verifiedAuthenticated')}
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-4 w-4 text-[#006d2c]" />
-                          Shareable on social media
+                          {t('certificates.shareableSocial')}
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-4 w-4 text-[#006d2c]" />
-                          Downloadable as PDF
+                          {t('certificates.downloadablePDF')}
                         </li>
                       </ul>
                     </div>

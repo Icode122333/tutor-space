@@ -52,9 +52,9 @@ const Auth = () => {
 
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
-          toast.error("Invalid email or password. Please try again.");
+          toast.error(t('login.invalidCredentials'));
         } else if (error.message.includes("Email not confirmed")) {
-          toast.error("Please confirm your email before signing in.");
+          toast.error(t('login.confirmEmail'));
         } else {
           toast.error(error.message);
         }
@@ -70,7 +70,7 @@ const Auth = () => {
 
         if (profileError) {
           console.error("Profile fetch error:", profileError);
-          toast.error("Error loading profile. Please try again.");
+          toast.error(t('login.errorLoadingProfile'));
           return;
         }
 
@@ -78,7 +78,7 @@ const Auth = () => {
         console.log("🔍 Checking role:", profile.role);
         if (profile.role === "admin") {
           console.log("✅ Admin detected! Navigating to admin dashboard");
-          toast.success("Welcome Admin!");
+          toast.success(t('login.welcomeAdmin'));
           navigate("/admin/dashboard", { replace: true });
           return;
         }
@@ -91,7 +91,7 @@ const Auth = () => {
           return;
         }
 
-        toast.success("Signed in successfully!");
+        toast.success(t('login.signedInSuccess'));
         navigate(profile.role === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
       }
     } catch (error: any) {
@@ -124,9 +124,9 @@ const Auth = () => {
           {/* Header */}
           <div className="space-y-1">
             <h1 className="text-3xl font-bold text-black leading-tight">
-              Master Skills, Anytime, Anywhere.
+              {t('login.masterSkills')}
             </h1>
-            <p className="text-gray-500 text-sm">{t('auth.signUp')} to start</p>
+            <p className="text-gray-500 text-sm">{t('login.signInToStart')}</p>
           </div>
 
           {/* Google Auth Button */}
@@ -230,8 +230,8 @@ const Auth = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
         <div className="absolute bottom-8 left-8 text-white z-10">
-          <h3 className="text-2xl font-bold mb-2">Join Our Learning Community</h3>
-          <p className="text-lg opacity-90">Connect with students and teachers worldwide</p>
+          <h3 className="text-2xl font-bold mb-2">{t('login.joinCommunity')}</h3>
+          <p className="text-lg opacity-90">{t('login.connectWorldwide')}</p>
         </div>
       </div>
     </div>

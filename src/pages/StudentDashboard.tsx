@@ -338,7 +338,7 @@ const StudentDashboard = () => {
                         <div className="flex items-center gap-1.5">
                           <CalendarDays className="h-4 w-4 text-gray-600" />
                           <span className="font-semibold text-sm text-gray-900">
-                            {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                            {t(`calendar.${currentMonth.toLocaleDateString('en-US', { month: 'long' }).toLowerCase()}`)} {currentMonth.getFullYear()}
                           </span>
                         </div>
 

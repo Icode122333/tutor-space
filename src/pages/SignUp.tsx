@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { GraduationCap, Users, Eye, EyeOff } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 type UserRole = "student" | "teacher";
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole>("student");
   const [showPassword, setShowPassword] = useState(false);
@@ -48,7 +50,7 @@ const SignUp = () => {
     const fullName = formData.get("fullName") as string;
 
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error(t('signUp.passwordsDoNotMatch'));
       setLoading(false);
       return;
     }
@@ -68,7 +70,7 @@ const SignUp = () => {
 
       if (error) {
         if (error.message.includes("already registered")) {
-          toast.error("This email is already registered. Please sign in instead.");
+          toast.error(t('signUp.emailAlreadyRegistered'));
         } else {
           toast.error(error.message);
         }
@@ -79,7 +81,7 @@ const SignUp = () => {
         // Check if email confirmation is required
         if (data.user.identities && data.user.identities.length === 0) {
           // Email needs to be verified
-          toast.success("Account created! Please check your email to verify your account.");
+          toast.success(t('signUp.accountCreated'));
           navigate("/verify-email");
           return;
         }
@@ -112,7 +114,7 @@ const SignUp = () => {
         }
 
         // For instant signup (no email verification), redirect to onboarding
-        toast.success("Account created successfully!");
+        toast.success(t('signUp.accountCreatedSuccess'));
         navigate(selectedRole === "teacher" ? "/teacher/onboarding" : "/onboarding");
       }
     } catch (error: any) {
@@ -140,9 +142,9 @@ const SignUp = () => {
           {/* Header */}
           <div className="space-y-1">
             <h1 className="text-3xl font-bold text-black leading-tight">
-              Master Skills, Anytime, Anywhere.
+              {t('signUp.masterSkills')}
             </h1>
-            <p className="text-gray-500 text-sm">Sign up to start</p>
+            <p className="text-gray-500 text-sm">{t('signUp.signUpToStart')}</p>
           </div>
 
           {/* Role Selection */}
@@ -158,7 +160,7 @@ const SignUp = () => {
             >
               <GraduationCap className="mr-2 h-4 w-4" />
               <span className={selectedRole === "student" ? "" : "text-black group-hover:text-[#006d2c] transition-colors"}>
-                Student
+                {t('signUp.student')}
               </span>
             </Button>
             <Button
@@ -172,7 +174,7 @@ const SignUp = () => {
             >
               <Users className="mr-2 h-4 w-4" />
               <span className={selectedRole === "teacher" ? "" : "text-black group-hover:text-[#006d2c] transition-colors"}>
-                Teacher
+                {t('signUp.teacher')}
               </span>
             </Button>
           </div>
@@ -191,7 +193,7 @@ const SignUp = () => {
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
             <span className="text-gray-700 group-hover:text-[#006d2c] transition-colors">
-              Sign up with Google
+              {t('signUp.signUpWithGoogle')}
             </span>
           </Button>
 
@@ -209,13 +211,13 @@ const SignUp = () => {
           <form onSubmit={handleSignUp} className="space-y-3">
             <div className="space-y-1">
               <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
-                Name*
+                {t('signUp.name')}
               </Label>
               <Input
                 id="fullName"
                 name="fullName"
                 type="text"
-                placeholder="Enter your name"
+                placeholder={t('signUp.enterName')}
                 required
                 className="h-11 px-4 border-gray-300 rounded-lg focus:border-black focus:ring-black"
               />
@@ -223,13 +225,13 @@ const SignUp = () => {
 
             <div className="space-y-1">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                Email*
+                {t('signUp.email')}
               </Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder={t('signUp.enterEmail')}
                 required
                 className="h-11 px-4 border-gray-300 rounded-lg focus:border-black focus:ring-black"
               />
@@ -237,14 +239,14 @@ const SignUp = () => {
 
             <div className="space-y-1">
               <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                Password*
+                {t('signUp.password')}
               </Label>
               <div className="relative">
                 <Input
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
+                  placeholder={t('signUp.enterPassword')}
                   required
                   minLength={6}
                   className="h-11 px-4 pr-12 border-gray-300 rounded-lg focus:border-black focus:ring-black"
@@ -261,14 +263,14 @@ const SignUp = () => {
 
             <div className="space-y-1">
               <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
-                Confirm Password*
+                {t('signUp.confirmPassword')}
               </Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
                   name="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm your password"
+                  placeholder={t('signUp.confirmYourPassword')}
                   required
                   minLength={6}
                   className="h-11 px-4 pr-12 border-gray-300 rounded-lg focus:border-black focus:ring-black"
@@ -288,19 +290,19 @@ const SignUp = () => {
               disabled={loading}
               className="w-full h-11 bg-black hover:bg-[#006d2c] text-white font-medium rounded-lg transition-colors duration-300"
             >
-              {loading ? "Creating Account..." : "Create Account"}
+              {loading ? t('signUp.creatingAccount') : t('signUp.createAccount')}
             </Button>
           </form>
 
           {/* Footer */}
           <div className="text-center">
             <p className="text-sm text-gray-500">
-              Already have an account?{" "}
+              {t('signUp.alreadyHaveAccount')}{" "}
               <button
                 onClick={() => navigate("/auth")}
                 className="text-black font-bold hover:underline"
               >
-                Login Here
+                {t('signUp.loginHere')}
               </button>
             </p>
           </div>
@@ -316,8 +318,8 @@ const SignUp = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
         <div className="absolute bottom-8 left-8 text-white z-10">
-          <h3 className="text-2xl font-bold mb-2">Join Our Learning Community</h3>
-          <p className="text-lg opacity-90">Connect with students and teachers worldwide</p>
+          <h3 className="text-2xl font-bold mb-2">{t('signUp.joinCommunity')}</h3>
+          <p className="text-lg opacity-90">{t('signUp.connectWorldwide')}</p>
         </div>
       </div>
     </div>
