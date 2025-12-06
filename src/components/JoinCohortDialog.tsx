@@ -23,10 +23,12 @@ interface Cohort {
   teacher_id: string;
   start_date?: string;
   end_date?: string;
-  max_students?: number;
+  max_students: number;
   is_active?: boolean;
   isAlreadyIn?: boolean;
+  hasPendingRequest?: boolean;
   courses?: {
+    id: string;
     title: string;
   };
   profiles?: {
@@ -62,65 +64,76 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get all unique cohort names from course_enrollments
-      const { data: enrollments, error: enrollError } = await supabase
-        .from("course_enrollments")
+      // Fetch active cohorts from the cohorts table (created by teachers)
+      const { data: cohortsData, error: cohortsError } = await supabase
+        .from("cohorts")
         .select(`
-          cohort_name,
+          id,
+          name,
+          description,
           course_id,
+          teacher_id,
+          max_students,
+          is_active,
           courses (
             id,
-            title,
-            teacher_id,
-            profiles (
-              full_name
-            )
+            title
+          ),
+          profiles:teacher_id (
+            full_name
           )
         `)
-        .not("cohort_name", "is", null);
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
 
-      if (enrollError) throw enrollError;
+      if (cohortsError) {
+        console.error("Error fetching cohorts:", cohortsError);
+        // If cohorts table doesn't exist, show empty state
+        setCohorts([]);
+        return;
+      }
 
-      // Check which cohorts the student is already in
+      // Check which cohorts the student is already in (via course_enrollments)
       const { data: myEnrollments } = await supabase
         .from("course_enrollments")
-        .select("cohort_name, course_id")
-        .eq("student_id", user.id);
+        .select("cohort_name")
+        .eq("student_id", user.id)
+        .not("cohort_name", "is", null);
 
-      const myCohorts = new Set(
-        (myEnrollments || [])
-          .filter(e => e.cohort_name)
-          .map(e => `${e.cohort_name}-${e.course_id}`)
+      const myCohortNames = new Set(
+        (myEnrollments || []).map(e => e.cohort_name)
       );
 
-      // Group by cohort name and course
-      const cohortMap = new Map();
-      (enrollments || []).forEach((enrollment: any) => {
-        if (!enrollment.cohort_name || !enrollment.courses) return;
-        
-        const key = `${enrollment.cohort_name}-${enrollment.course_id}`;
-        
-        if (!cohortMap.has(key)) {
-          cohortMap.set(key, {
-            id: key,
-            name: enrollment.cohort_name,
-            course_id: enrollment.course_id,
-            courses: enrollment.courses,
-            teacher_id: enrollment.courses.teacher_id,
-            profiles: enrollment.courses.profiles,
-            isAlreadyIn: myCohorts.has(key),
-            _count: { enrollments: 0 }
-          });
-        }
-        
-        const cohort = cohortMap.get(key);
-        cohort._count.enrollments += 1;
-      });
+      // Check for pending join requests
+      const { data: myRequests } = await supabase
+        .from("cohort_join_requests")
+        .select("cohort_id, status")
+        .eq("student_id", user.id);
 
-      // Convert to array and filter out cohorts student is already in
-      const cohortsArray = Array.from(cohortMap.values());
-      
-      setCohorts(cohortsArray);
+      const pendingRequests = new Set(
+        (myRequests || [])
+          .filter(r => r.status === "pending")
+          .map(r => r.cohort_id)
+      );
+
+      // Get student counts for each cohort
+      const cohortsWithCounts = await Promise.all(
+        (cohortsData || []).map(async (cohort) => {
+          const { count } = await supabase
+            .from("course_enrollments")
+            .select("*", { count: "exact", head: true })
+            .eq("cohort_name", cohort.name);
+
+          return {
+            ...cohort,
+            isAlreadyIn: myCohortNames.has(cohort.name),
+            hasPendingRequest: pendingRequests.has(cohort.id),
+            _count: { enrollments: count || 0 }
+          };
+        })
+      );
+
+      setCohorts(cohortsWithCounts);
     } catch (error: any) {
       console.error("Error fetching cohorts:", error);
       toast.error(t("common.error"), {
@@ -197,8 +210,10 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
           <div className="space-y-4">
             {cohorts.map((cohort) => {
               const isSelected = selectedCohort === cohort.id;
-              const isFull = cohort._count && cohort._count.enrollments >= cohort.max_students;
-              const spotsLeft = cohort.max_students - (cohort._count?.enrollments || 0);
+              const maxStudents = cohort.max_students || 30;
+              const currentEnrollments = cohort._count?.enrollments || 0;
+              const isFull = currentEnrollments >= maxStudents;
+              const spotsLeft = maxStudents - currentEnrollments;
 
               return (
                 <Card
@@ -206,11 +221,13 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
                   className={`transition-all ${
                     cohort.isAlreadyIn
                       ? "border-green-300 border-2 bg-green-50"
+                      : cohort.hasPendingRequest
+                      ? "border-yellow-300 border-2 bg-yellow-50"
                       : isSelected
                       ? "border-[#006D2C] border-2 shadow-md cursor-pointer"
                       : "border-2 hover:border-gray-300 cursor-pointer"
-                  } ${isFull ? "opacity-60" : ""}`}
-                  onClick={() => !isFull && !cohort.isAlreadyIn && setSelectedCohort(cohort.id)}
+                  } ${isFull && !cohort.isAlreadyIn ? "opacity-60" : ""}`}
+                  onClick={() => !isFull && !cohort.isAlreadyIn && !cohort.hasPendingRequest && setSelectedCohort(cohort.id)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-3">
@@ -222,11 +239,13 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
                       </div>
                       {cohort.isAlreadyIn ? (
                         <Badge className="bg-green-500">{t("cohort.alreadyInCohort")}</Badge>
+                      ) : cohort.hasPendingRequest ? (
+                        <Badge className="bg-yellow-500">Pending Request</Badge>
                       ) : isFull ? (
                         <Badge variant="destructive">{t("cohort.full")}</Badge>
                       ) : (
                         <Badge variant="secondary">
-                          {cohort._count?.enrollments || 0} {t("cohort.members")}
+                          {spotsLeft} {t("cohort.spotsLeft")}
                         </Badge>
                       )}
                     </div>
@@ -241,12 +260,12 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
                       {cohort.profiles && (
                         <div className="flex items-center gap-2 text-gray-600">
                           <Users className="h-4 w-4" />
-                          <span>{cohort.profiles.full_name}</span>
+                          <span>By {cohort.profiles.full_name}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2 text-gray-600">
                         <Users className="h-4 w-4" />
-                        <span>{cohort._count?.enrollments || 0} {t("cohort.studentsEnrolled")}</span>
+                        <span>{cohort._count?.enrollments || 0}/{cohort.max_students} {t("cohort.members")}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -254,7 +273,7 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
               );
             })}
 
-            {selectedCohort && !cohorts.find(c => c.id === selectedCohort)?.isAlreadyIn && (
+            {selectedCohort && !cohorts.find(c => c.id === selectedCohort)?.isAlreadyIn && !cohorts.find(c => c.id === selectedCohort)?.hasPendingRequest && (
               <div className="space-y-3 pt-4 border-t">
                 <div>
                   <label className="text-sm font-medium mb-2 block">

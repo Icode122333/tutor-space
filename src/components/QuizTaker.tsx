@@ -20,9 +20,10 @@ interface QuizTakerProps {
   lessonId: string;
   studentId: string;
   onComplete: () => void;
+  isPreviewMode?: boolean; // For teachers to view quiz without submitting
 }
 
-export function QuizTaker({ lessonId, studentId, onComplete }: QuizTakerProps) {
+export function QuizTaker({ lessonId, studentId, onComplete, isPreviewMode = false }: QuizTakerProps) {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,8 +35,11 @@ export function QuizTaker({ lessonId, studentId, onComplete }: QuizTakerProps) {
 
   useEffect(() => {
     fetchQuestions();
-    checkPreviousAttempt();
-  }, [lessonId]);
+    // Only check previous attempts for students, not teachers in preview mode
+    if (!isPreviewMode) {
+      checkPreviousAttempt();
+    }
+  }, [lessonId, isPreviewMode]);
 
   const fetchQuestions = async () => {
     setLoading(true);
@@ -172,14 +176,25 @@ export function QuizTaker({ lessonId, studentId, onComplete }: QuizTakerProps) {
     <div className="space-y-6 max-w-3xl mx-auto p-6">
       {/* Header */}
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Quiz Time!</h2>
+        <h2 className="text-2xl font-bold mb-2">
+          {isPreviewMode ? "Quiz Preview" : "Quiz Time!"}
+        </h2>
         <p className="text-muted-foreground">
-          Answer all questions to complete this lesson
+          {isPreviewMode 
+            ? "You are viewing this quiz as a teacher. Answers will not be recorded."
+            : "Answer all questions to complete this lesson"
+          }
         </p>
-        {!isSubmitted && (
+        {!isSubmitted && !isPreviewMode && (
           <p className="text-sm text-muted-foreground mt-2">
             Total Points: {totalPoints} • Pass Score: {Math.ceil(totalPoints * 0.6)} (60%)
           </p>
+        )}
+        {isPreviewMode && (
+          <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
+            <Award className="h-4 w-4" />
+            Teacher Preview Mode
+          </div>
         )}
       </div>
 
@@ -288,8 +303,8 @@ export function QuizTaker({ lessonId, studentId, onComplete }: QuizTakerProps) {
         ))}
       </div>
 
-      {/* Submit Button */}
-      {!isSubmitted && (
+      {/* Submit Button - Only show for students, not teachers in preview mode */}
+      {!isSubmitted && !isPreviewMode && (
         <div className="flex justify-center pt-4">
           <Button
             onClick={handleSubmit}
@@ -299,6 +314,17 @@ export function QuizTaker({ lessonId, studentId, onComplete }: QuizTakerProps) {
           >
             {isSubmitting ? "Submitting..." : "Submit Quiz"}
           </Button>
+        </div>
+      )}
+      
+      {/* Preview mode info for teachers */}
+      {isPreviewMode && (
+        <div className="flex justify-center pt-4">
+          <div className="text-center p-4 bg-gray-100 rounded-lg">
+            <p className="text-gray-600 text-sm">
+              As a teacher, you can view quiz questions but cannot submit answers.
+            </p>
+          </div>
         </div>
       )}
 

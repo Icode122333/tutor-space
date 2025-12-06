@@ -22,16 +22,18 @@ interface CourseContentPlayerProps {
   studentId?: string;
   onComplete?: () => void;
   progressPercent?: number;
+  isPreviewMode?: boolean; // For teachers to view content without tracking progress
 }
 
-export function CourseContentPlayer({ lesson, studentId, onComplete, progressPercent = 0 }: CourseContentPlayerProps) {
+export function CourseContentPlayer({ lesson, studentId, onComplete, progressPercent = 0, isPreviewMode = false }: CourseContentPlayerProps) {
   const { toast } = useToast();
   const [markingComplete, setMarkingComplete] = useState(false);
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState(false);
 
   useEffect(() => {
-    if (lesson && studentId && lesson.content_type === "video") {
+    // Only track progress for students, not teachers in preview mode
+    if (lesson && studentId && lesson.content_type === "video" && !isPreviewMode) {
       markLessonProgress(false);
     }
     const resolve = async () => {
@@ -67,6 +69,15 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
 
   const markLessonProgress = async (isComplete: boolean) => {
     if (!lesson || !studentId) return;
+    
+    // Don't track progress for teachers in preview mode
+    if (isPreviewMode) {
+      toast({
+        title: "Preview Mode",
+        description: "Progress is not tracked for teachers.",
+      });
+      return;
+    }
 
     try {
       setMarkingComplete(true);
@@ -294,8 +305,8 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
                 <h2 className="text-xl font-bold text-gray-900 truncate">{lesson.title}</h2>
               </div>
 
-              {/* Right: Mark Complete Button */}
-              {studentId && lesson.content_type !== "quiz" && (
+              {/* Right: Mark Complete Button - Only for students */}
+              {studentId && lesson.content_type !== "quiz" && !isPreviewMode && (
                 <Button
                   onClick={() => markLessonProgress(true)}
                   disabled={markingComplete || !!lesson.is_completed}
@@ -324,13 +335,19 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
                   )}
                 </Button>
               )}
+              {/* Preview mode indicator for teachers */}
+              {isPreviewMode && (
+                <Badge className="bg-yellow-100 text-yellow-800 px-4 py-2">
+                  Teacher Preview Mode
+                </Badge>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Progress Card */}
-      {studentId && (
+      {/* Progress Card - Only show for students, not teachers */}
+      {studentId && !isPreviewMode && (
         <Card className="border-0 shadow-lg rounded-2xl overflow-hidden bg-gradient-to-r from-[#0A400C] to-[#116315]">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">

@@ -182,11 +182,11 @@ const TeacherAssignments = () => {
       // 3. Fetch assignment submissions (from assignment_submissions table)
       let assignmentSubmissions: any[] = [];
       if (lessonIds.length > 0) {
-        const { data: assignmentData } = await supabase
+        const { data: assignmentData, error: assignmentError } = await supabase
           .from("assignment_submissions")
           .select(`
             *,
-            profiles (
+            profiles:student_id (
               full_name,
               email,
               avatar_url
@@ -194,17 +194,21 @@ const TeacherAssignments = () => {
           `)
           .in("lesson_id", lessonIds)
           .order("submitted_at", { ascending: false });
+        
+        if (assignmentError) {
+          console.error("Error fetching assignment submissions:", assignmentError);
+        }
         assignmentSubmissions = assignmentData || [];
       }
 
       // 4. Fetch capstone submissions (from capstone_submissions table)
       let capstoneSubmissions: any[] = [];
       if (capstoneIds.length > 0) {
-        const { data: capstoneData } = await supabase
+        const { data: capstoneData, error: capstoneError } = await supabase
           .from("capstone_submissions")
           .select(`
             *,
-            profiles (
+            profiles:student_id (
               full_name,
               email,
               avatar_url
@@ -212,6 +216,10 @@ const TeacherAssignments = () => {
           `)
           .in("capstone_project_id", capstoneIds)
           .order("submitted_at", { ascending: false });
+        
+        if (capstoneError) {
+          console.error("Error fetching capstone submissions:", capstoneError);
+        }
         capstoneSubmissions = capstoneData || [];
       }
 
@@ -262,11 +270,27 @@ const TeacherAssignments = () => {
   };
 
   const handleViewSubmission = (submissionId: string) => {
-    // Deprecated placeholder
     const s = submissions.find((x) => x.id === submissionId);
     if (!s) return;
-    const firstLink = (s.project_links && s.project_links[0]) || "";
-    openInGoogleViewer(firstLink);
+    
+    // Check if it's a capstone submission (has capstone_project_id) or assignment (has lesson_id)
+    const isCapstone = 'capstone_project_id' in s;
+    
+    if (s.project_links && s.project_links.length > 0) {
+      // For capstone, project_links are usually external URLs (GitHub, etc.)
+      // For assignments, they might be storage paths
+      const firstLink = s.project_links[0];
+      
+      if (isCapstone && firstLink.startsWith('http')) {
+        // External link - open directly
+        window.open(firstLink, "_blank");
+      } else {
+        // Storage path - use Google viewer
+        openInGoogleViewer(firstLink);
+      }
+    } else {
+      toast.error("No submission files found");
+    }
   };
 
   const openInGoogleViewer = async (link: string) => {
@@ -501,25 +525,62 @@ const TeacherAssignments = () => {
                                         <div className="flex-1">
                                           <h4 className="font-semibold">{submission.profiles.full_name}</h4>
                                           <p className="text-sm text-muted-foreground">{submission.profiles.email}</p>
-                                          <p className="text-xs text-muted-foreground mt-1">
-                                            Submitted: {new Date(submission.submitted_at).toLocaleString()}
-                                          </p>
+                                          <div className="flex items-center gap-2 mt-1">
+                                            <p className="text-xs text-muted-foreground">
+                                              Submitted: {new Date(submission.submitted_at).toLocaleString()}
+                                            </p>
+                                            {'capstone_project_id' in submission && (
+                                              <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700">
+                                                Capstone
+                                              </Badge>
+                                            )}
+                                            {'lesson_id' in submission && (
+                                              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                                                Assignment
+                                              </Badge>
+                                            )}
+                                          </div>
                                           {submission.description && (
                                             <p className="text-sm mt-2 line-clamp-2">{submission.description}</p>
+                                          )}
+                                          {/* Show project links for capstone submissions */}
+                                          {submission.project_links && submission.project_links.length > 0 && (
+                                            <div className="mt-3 space-y-1">
+                                              <p className="text-xs font-semibold text-gray-600">Project Links:</p>
+                                              {submission.project_links.map((link: string, idx: number) => (
+                                                <a
+                                                  key={idx}
+                                                  href={link.startsWith('http') ? link : '#'}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  onClick={(e) => {
+                                                    if (!link.startsWith('http')) {
+                                                      e.preventDefault();
+                                                      openInGoogleViewer(link);
+                                                    }
+                                                  }}
+                                                  className="text-xs text-blue-600 hover:underline block truncate max-w-md"
+                                                >
+                                                  {link}
+                                                </a>
+                                              ))}
+                                            </div>
                                           )}
                                         </div>
                                       </div>
                                       <div className="flex flex-col items-end gap-3">
                                         <div className="flex items-center gap-2">
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => handleViewSubmission(submission.id)}
-                                            className="hover:bg-blue-50"
-                                          >
-                                            <Eye className="h-4 w-4 mr-1" />
-                                            View
-                                          </Button>
+                                          {submission.project_links && submission.project_links.length > 0 && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => handleViewSubmission(submission.id)}
+                                              className="hover:bg-blue-50"
+                                            >
+                                              <Eye className="h-4 w-4 mr-1" />
+                                              View
+                                            </Button>
+                                          )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                           <div className="text-right">

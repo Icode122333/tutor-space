@@ -22,11 +22,8 @@ import {
   Bell,
   Check,
   X,
-  MessageSquare,
-  TrendingUp,
   BookOpen,
   Calendar,
-  ChevronRight,
   Send,
   UserPlus,
 } from "lucide-react";
@@ -176,21 +173,28 @@ const TeacherCohorts = () => {
         setCohorts(cohortsWithCounts);
       }
 
-      // Fetch pending join requests
-      const { data: requestsData } = await supabase
-        .from("cohort_join_requests")
-        .select(`
-          *,
-          profiles:student_id (full_name, email, avatar_url)
-        `)
-        .eq("status", "pending");
-
-      // Filter requests for this teacher's cohorts
+      // Fetch pending join requests for teacher's cohorts
       const teacherCohortIds = (cohortsData || []).map(c => c.id);
-      const filteredRequests = (requestsData || []).filter(
-        r => teacherCohortIds.includes(r.cohort_id)
-      );
-      setJoinRequests(filteredRequests);
+      
+      if (teacherCohortIds.length > 0) {
+        const { data: requestsData, error: requestsError } = await supabase
+          .from("cohort_join_requests")
+          .select(`
+            *,
+            profiles:student_id (full_name, email, avatar_url)
+          `)
+          .eq("status", "pending")
+          .in("cohort_id", teacherCohortIds);
+
+        if (requestsError) {
+          console.log("Join requests table may not exist:", requestsError);
+          setJoinRequests([]);
+        } else {
+          setJoinRequests(requestsData || []);
+        }
+      } else {
+        setJoinRequests([]);
+      }
 
     } catch (error: any) {
       console.error("Error fetching data:", error);
@@ -626,14 +630,14 @@ const TeacherCohorts = () => {
               <div className="space-y-2">
                 <Label>{t("teacher.cohorts.linkedCourse")}</Label>
                 <Select
-                  value={newCohort.course_id}
-                  onValueChange={(value) => setNewCohort({ ...newCohort, course_id: value })}
+                  value={newCohort.course_id || "none"}
+                  onValueChange={(value) => setNewCohort({ ...newCohort, course_id: value === "none" ? "" : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={t("teacher.cohorts.selectCourse")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">{t("teacher.cohorts.noCourse")}</SelectItem>
+                    <SelectItem value="none">{t("teacher.cohorts.noCourse")}</SelectItem>
                     {courses.map((course) => (
                       <SelectItem key={course.id} value={course.id}>
                         {course.title}

@@ -72,15 +72,28 @@ export default function CourseDetail() {
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showCapstone, setShowCapstone] = useState(false);
   const [capstoneProject, setCapstoneProject] = useState<CapstoneProject | null>(null);
   const [isWelcomeSelected, setIsWelcomeSelected] = useState(false);
 
+  // Check if user is a student (not teacher/admin)
+  const isStudent = userRole === 'student';
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) setUserId(user.id);
+      if (user) {
+        setUserId(user.id);
+        // Fetch user role
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        if (profile) setUserRole(profile.role);
+      }
       
       await Promise.all([
         fetchCourse(),
@@ -251,6 +264,10 @@ export default function CourseDetail() {
     if (!lesson) return;
 
     if (lesson.content_type === "quiz") {
+      // Teachers can view quiz but not take it
+      if (!isStudent) {
+        toast({ title: "Preview Mode", description: "Teachers can view quiz questions but cannot submit answers" });
+      }
       setCurrentLesson(lesson);
       setShowQuiz(true);
     } else {
@@ -261,7 +278,8 @@ export default function CourseDetail() {
         if (lesson.content_url) {
           window.open(lesson.content_url, "_blank");
         }
-        if (userId) {
+        // Only track progress for students
+        if (userId && isStudent) {
           try {
             await supabase.from("student_lesson_progress").upsert(
               {
@@ -277,6 +295,8 @@ export default function CourseDetail() {
           } catch (e) {
             console.error("Error marking URL lesson complete", e);
           }
+        } else if (!isStudent) {
+          toast({ title: "Opened in new tab", description: "Preview mode - progress not tracked" });
         }
         return;
       }
@@ -638,6 +658,7 @@ export default function CourseDetail() {
                     lessonId={currentLesson.id}
                     studentId={userId}
                     onComplete={handleQuizComplete}
+                    isPreviewMode={!isStudent}
                   />
                 </CardContent>
               </Card>
@@ -647,14 +668,15 @@ export default function CourseDetail() {
                 studentId={userId || undefined}
                 onComplete={handleLessonComplete}
                 progressPercent={getProgressPercent()}
+                isPreviewMode={!isStudent}
               />
             )}
           </div>
 
           {/* Right Side - Curriculum */}
           <div className="space-y-6">
-            {/* Assignments Card - At top */}
-            {userId && getCounts().assignments > 0 && (
+            {/* Assignments Card - Only for students */}
+            {userId && isStudent && getCounts().assignments > 0 && (
               <Card className="border-2 border-orange-200 bg-orange-50/50">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-4">
@@ -693,8 +715,8 @@ export default function CourseDetail() {
               isWelcomeSelected={isWelcomeSelected}
             />
 
-            {/* Capstone Project Card */}
-            {capstoneProject && userId && (
+            {/* Capstone Project Card - Only for students */}
+            {capstoneProject && userId && isStudent && (
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-4">
