@@ -3,10 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Users, BookOpen, Calendar as CalendarIcon, Layers, PlayCircle } from "lucide-react";
-import { NotificationBell } from "@/components/NotificationBell";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TeacherHeader } from "@/components/TeacherHeader";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -188,32 +187,13 @@ const TeacherDashboard = () => {
         <TeacherSidebar />
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
-          <header className="bg-white border-b px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <SidebarTrigger />
-                <div>
-                  <h1 className="text-xl font-semibold text-gray-900">
-                    {dataLoading ? <Skeleton className="h-6 w-48" /> : `Welcome back, ${profile?.full_name?.split(' ')[0] || 'Teacher'}`}
-                  </h1>
-                  <p className="text-sm text-gray-500">Here's what's happening today</p>
-                </div>
-              </div>
+          <TeacherHeader 
+            title={`Welcome back, ${profile?.full_name?.split(' ')[0] || 'Teacher'}`}
+            subtitle="Here's what's happening today"
+            loading={dataLoading}
+          />
 
-              <div className="flex items-center gap-3">
-                <NotificationBell />
-                <Avatar className="h-9 w-9">
-                  <AvatarImage src={profile?.avatar_url} />
-                  <AvatarFallback className="bg-[#006d2c] text-white text-sm">
-                    {profile?.full_name?.substring(0, 2).toUpperCase() || 'TC'}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-            </div>
-          </header>
-
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className="flex-1 overflow-y-auto p-4">
             <div className="max-w-7xl mx-auto space-y-6">
               {/* Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

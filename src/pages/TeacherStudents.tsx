@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Users, Search, Plus, UserPlus, Layers, BookOpen } from "lucide-react";
+import { Users, Search, Layers, BookOpen } from "lucide-react";
 import { toast } from "sonner";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
+import { TeacherHeader } from "@/components/TeacherHeader";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { CohortJoinRequests } from "@/components/CohortJoinRequests";
@@ -212,24 +213,17 @@ const TeacherStudents = () => {
         <TeacherSidebar />
         
         <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <header className="bg-white border-b sticky top-0 z-10">
-            <div className="container mx-auto px-4 sm:px-6 py-4">
-              <div className="flex items-center gap-4">
-                <SidebarTrigger />
-                <div className="flex-1">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Students</h1>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Manage your students and organize them into cohorts
-                  </p>
-                </div>
-                <Dialog open={showCohortDialog} onOpenChange={setShowCohortDialog}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-[#006d2c] hover:bg-[#005523]">
-                      <Layers className="h-4 w-4 mr-2" />
-                      Create Cohort
-                    </Button>
-                  </DialogTrigger>
+          <TeacherHeader 
+            title="Students"
+            subtitle="Manage your students and organize them into cohorts"
+          >
+            <Dialog open={showCohortDialog} onOpenChange={setShowCohortDialog}>
+              <DialogTrigger asChild>
+                <Button className="bg-[#006d2c] hover:bg-[#005523]">
+                  <Layers className="h-4 w-4 mr-2" />
+                  Create Cohort
+                </Button>
+              </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Create New Cohort</DialogTitle>
@@ -261,12 +255,10 @@ const TeacherStudents = () => {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
-              </div>
-            </div>
-          </header>
+          </TeacherHeader>
 
           {/* Main Content */}
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-4">
             <div className="container mx-auto space-y-6">
               {/* Join Requests Section */}
               <CohortJoinRequests />

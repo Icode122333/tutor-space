@@ -4,13 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
+import { TeacherHeader } from "@/components/TeacherHeader";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
   FileText, 
   CheckCircle2, 
-  XCircle, 
   Clock, 
   Users, 
   Eye,
@@ -341,23 +341,13 @@ const TeacherAssignments = () => {
       <div className="min-h-screen flex w-full bg-background">
         <TeacherSidebar />
 
-        <div className="flex-1 flex flex-col overflow-hidden p-4">
-          {/* Header */}
-          <header className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 mb-4">
-            <div className="flex items-center justify-between px-6 py-4">
-              <div className="flex items-center gap-4">
-                <SidebarTrigger />
-                <div>
-                  <h1 className="text-2xl font-bold">Assignments</h1>
-                  <p className="text-sm text-muted-foreground">
-                    Track student submissions and progress
-                  </p>
-                </div>
-              </div>
-            </div>
-          </header>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <TeacherHeader 
+            title="Assignments"
+            subtitle="Track student submissions and progress"
+          />
 
-          <main className="flex-1 overflow-y-auto px-2">
+          <main className="flex-1 overflow-y-auto p-4">
             <div className="max-w-7xl mx-auto space-y-6">
               {/* Course Selector */}
               <Card>

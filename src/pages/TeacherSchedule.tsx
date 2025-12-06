@@ -7,11 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TeacherHeader } from "@/components/TeacherHeader";
 import { Badge } from "@/components/ui/badge";
-import { Video, Clock, Users, Calendar as CalendarIcon, Plus, ExternalLink, Trash2, Edit } from "lucide-react";
+import { Video, Clock, Calendar as CalendarIcon, Plus, ExternalLink, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -150,30 +150,16 @@ const TeacherSchedule = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gradient-to-br from-green-50 via-white to-green-100">
+      <div className="min-h-screen flex w-full bg-gray-50">
         <TeacherSidebar />
         
         <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-            <div className="flex items-center justify-between px-6 py-4">
-              <div className="flex items-center gap-4">
-                <SidebarTrigger />
-                <div>
-                  <h1 className="text-3xl font-bold text-black">Class Schedule</h1>
-                  <p className="text-sm text-gray-600">Manage your online classes and meetings</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <Avatar>
-                  <AvatarImage src={profile?.avatar_url} />
-                  <AvatarFallback>{profile?.full_name?.substring(0, 2).toUpperCase() || 'TC'}</AvatarFallback>
-                </Avatar>
-              </div>
-            </div>
-          </header>
+          <TeacherHeader 
+            title="Class Schedule"
+            subtitle="Manage your online classes and meetings"
+          />
 
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className="flex-1 overflow-y-auto p-4">
             <div className="max-w-7xl mx-auto space-y-6">
               {/* Action Button */}
               <div className="flex justify-end">

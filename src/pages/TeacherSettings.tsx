@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
+import { TeacherHeader } from "@/components/TeacherHeader";
 import { Globe, Lock, LogOut, Shield, KeyRound } from "lucide-react";
 import {
   AlertDialog,
@@ -87,23 +88,13 @@ const TeacherSettings = () => {
         <TeacherSidebar />
         
         <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-10">
-            <div className="container mx-auto px-4 sm:px-6 py-4">
-              <div className="flex items-center gap-4">
-                <SidebarTrigger />
-                <div className="flex-1">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Manage your account preferences
-                  </p>
-                </div>
-              </div>
-            </div>
-          </header>
+          <TeacherHeader 
+            title="Settings"
+            subtitle="Manage your account preferences"
+          />
 
           {/* Main Content */}
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-4">
             <div className="container mx-auto max-w-4xl space-y-6">
               {/* Language */}
               <Card className="dark:bg-gray-800 dark:border-gray-700">

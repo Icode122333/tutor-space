@@ -3,13 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
+import { TeacherHeader } from "@/components/TeacherHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, MessageSquare, Users, ChevronLeft, ChevronRight, Search, ExternalLink, Check, AlertCircle } from "lucide-react";
+import { Send, MessageSquare, Users, Search, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -17,15 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
-interface TeacherCourse {
-  course_id: string;
-  course_name: string;
-  student_count: number;
-  whatsapp_link: string | null;
-}
 
 interface StudentConversation {
   id: string;
@@ -47,31 +40,68 @@ interface Message {
   created_at: string;
 }
 
+interface EnrolledStudent {
+  id: string;
+  full_name: string;
+  avatar_url: string | null;
+  email: string;
+}
+
+// Skeleton components
+const ConversationSkeleton = () => (
+  <div className="p-4 border-b border-white/10">
+    <div className="flex items-start gap-3">
+      <Skeleton className="h-12 w-12 rounded-full bg-white/20" />
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-4 w-24 bg-white/20" />
+        <Skeleton className="h-3 w-32 bg-white/20" />
+      </div>
+    </div>
+  </div>
+);
+
+const MessageSkeleton = () => (
+  <div className="space-y-4">
+    <div className="flex justify-start">
+      <Skeleton className="h-16 w-48 rounded-2xl" />
+    </div>
+    <div className="flex justify-end">
+      <Skeleton className="h-12 w-40 rounded-2xl" />
+    </div>
+    <div className="flex justify-start">
+      <Skeleton className="h-20 w-56 rounded-2xl" />
+    </div>
+  </div>
+);
+
 export default function TeacherChat() {
-  const { user, profile } = useAuth();
-  const [teacherCourses, setTeacherCourses] = useState<TeacherCourse[]>([]);
+  const { user } = useAuth();
   const [conversations, setConversations] = useState<StudentConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<StudentConversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentCourseIndex, setCurrentCourseIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isGroupChatDialogOpen, setIsGroupChatDialogOpen] = useState(false);
-  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
-  const [whatsappLink, setWhatsappLink] = useState("");
+  
+  // New conversation dialog
+  const [showNewChatDialog, setShowNewChatDialog] = useState(false);
+  const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([]);
+  const [studentSearchQuery, setStudentSearchQuery] = useState("");
 
   useEffect(() => {
     if (user) {
-      fetchTeacherCourses();
       fetchConversations();
     }
   }, [user]);
 
   useEffect(() => {
-    if (selectedConversation) {
+    if (selectedConversation && !selectedConversation.id.startsWith('new-')) {
       fetchMessages();
       markMessagesAsRead();
+    } else if (selectedConversation?.id.startsWith('new-')) {
+      setMessages([]);
     }
   }, [selectedConversation]);
 
@@ -79,97 +109,178 @@ export default function TeacherChat() {
     scrollToBottom();
   }, [messages]);
 
+  // Real-time subscription for new messages
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('teacher-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+        },
+        (payload) => {
+          // Refresh conversations and messages
+          fetchConversations();
+          if (selectedConversation && payload.new.conversation_id === selectedConversation.id) {
+            fetchMessages();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, selectedConversation]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const fetchTeacherCourses = async () => {
-    const { data, error } = await supabase
-      .from("courses")
-      .select(`
-        id,
-        title,
-        whatsapp_group_link
-      `)
-      .eq("teacher_id", user?.id);
-
-    if (error) {
-      console.error("Error fetching teacher courses:", error);
-    } else {
-      const courses = data?.map((course: any) => ({
-        course_id: course.id,
-        course_name: course.title,
-        student_count: 0,
-        whatsapp_link: course.whatsapp_group_link || null,
-      })) || [];
-      setTeacherCourses(courses);
-    }
-  };
-
   const fetchConversations = async () => {
-    const { data, error } = await supabase
-      .from("conversations")
-      .select(`
-        id,
-        student_id,
-        teacher_id,
-        updated_at,
-        profiles!conversations_student_id_fkey (
-          full_name,
-          avatar_url
-        ),
-        direct_messages (
-          message_text,
-          created_at,
-          sender_id,
-          is_read
-        )
-      `)
-      .eq("teacher_id", user?.id)
-      .order("updated_at", { ascending: false });
+    if (!user?.id) return;
 
-    if (error) {
-      console.error("Error fetching conversations:", error);
-    } else {
-      const formattedConversations = data?.map((conv: any) => {
-        const lastMessage = conv.direct_messages?.[conv.direct_messages.length - 1];
-        const unreadCount = conv.direct_messages?.filter(
-          (msg: any) => !msg.is_read && msg.sender_id !== user?.id
-        ).length || 0;
+    try {
+      // Get all enrolled students from teacher's courses
+      const { data: courses } = await supabase
+        .from("courses")
+        .select("id")
+        .eq("teacher_id", user.id);
 
-        return {
+      const courseIds = courses?.map(c => c.id) || [];
+
+      if (courseIds.length === 0) {
+        setConversations([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get enrolled students
+      const { data: enrollments } = await supabase
+        .from("course_enrollments")
+        .select(`
+          student_id,
+          profiles:student_id (
+            id,
+            full_name,
+            avatar_url,
+            email
+          )
+        `)
+        .in("course_id", courseIds);
+
+      // Create unique students map
+      const studentsMap = new Map<string, EnrolledStudent>();
+      enrollments?.forEach((e: any) => {
+        if (e.profiles && !studentsMap.has(e.student_id)) {
+          studentsMap.set(e.student_id, {
+            id: e.profiles.id,
+            full_name: e.profiles.full_name || 'Student',
+            avatar_url: e.profiles.avatar_url,
+            email: e.profiles.email || '',
+          });
+        }
+      });
+
+      setEnrolledStudents(Array.from(studentsMap.values()));
+
+      // Fetch existing conversations
+      const { data: existingConvs, error } = await supabase
+        .from("conversations")
+        .select(`
+          id,
+          student_id,
+          teacher_id,
+          updated_at,
+          profiles!conversations_student_id_fkey (
+            full_name,
+            avatar_url
+          ),
+          direct_messages (
+            message_text,
+            created_at,
+            sender_id,
+            is_read
+          )
+        `)
+        .eq("teacher_id", user.id)
+        .order("updated_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching conversations:", error);
+        setLoading(false);
+        return;
+      }
+
+      const conversationsList: StudentConversation[] = [];
+      const existingStudentIds = new Set<string>();
+
+      // Add existing conversations
+      existingConvs?.forEach((conv: any) => {
+        existingStudentIds.add(conv.student_id);
+        const messages = conv.direct_messages || [];
+        const sortedMessages = [...messages].sort((a: any, b: any) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        const lastMsg = sortedMessages[0];
+        const unreadCount = messages.filter(
+          (m: any) => !m.is_read && m.sender_id !== user.id
+        ).length;
+
+        conversationsList.push({
           id: conv.id,
           student_id: conv.student_id,
           teacher_id: conv.teacher_id,
           student_name: conv.profiles?.full_name || "Unknown Student",
           student_avatar: conv.profiles?.avatar_url || null,
-          last_message: lastMessage?.message_text || null,
-          last_message_at: lastMessage?.created_at || null,
+          last_message: lastMsg?.message_text || null,
+          last_message_at: lastMsg?.created_at || null,
           unread_count: unreadCount,
-        };
-      }) || [];
-      setConversations(formattedConversations);
+        });
+      });
+
+      // Sort by last message time, then unread count
+      conversationsList.sort((a, b) => {
+        if (a.unread_count > 0 && b.unread_count === 0) return -1;
+        if (a.unread_count === 0 && b.unread_count > 0) return 1;
+        if (a.last_message_at && b.last_message_at) {
+          return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
+        }
+        if (a.last_message_at) return -1;
+        if (b.last_message_at) return 1;
+        return 0;
+      });
+
+      setConversations(conversationsList);
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchMessages = async () => {
-    if (!selectedConversation) return;
+    if (!selectedConversation || selectedConversation.id.startsWith('new-')) return;
 
+    setMessagesLoading(true);
     const { data, error } = await supabase
       .from("direct_messages")
       .select("*")
       .eq("conversation_id", selectedConversation.id)
       .order("created_at", { ascending: true });
 
-    if (error) {
-      console.error("Error fetching messages:", error);
-    } else {
+    if (!error) {
       setMessages(data || []);
     }
+    setMessagesLoading(false);
   };
 
   const markMessagesAsRead = async () => {
-    if (!selectedConversation) return;
+    if (!selectedConversation || selectedConversation.id.startsWith('new-')) return;
 
     await supabase
       .from("direct_messages")
@@ -178,14 +289,71 @@ export default function TeacherChat() {
       .eq("is_read", false)
       .neq("sender_id", user?.id);
 
-    fetchConversations();
+    // Update local state
+    setConversations(prev => prev.map(conv => 
+      conv.id === selectedConversation.id ? { ...conv, unread_count: 0 } : conv
+    ));
+  };
+
+  const handleStartNewChat = (student: EnrolledStudent) => {
+    // Check if conversation already exists
+    const existing = conversations.find(c => c.student_id === student.id);
+    if (existing) {
+      setSelectedConversation(existing);
+      setShowNewChatDialog(false);
+      return;
+    }
+
+    // Create temporary conversation
+    const newConv: StudentConversation = {
+      id: `new-${student.id}`,
+      student_id: student.id,
+      teacher_id: user?.id || '',
+      student_name: student.full_name,
+      student_avatar: student.avatar_url,
+      last_message: null,
+      last_message_at: null,
+      unread_count: 0,
+    };
+
+    setSelectedConversation(newConv);
+    setMessages([]);
+    setShowNewChatDialog(false);
   };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
 
+    let conversationId = selectedConversation.id;
+
+    // If it's a new conversation, create it first
+    if (conversationId.startsWith('new-')) {
+      const { data: newConv, error: convError } = await supabase
+        .from("conversations")
+        .insert({
+          student_id: selectedConversation.student_id,
+          teacher_id: user?.id,
+        })
+        .select()
+        .single();
+
+      if (convError) {
+        toast.error("Failed to create conversation");
+        return;
+      }
+
+      conversationId = newConv.id;
+
+      // Update selected conversation with real ID
+      const updatedConv = { ...selectedConversation, id: conversationId };
+      setSelectedConversation(updatedConv);
+      
+      // Add to conversations list
+      setConversations(prev => [updatedConv, ...prev]);
+    }
+
     const { error } = await supabase.from("direct_messages").insert({
-      conversation_id: selectedConversation.id,
+      conversation_id: conversationId,
       sender_id: user?.id,
       message_text: newMessage,
     });
@@ -200,8 +368,7 @@ export default function TeacherChat() {
   };
 
   const formatTime = (date: string) => {
-    const messageDate = new Date(date);
-    return messageDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    return new Date(date).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
   };
 
   const formatDate = (date: string) => {
@@ -210,210 +377,115 @@ export default function TeacherChat() {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (messageDate.toDateString() === today.toDateString()) {
-      return "Today";
-    } else if (messageDate.toDateString() === yesterday.toDateString()) {
-      return "Yesterday";
-    } else {
-      return messageDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    }
+    if (messageDate.toDateString() === today.toDateString()) return "Today";
+    if (messageDate.toDateString() === yesterday.toDateString()) return "Yesterday";
+    return messageDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   const filteredConversations = conversations.filter((conv) =>
     conv.student_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const nextCourse = () => {
-    setCurrentCourseIndex((prev) => (prev + 1) % teacherCourses.length);
-  };
+  const filteredStudents = enrolledStudents.filter(s => 
+    s.full_name.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
+    s.email.toLowerCase().includes(studentSearchQuery.toLowerCase())
+  );
 
-  const prevCourse = () => {
-    setCurrentCourseIndex((prev) => (prev - 1 + teacherCourses.length) % teacherCourses.length);
-  };
-
-  const handleOpenGroupChatDialog = () => {
-    setIsGroupChatDialogOpen(true);
-    setSelectedCourseId("");
-    setWhatsappLink("");
-  };
-
-  const handleCourseSelection = (courseId: string) => {
-    setSelectedCourseId(courseId);
-    const course = teacherCourses.find(c => c.course_id === courseId);
-    if (course?.whatsapp_link) {
-      setWhatsappLink(course.whatsapp_link);
-    } else {
-      setWhatsappLink("");
-    }
-  };
-
-  const handleSaveOrOpenGroupChat = async () => {
-    const selectedCourse = teacherCourses.find(c => c.course_id === selectedCourseId);
-    
-    if (!selectedCourse) {
-      toast.error("Please select a course");
-      return;
-    }
-
-    // If course already has a link, open it
-    if (selectedCourse.whatsapp_link) {
-      window.open(selectedCourse.whatsapp_link, '_blank');
-      toast.success(`Opening ${selectedCourse.course_name} group chat`);
-      setIsGroupChatDialogOpen(false);
-      return;
-    }
-
-    // If no link, save the new one
-    if (!whatsappLink.trim()) {
-      toast.error("Please enter a WhatsApp group link");
-      return;
-    }
-
-    const { error } = await supabase
-      .from("courses")
-      .update({ whatsapp_group_link: whatsappLink })
-      .eq("id", selectedCourseId);
-
-    if (error) {
-      toast.error("Failed to save WhatsApp link");
-      console.error("Error saving WhatsApp link:", error);
-    } else {
-      toast.success("WhatsApp link saved successfully!");
-      setIsGroupChatDialogOpen(false);
-      fetchTeacherCourses(); // Refresh courses
-    }
-  };
+  const totalUnread = conversations.reduce((sum, conv) => sum + conv.unread_count, 0);
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gradient-to-br from-green-50 via-white to-green-100">
+      <div className="min-h-screen flex w-full bg-gray-50">
         <TeacherSidebar />
 
-        <div className="flex-1 flex flex-col p-6 gap-6">
-          {/* Teacher Course Management Widget */}
-          {teacherCourses.length > 0 && (
-            <div className="relative">
-              <Card className="bg-gradient-to-r from-[#006d2c] to-[#008d3c] text-white border-0 shadow-2xl rounded-3xl">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Users className="h-5 w-5" />
-                        <h3 className="font-bold text-lg">Course Group Management</h3>
-                      </div>
-                      <p className="text-2xl font-bold mb-1">{teacherCourses[currentCourseIndex]?.course_name}</p>
-                      <p className="text-sm text-white/80 mb-4">
-                        Manage your course group chat and communicate with students
-                      </p>
-                      <Button
-                        className="bg-white text-[#006d2c] hover:bg-gray-100 font-semibold"
-                        onClick={handleOpenGroupChatDialog}
-                      >
-                        <Users className="h-4 w-4 mr-2" />
-                        Open Group Chat
-                      </Button>
-                    </div>
-                    <div className="hidden md:block">
-                      <img
-                        src="/images/whatsapp illustration.webp"
-                        alt="Chat illustration"
-                        className="w-48 h-48 object-contain"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+        <div className="flex-1 flex flex-col">
+          <TeacherHeader 
+            title="Messages"
+            subtitle="Chat with your students"
+          >
+            <Button 
+              onClick={() => setShowNewChatDialog(true)}
+              className="bg-[#006d2c] hover:bg-[#005523]"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              New Message
+            </Button>
+          </TeacherHeader>
 
-              {teacherCourses.length > 1 && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white shadow-lg"
-                    onClick={prevCourse}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white shadow-lg"
-                    onClick={nextCourse}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Three-Column Chat Layout */}
-          <Card className="flex-1 flex overflow-hidden shadow-2xl rounded-3xl">
-            {/* Left Sidebar - Student Conversations List */}
-            <div className="w-80 flex flex-col bg-[#006d2c]">
-              <div className="p-4 border-b border-white/10">
-                <h2 className="font-bold text-lg mb-3 flex items-center gap-2 text-white">
-                  <MessageSquare className="h-5 w-5" />
-                  Student Messages
-                  {conversations.length > 0 && (
-                    <Badge variant="secondary" className="ml-auto bg-white text-[#006d2c]">
-                      {conversations.reduce((sum, conv) => sum + conv.unread_count, 0)} new
-                    </Badge>
+          {/* Chat Layout */}
+          <div className="flex-1 flex overflow-hidden m-4 mt-0">
+            {/* Conversations Sidebar */}
+            <div className="w-80 border-r bg-white flex flex-col">
+              <div className="p-4 border-b">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-semibold text-gray-900">Conversations</h2>
+                  {totalUnread > 0 && (
+                    <Badge className="bg-[#006d2c]">{totalUnread}</Badge>
                   )}
-                </h2>
+                </div>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search students"
+                    placeholder="Search students..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:bg-white/20"
+                    className="pl-9"
                   />
                 </div>
               </div>
 
               <div className="flex-1 overflow-y-auto">
-                {filteredConversations.length === 0 ? (
-                  <div className="p-6 text-center text-white/60">
-                    <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No student messages yet</p>
+                {loading ? (
+                  <>
+                    <ConversationSkeleton />
+                    <ConversationSkeleton />
+                    <ConversationSkeleton />
+                  </>
+                ) : filteredConversations.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">No conversations yet</p>
+                    <Button 
+                      variant="link" 
+                      className="text-[#006d2c] mt-2"
+                      onClick={() => setShowNewChatDialog(true)}
+                    >
+                      Start a new chat
+                    </Button>
                   </div>
                 ) : (
                   filteredConversations.map((conv) => (
                     <button
                       key={conv.id}
                       onClick={() => setSelectedConversation(conv)}
-                      className={`w-full p-4 border-b border-white/10 hover:bg-white/10 transition-colors text-left ${
-                        selectedConversation?.id === conv.id ? "bg-white/20" : ""
+                      className={`w-full p-4 border-b hover:bg-gray-50 transition-colors text-left ${
+                        selectedConversation?.id === conv.id ? "bg-gray-100" : ""
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="relative">
-                          <Avatar className="h-12 w-12 border-2 border-white/20">
-                            {conv.student_avatar ? (
-                              <img src={conv.student_avatar} alt={conv.student_name} className="object-cover" />
-                            ) : (
-                              <AvatarFallback className="bg-white text-[#006d2c]">
-                                {conv.student_name.substring(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
-                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-[#006d2c]" />
-                        </div>
+                        <Avatar className="h-10 w-10">
+                          {conv.student_avatar ? (
+                            <img src={conv.student_avatar} alt={conv.student_name} className="object-cover" />
+                          ) : (
+                            <AvatarFallback className="bg-[#006d2c] text-white text-sm">
+                              {conv.student_name.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <h3 className="font-semibold truncate text-white">{conv.student_name}</h3>
+                          <div className="flex items-center justify-between mb-0.5">
+                            <h3 className="font-medium text-sm text-gray-900 truncate">{conv.student_name}</h3>
                             {conv.last_message_at && (
-                              <span className="text-xs text-white/60">
+                              <span className="text-xs text-gray-400">
                                 {formatDate(conv.last_message_at)}
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-white/80 truncate">
+                          <p className="text-sm text-gray-500 truncate">
                             {conv.last_message || "No messages yet"}
                           </p>
                           {conv.unread_count > 0 && (
-                            <Badge className="mt-1 bg-white text-[#006d2c]">{conv.unread_count}</Badge>
+                            <Badge className="mt-1 bg-[#006d2c] text-xs">{conv.unread_count} new</Badge>
                           )}
                         </div>
                       </div>
@@ -423,11 +495,11 @@ export default function TeacherChat() {
               </div>
             </div>
 
-            {/* Middle Section - Chat Area */}
+            {/* Chat Area */}
             {selectedConversation ? (
-              <div className="flex-1 flex flex-col bg-white">
+              <div className="flex-1 flex flex-col bg-gray-50">
                 {/* Chat Header */}
-                <div className="p-4 border-b bg-white flex items-center justify-between shadow-sm">
+                <div className="p-4 border-b bg-white">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                       {selectedConversation.student_avatar ? (
@@ -439,55 +511,50 @@ export default function TeacherChat() {
                       )}
                     </Avatar>
                     <div>
-                      <h3 className="font-semibold">{selectedConversation.student_name}</h3>
-                      <p className="text-xs text-green-600 flex items-center gap-1">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                        Student
-                      </p>
+                      <h3 className="font-semibold text-gray-900">{selectedConversation.student_name}</h3>
+                      <p className="text-xs text-gray-500">Student</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-gray-50 to-white">
-                  {messages.length === 0 ? (
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  {messagesLoading ? (
+                    <MessageSkeleton />
+                  ) : messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <div className="text-center text-muted-foreground">
-                        <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                        <p>No messages yet. Start the conversation!</p>
+                      <div className="text-center">
+                        <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                        <p className="text-gray-500">No messages yet</p>
+                        <p className="text-sm text-gray-400">Send a message to start the conversation</p>
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {messages.map((message, index) => {
-                        const isOwnMessage = message.sender_id === user?.id;
-                        const showDate =
-                          index === 0 ||
+                        const isOwn = message.sender_id === user?.id;
+                        const showDate = index === 0 || 
                           formatDate(messages[index - 1].created_at) !== formatDate(message.created_at);
 
                         return (
                           <div key={message.id}>
                             {showDate && (
                               <div className="flex justify-center my-4">
-                                <span className="text-xs text-muted-foreground bg-background px-3 py-1 rounded-full">
+                                <span className="text-xs text-gray-400 bg-white px-3 py-1 rounded-full shadow-sm">
                                   {formatDate(message.created_at)}
                                 </span>
                               </div>
                             )}
-                            <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}>
-                              <div className={`max-w-md ${isOwnMessage ? "order-2" : "order-1"}`}>
-                                <div
-                                  className={`rounded-2xl px-4 py-2 shadow-md ${
-                                    isOwnMessage
-                                      ? "bg-green-500 text-white rounded-br-none"
-                                      : "bg-blue-500 text-white rounded-bl-none"
-                                  }`}
-                                >
-                                  <p className="text-sm whitespace-pre-wrap">{message.message_text}</p>
-                                  <span className="text-xs opacity-70 mt-1 block text-right">
-                                    {formatTime(message.created_at)}
-                                  </span>
-                                </div>
+                            <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
+                              <div className={`max-w-[70%] rounded-2xl px-4 py-2 ${
+                                isOwn 
+                                  ? "bg-[#006d2c] text-white rounded-br-sm" 
+                                  : "bg-white text-gray-900 rounded-bl-sm shadow-sm"
+                              }`}>
+                                <p className="text-sm whitespace-pre-wrap">{message.message_text}</p>
+                                <span className={`text-xs mt-1 block text-right ${isOwn ? "text-white/70" : "text-gray-400"}`}>
+                                  {formatTime(message.created_at)}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -498,11 +565,11 @@ export default function TeacherChat() {
                   )}
                 </div>
 
-                {/* Input Area */}
-                <div className="p-4 border-t bg-white shadow-lg">
+                {/* Input */}
+                <div className="p-4 bg-white border-t">
                   <div className="flex items-center gap-2">
                     <Input
-                      placeholder="Message"
+                      placeholder="Type a message..."
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyDown={(e) => {
@@ -511,13 +578,12 @@ export default function TeacherChat() {
                           handleSendMessage();
                         }
                       }}
-                      className="flex-1 rounded-full border-gray-300 focus:border-[#006d2c] focus:ring-[#006d2c]"
+                      className="flex-1"
                     />
                     <Button
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim()}
-                      className="bg-purple-600 hover:bg-purple-700 text-white rounded-full h-10 w-10"
-                      size="icon"
+                      className="bg-[#006d2c] hover:bg-[#005523]"
                     >
                       <Send className="h-4 w-4" />
                     </Button>
@@ -525,156 +591,74 @@ export default function TeacherChat() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white">
-                <div className="text-center text-muted-foreground">
-                  <MessageSquare className="h-24 w-24 mx-auto mb-4 opacity-50" />
-                  <h3 className="text-xl font-semibold mb-2">Select a conversation</h3>
-                  <p>Choose a student from the list to start messaging</p>
+              <div className="flex-1 flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                  <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-3" />
+                  <h3 className="font-medium text-gray-900 mb-1">Select a conversation</h3>
+                  <p className="text-sm text-gray-500">Choose a student to start messaging</p>
                 </div>
               </div>
             )}
-          </Card>
+          </div>
         </div>
 
-        {/* Group Chat Management Dialog */}
-        <Dialog open={isGroupChatDialogOpen} onOpenChange={setIsGroupChatDialogOpen}>
-          <DialogContent className="sm:max-w-lg">
+        {/* New Chat Dialog */}
+        <Dialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-green-600" />
-                Manage Course Group Chats
-              </DialogTitle>
+              <DialogTitle>New Message</DialogTitle>
               <DialogDescription>
-                Select a course to create or manage its WhatsApp group chat
+                Select a student to start a conversation
               </DialogDescription>
             </DialogHeader>
             
-            <div className="space-y-4 py-4">
-              {/* Course Selection */}
-              <div className="space-y-3">
-                <Label className="text-base font-semibold">Select Course</Label>
-                <RadioGroup value={selectedCourseId} onValueChange={handleCourseSelection}>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {teacherCourses.map((course) => (
-                      <div
-                        key={course.course_id}
-                        className={`flex items-center space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer ${
-                          selectedCourseId === course.course_id
-                            ? "border-green-600 bg-green-50"
-                            : "border-gray-200 hover:border-green-300"
-                        }`}
-                        onClick={() => handleCourseSelection(course.course_id)}
-                      >
-                        <RadioGroupItem value={course.course_id} id={course.course_id} />
-                        <Label
-                          htmlFor={course.course_id}
-                          className="flex-1 cursor-pointer"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">{course.course_name}</span>
-                            {course.whatsapp_link ? (
-                              <Badge variant="outline" className="text-green-600 border-green-600">
-                                <Check className="h-3 w-3 mr-1" />
-                                Linked
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-orange-600 border-orange-600">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                No Link
-                              </Badge>
-                            )}
-                          </div>
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </RadioGroup>
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search students..."
+                  value={studentSearchQuery}
+                  onChange={(e) => setStudentSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
               </div>
 
-              {/* Show notification or input based on selection */}
-              {selectedCourseId && (
-                <div className="space-y-3">
-                  {teacherCourses.find(c => c.course_id === selectedCourseId)?.whatsapp_link ? (
-                    // Course has link - show notification
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-green-600 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="text-sm font-semibold text-green-900 mb-1">
-                            WhatsApp Link Connected
-                          </h4>
-                          <p className="text-xs text-green-800 mb-2">
-                            This course already has a WhatsApp group link. Click the button below to open it.
-                          </p>
-                          <div className="bg-white rounded p-2 border border-green-200">
-                            <p className="text-xs text-gray-600 truncate">{whatsappLink}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    // No link - show input field
-                    <div className="space-y-3">
-                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5" />
-                          <p className="text-xs text-orange-800">
-                            No WhatsApp link found for this course. Add one below to enable group chat.
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="whatsapp-link">WhatsApp Group Link</Label>
-                        <Input
-                          id="whatsapp-link"
-                          placeholder="https://chat.whatsapp.com/..."
-                          value={whatsappLink}
-                          onChange={(e) => setWhatsappLink(e.target.value)}
-                          className="w-full"
-                        />
-                      </div>
-
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <h4 className="text-xs font-semibold text-blue-900 mb-2">How to get the link:</h4>
-                        <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
-                          <li>Open WhatsApp and create a new group</li>
-                          <li>Tap on the group name at the top</li>
-                          <li>Tap "Invite via link"</li>
-                          <li>Copy and paste the link here</li>
-                        </ol>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setIsGroupChatDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 bg-green-600 hover:bg-green-700"
-                onClick={handleSaveOrOpenGroupChat}
-                disabled={!selectedCourseId}
-              >
-                {teacherCourses.find(c => c.course_id === selectedCourseId)?.whatsapp_link ? (
-                  <>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Open Chat
-                  </>
+              <div className="max-h-64 overflow-y-auto space-y-1">
+                {filteredStudents.length === 0 ? (
+                  <div className="text-center py-6">
+                    <Users className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">No students found</p>
+                  </div>
                 ) : (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Save Link
-                  </>
+                  filteredStudents.map((student) => {
+                    const hasConversation = conversations.some(c => c.student_id === student.id);
+                    return (
+                      <button
+                        key={student.id}
+                        onClick={() => handleStartNewChat(student)}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                      >
+                        <Avatar className="h-10 w-10">
+                          {student.avatar_url ? (
+                            <img src={student.avatar_url} alt={student.full_name} className="object-cover" />
+                          ) : (
+                            <AvatarFallback className="bg-[#006d2c] text-white text-sm">
+                              {student.full_name.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-gray-900">{student.full_name}</p>
+                          <p className="text-xs text-gray-500 truncate">{student.email}</p>
+                        </div>
+                        {hasConversation && (
+                          <Badge variant="secondary" className="text-xs">Active</Badge>
+                        )}
+                      </button>
+                    );
+                  })
                 )}
-              </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
