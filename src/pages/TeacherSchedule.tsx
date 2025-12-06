@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import { format } from "date-fns";
 
 const TeacherSchedule = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user, profile, loading } = useAuth();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [courses, setCourses] = useState<any[]>([]);
@@ -87,7 +89,7 @@ const TeacherSchedule = () => {
     e.preventDefault();
 
     if (!user || !scheduleForm.course_id || !scheduleForm.title || !scheduleForm.scheduled_time || !scheduleForm.meet_link) {
-      toast.error("Please fill all required fields");
+      toast.error(t('teacher.schedule.fillRequiredFields'));
       return;
     }
 
@@ -103,10 +105,10 @@ const TeacherSchedule = () => {
       });
 
     if (error) {
-      toast.error("Failed to schedule class");
+      toast.error(t('teacher.schedule.failedToSchedule'));
       console.error(error);
     } else {
-      toast.success("Class scheduled successfully!");
+      toast.success(t('teacher.schedule.classScheduled'));
       setScheduleForm({
         course_id: "",
         title: "",
@@ -126,9 +128,9 @@ const TeacherSchedule = () => {
       .eq("id", classId);
 
     if (error) {
-      toast.error("Failed to delete class");
+      toast.error(t('teacher.schedule.failedToDelete'));
     } else {
-      toast.success("Class deleted successfully");
+      toast.success(t('teacher.schedule.classDeleted'));
       fetchScheduledClasses();
     }
   };
@@ -138,7 +140,7 @@ const TeacherSchedule = () => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading schedule...</p>
+          <p className="text-muted-foreground">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -155,8 +157,8 @@ const TeacherSchedule = () => {
         
         <div className="flex-1 flex flex-col overflow-hidden">
           <TeacherHeader 
-            title="Class Schedule"
-            subtitle="Manage your online classes and meetings"
+            title={t('teacher.schedule.classSchedule')}
+            subtitle={t('teacher.schedule.manageClasses')}
           />
 
           <main className="flex-1 overflow-y-auto p-4">
@@ -169,7 +171,7 @@ const TeacherSchedule = () => {
                   onClick={() => setShowForm(!showForm)}
                 >
                   <Plus className="h-5 w-5" />
-                  Schedule New Class
+                  {t('teacher.schedule.scheduleNewClass')}
                 </Button>
               </div>
 
@@ -182,21 +184,21 @@ const TeacherSchedule = () => {
                         <Video className="h-6 w-6 text-[#006d2c]" />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-bold text-black">Schedule Online Class</h2>
-                        <p className="text-gray-600">Create a new live session with Google Meet</p>
+                        <h2 className="text-2xl font-bold text-black">{t('teacher.schedule.scheduleOnlineClass')}</h2>
+                        <p className="text-gray-600">{t('teacher.schedule.createLiveSession')}</p>
                       </div>
                     </div>
 
                     <form onSubmit={handleScheduleClass} className="space-y-5">
                       <div className="grid md:grid-cols-2 gap-5">
                         <div className="space-y-2">
-                          <Label htmlFor="course" className="text-sm font-semibold text-gray-700">Select Course *</Label>
+                          <Label htmlFor="course" className="text-sm font-semibold text-gray-700">{t('teacher.schedule.selectCourse')} *</Label>
                           <Select
                             value={scheduleForm.course_id}
                             onValueChange={(value) => setScheduleForm({ ...scheduleForm, course_id: value })}
                           >
                             <SelectTrigger className="h-12 border-gray-300">
-                              <SelectValue placeholder="Choose a course" />
+                              <SelectValue placeholder={t('teacher.schedule.chooseCourse')} />
                             </SelectTrigger>
                             <SelectContent>
                               {courses.map((course) => (
@@ -209,12 +211,12 @@ const TeacherSchedule = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="title" className="text-sm font-semibold text-gray-700">Class Title *</Label>
+                          <Label htmlFor="title" className="text-sm font-semibold text-gray-700">{t('teacher.schedule.classTitle')} *</Label>
                           <Input
                             id="title"
                             value={scheduleForm.title}
                             onChange={(e) => setScheduleForm({ ...scheduleForm, title: e.target.value })}
-                            placeholder="e.g., Introduction to React Hooks"
+                            placeholder={t('teacher.schedule.classTitlePlaceholder')}
                             className="h-12 border-gray-300"
                             required
                           />
@@ -222,12 +224,12 @@ const TeacherSchedule = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="description" className="text-sm font-semibold text-gray-700">Description</Label>
+                        <Label htmlFor="description" className="text-sm font-semibold text-gray-700">{t('teacher.schedule.description')}</Label>
                         <Textarea
                           id="description"
                           value={scheduleForm.description}
                           onChange={(e) => setScheduleForm({ ...scheduleForm, description: e.target.value })}
-                          placeholder="Describe what will be covered in this class"
+                          placeholder={t('teacher.schedule.descriptionPlaceholder')}
                           rows={3}
                           className="border-gray-300"
                         />
@@ -235,7 +237,7 @@ const TeacherSchedule = () => {
 
                       <div className="grid md:grid-cols-2 gap-5">
                         <div className="space-y-2">
-                          <Label htmlFor="scheduled_time" className="text-sm font-semibold text-gray-700">Date & Time *</Label>
+                          <Label htmlFor="scheduled_time" className="text-sm font-semibold text-gray-700">{t('teacher.schedule.dateTime')} *</Label>
                           <Input
                             id="scheduled_time"
                             type="datetime-local"
@@ -247,7 +249,7 @@ const TeacherSchedule = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="meet_link" className="text-sm font-semibold text-gray-700">Google Meet Link *</Label>
+                          <Label htmlFor="meet_link" className="text-sm font-semibold text-gray-700">{t('teacher.schedule.meetLink')} *</Label>
                           <Input
                             id="meet_link"
                             type="url"
@@ -262,10 +264,10 @@ const TeacherSchedule = () => {
 
                       <div className="flex gap-3 pt-4">
                         <Button type="submit" className="bg-[#006d2c] hover:bg-[#005523] text-white px-8">
-                          Schedule Class
+                          {t('teacher.schedule.scheduleClass')}
                         </Button>
                         <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                          Cancel
+                          {t('common.cancel')}
                         </Button>
                       </div>
                     </form>
@@ -276,17 +278,17 @@ const TeacherSchedule = () => {
               <div className="grid lg:grid-cols-3 gap-6">
                 {/* Scheduled Classes List */}
                 <div className="lg:col-span-2 space-y-4">
-                  <h2 className="text-2xl font-bold text-black mb-4">Upcoming Classes</h2>
+                  <h2 className="text-2xl font-bold text-black mb-4">{t('teacher.schedule.upcomingClasses')}</h2>
                   
                   {scheduledClasses.length === 0 ? (
                     <Card className="border-2 border-dashed border-gray-300">
                       <CardContent className="p-12 text-center">
                         <Video className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">No classes scheduled</h3>
-                        <p className="text-gray-600 mb-6">Start by scheduling your first online class</p>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('teacher.schedule.noClassesScheduled')}</h3>
+                        <p className="text-gray-600 mb-6">{t('teacher.schedule.startScheduling')}</p>
                         <Button onClick={() => setShowForm(true)} className="bg-[#006d2c] hover:bg-[#005523]">
                           <Plus className="h-4 w-4 mr-2" />
-                          Schedule Class
+                          {t('teacher.schedule.scheduleClass')}
                         </Button>
                       </CardContent>
                     </Card>
@@ -330,7 +332,7 @@ const TeacherSchedule = () => {
                                 className="gap-2"
                               >
                                 <ExternalLink className="h-4 w-4" />
-                                Join
+                                {t('schedule.join')}
                               </Button>
                               <Button
                                 size="sm"
@@ -345,7 +347,7 @@ const TeacherSchedule = () => {
 
                           <div className="flex items-center gap-2 ml-15">
                             <Badge className="bg-[#006d2c]/10 text-[#006d2c] hover:bg-[#006d2c]/20">
-                              Scheduled
+                              {t('teacher.schedule.scheduled')}
                             </Badge>
                           </div>
                         </CardContent>
@@ -358,7 +360,7 @@ const TeacherSchedule = () => {
                 <div className="space-y-6">
                   <Card className="border-2 border-gray-200">
                     <CardContent className="p-6">
-                      <h3 className="text-lg font-bold text-black mb-4">Calendar</h3>
+                      <h3 className="text-lg font-bold text-black mb-4">{t('schedule.calendar')}</h3>
                       <Calendar
                         mode="single"
                         selected={date}
@@ -370,14 +372,14 @@ const TeacherSchedule = () => {
 
                   <Card className="border-2 border-[#006d2c]/20 bg-gradient-to-br from-[#006d2c]/5 to-white">
                     <CardContent className="p-6">
-                      <h3 className="text-lg font-bold text-black mb-4">Quick Stats</h3>
+                      <h3 className="text-lg font-bold text-black mb-4">{t('teacher.schedule.quickStats')}</h3>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-gray-600">Total Classes</span>
+                          <span className="text-gray-600">{t('teacher.schedule.totalClasses')}</span>
                           <span className="text-2xl font-bold text-[#006d2c]">{scheduledClasses.length}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-gray-600">This Week</span>
+                          <span className="text-gray-600">{t('teacher.schedule.thisWeek')}</span>
                           <span className="text-2xl font-bold text-[#006d2c]">
                             {scheduledClasses.filter(c => {
                               const classDate = new Date(c.scheduled_time);

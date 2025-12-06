@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -9,7 +10,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Send, MessageSquare, Users, Search, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -75,6 +75,7 @@ const MessageSkeleton = () => (
 );
 
 export default function TeacherChat() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [conversations, setConversations] = useState<StudentConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<StudentConversation | null>(null);
@@ -400,15 +401,15 @@ export default function TeacherChat() {
 
         <div className="flex-1 flex flex-col">
           <TeacherHeader 
-            title="Messages"
-            subtitle="Chat with your students"
+            title={t('chat.messages')}
+            subtitle={t('teacher.chat.manageGroupChat')}
           >
             <Button 
               onClick={() => setShowNewChatDialog(true)}
               className="bg-[#006d2c] hover:bg-[#005523]"
             >
               <UserPlus className="h-4 w-4 mr-2" />
-              New Message
+              {t('chat.sendMessage')}
             </Button>
           </TeacherHeader>
 
@@ -418,7 +419,7 @@ export default function TeacherChat() {
             <div className="w-80 border-r bg-white flex flex-col">
               <div className="p-4 border-b">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-semibold text-gray-900">Conversations</h2>
+                  <h2 className="font-semibold text-gray-900">{t('chat.messages')}</h2>
                   {totalUnread > 0 && (
                     <Badge className="bg-[#006d2c]">{totalUnread}</Badge>
                   )}
@@ -426,7 +427,7 @@ export default function TeacherChat() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search students..."
+                    placeholder={t('teacher.chat.searchStudents')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9"
@@ -444,13 +445,13 @@ export default function TeacherChat() {
                 ) : filteredConversations.length === 0 ? (
                   <div className="p-6 text-center">
                     <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">No conversations yet</p>
+                    <p className="text-sm text-gray-500">{t('chat.noConversationsYet')}</p>
                     <Button 
                       variant="link" 
                       className="text-[#006d2c] mt-2"
                       onClick={() => setShowNewChatDialog(true)}
                     >
-                      Start a new chat
+                      {t('chat.startConversation')}
                     </Button>
                   </div>
                 ) : (
@@ -485,7 +486,7 @@ export default function TeacherChat() {
                             {conv.last_message || "No messages yet"}
                           </p>
                           {conv.unread_count > 0 && (
-                            <Badge className="mt-1 bg-[#006d2c] text-xs">{conv.unread_count} new</Badge>
+                            <Badge className="mt-1 bg-[#006d2c] text-xs">{conv.unread_count} {t('chat.newMessages')}</Badge>
                           )}
                         </div>
                       </div>
@@ -512,7 +513,7 @@ export default function TeacherChat() {
                     </Avatar>
                     <div>
                       <h3 className="font-semibold text-gray-900">{selectedConversation.student_name}</h3>
-                      <p className="text-xs text-gray-500">Student</p>
+                      <p className="text-xs text-gray-500">{t('teacher.chat.student')}</p>
                     </div>
                   </div>
                 </div>
@@ -525,8 +526,8 @@ export default function TeacherChat() {
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center">
                         <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                        <p className="text-gray-500">No messages yet</p>
-                        <p className="text-sm text-gray-400">Send a message to start the conversation</p>
+                        <p className="text-gray-500">{t('chat.noMessagesYet')}</p>
+                        <p className="text-sm text-gray-400">{t('chat.startTheConversation')}</p>
                       </div>
                     </div>
                   ) : (
@@ -569,7 +570,7 @@ export default function TeacherChat() {
                 <div className="p-4 bg-white border-t">
                   <div className="flex items-center gap-2">
                     <Input
-                      placeholder="Type a message..."
+                      placeholder={t('chat.typeMessage')}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyDown={(e) => {
@@ -594,8 +595,8 @@ export default function TeacherChat() {
               <div className="flex-1 flex items-center justify-center bg-gray-50">
                 <div className="text-center">
                   <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-3" />
-                  <h3 className="font-medium text-gray-900 mb-1">Select a conversation</h3>
-                  <p className="text-sm text-gray-500">Choose a student to start messaging</p>
+                  <h3 className="font-medium text-gray-900 mb-1">{t('teacher.chat.selectConversation')}</h3>
+                  <p className="text-sm text-gray-500">{t('teacher.chat.chooseStudent')}</p>
                 </div>
               </div>
             )}
@@ -606,9 +607,9 @@ export default function TeacherChat() {
         <Dialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>New Message</DialogTitle>
+              <DialogTitle>{t('chat.sendMessage')}</DialogTitle>
               <DialogDescription>
-                Select a student to start a conversation
+                {t('teacher.chat.chooseStudent')}
               </DialogDescription>
             </DialogHeader>
             
@@ -616,7 +617,7 @@ export default function TeacherChat() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search students..."
+                  placeholder={t('teacher.chat.searchStudents')}
                   value={studentSearchQuery}
                   onChange={(e) => setStudentSearchQuery(e.target.value)}
                   className="pl-9"
@@ -627,7 +628,7 @@ export default function TeacherChat() {
                 {filteredStudents.length === 0 ? (
                   <div className="text-center py-6">
                     <Users className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">No students found</p>
+                    <p className="text-sm text-gray-500">{t('teacher.students.noStudentsFound')}</p>
                   </div>
                 ) : (
                   filteredStudents.map((student) => {

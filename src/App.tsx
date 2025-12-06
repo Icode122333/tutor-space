@@ -33,6 +33,7 @@ import TeacherSettings from "./pages/TeacherSettings";
 import TeacherAnnouncements from "./pages/TeacherAnnouncements";
 import TeacherAssignments from "./pages/TeacherAssignments";
 import TeacherGrades from "./pages/TeacherGrades";
+import TeacherCohorts from "./pages/TeacherCohorts";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TeacherStudents from "./pages/TeacherStudents";
 import NotFound from "./pages/NotFound";
@@ -83,6 +84,7 @@ const App = () => (
           <Route path="/teacher/grades" element={<TeacherGrades />} />
           <Route path="/teacher/settings" element={<TeacherSettings />} />
           <Route path="/teacher/announcements" element={<TeacherAnnouncements />} />
+          <Route path="/teacher/cohorts" element={<TeacherCohorts />} />
           <Route path="/course/:id" element={<CourseDetail />} />
           <Route path="/create-course" element={<CreateCourse />} />
           <Route path="/courses" element={<BrowseCourses />} />

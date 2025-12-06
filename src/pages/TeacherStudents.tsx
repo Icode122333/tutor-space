@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,6 +59,7 @@ interface Course {
 
 const TeacherStudents = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -138,7 +140,7 @@ const TeacherStudents = () => {
       setStudents(studentsWithDetails);
     } catch (error: any) {
       console.error("Error fetching data:", error);
-      toast.error("Failed to load students");
+      toast.error(t('teacher.students.failedToCreate'));
     } finally {
       setLoading(false);
     }
@@ -146,12 +148,12 @@ const TeacherStudents = () => {
 
   const handleCreateCohort = async () => {
     if (!newCohortName.trim()) {
-      toast.error("Please enter a cohort name");
+      toast.error(t('teacher.students.enterCohortName'));
       return;
     }
 
     if (selectedStudents.size === 0) {
-      toast.error("Please select at least one student");
+      toast.error(t('teacher.students.selectOneStudent'));
       return;
     }
 
@@ -168,14 +170,14 @@ const TeacherStudents = () => {
 
       await Promise.all(updates);
 
-      toast.success(`Cohort "${newCohortName}" created successfully`);
+      toast.success(t('teacher.students.cohortCreated', { name: newCohortName }));
       setShowCohortDialog(false);
       setNewCohortName("");
       setSelectedStudents(new Set());
       fetchData();
     } catch (error: any) {
       console.error("Error creating cohort:", error);
-      toast.error("Failed to create cohort");
+      toast.error(t('teacher.students.failedToCreate'));
     }
   };
 
@@ -214,43 +216,43 @@ const TeacherStudents = () => {
         
         <div className="flex-1 flex flex-col">
           <TeacherHeader 
-            title="Students"
-            subtitle="Manage your students and organize them into cohorts"
+            title={t('students.students')}
+            subtitle={t('teacher.students.manageStudents')}
           >
             <Dialog open={showCohortDialog} onOpenChange={setShowCohortDialog}>
               <DialogTrigger asChild>
                 <Button className="bg-[#006d2c] hover:bg-[#005523]">
                   <Layers className="h-4 w-4 mr-2" />
-                  Create Cohort
+                  {t('teacher.students.createCohort')}
                 </Button>
               </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Create New Cohort</DialogTitle>
+                      <DialogTitle>{t('teacher.students.createNewCohort')}</DialogTitle>
                       <DialogDescription>
-                        Group selected students into a cohort for better organization
+                        {t('teacher.students.groupStudents')}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="cohort-name">Cohort Name</Label>
+                        <Label htmlFor="cohort-name">{t('teacher.students.cohortName')}</Label>
                         <Input
                           id="cohort-name"
-                          placeholder="e.g., January 2025 Batch"
+                          placeholder={t('teacher.students.cohortPlaceholder')}
                           value={newCohortName}
                           onChange={(e) => setNewCohortName(e.target.value)}
                         />
                       </div>
                       <div className="text-sm text-gray-600">
-                        {selectedStudents.size} student(s) selected
+                        {t('teacher.students.studentsSelected', { count: selectedStudents.size })}
                       </div>
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setShowCohortDialog(false)}>
-                        Cancel
+                        {t('common.cancel')}
                       </Button>
                       <Button onClick={handleCreateCohort} className="bg-[#006d2c] hover:bg-[#005523]">
-                        Create Cohort
+                        {t('teacher.students.createCohort')}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -267,34 +269,34 @@ const TeacherStudents = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+                    <CardTitle className="text-sm font-medium">{t('teacher.students.totalStudents')}</CardTitle>
                     <Users className="h-4 w-4 text-[#006d2c]" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{students.length}</div>
-                    <p className="text-xs text-muted-foreground">Across all courses</p>
+                    <p className="text-xs text-muted-foreground">{t('teacher.students.acrossAllCourses')}</p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Courses</CardTitle>
+                    <CardTitle className="text-sm font-medium">{t('courses.courses')}</CardTitle>
                     <BookOpen className="h-4 w-4 text-[#006d2c]" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{courses.length}</div>
-                    <p className="text-xs text-muted-foreground">Active courses</p>
+                    <p className="text-xs text-muted-foreground">{t('teacher.students.activeCourses')}</p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Cohorts</CardTitle>
+                    <CardTitle className="text-sm font-medium">{t('teacher.students.cohorts')}</CardTitle>
                     <Layers className="h-4 w-4 text-[#006d2c]" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{cohorts.length}</div>
-                    <p className="text-xs text-muted-foreground">Student groups</p>
+                    <p className="text-xs text-muted-foreground">{t('teacher.students.studentGroups')}</p>
                   </CardContent>
                 </Card>
               </div>
@@ -302,18 +304,18 @@ const TeacherStudents = () => {
               {/* Filters */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Filter Students</CardTitle>
+                  <CardTitle>{t('teacher.students.filterStudents')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Course</Label>
+                      <Label>{t('teacher.students.course')}</Label>
                       <Select value={selectedCourse} onValueChange={setSelectedCourse}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select course" />
+                          <SelectValue placeholder={t('teacher.grades.selectCourse')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All Courses</SelectItem>
+                          <SelectItem value="all">{t('teacher.students.allCourses')}</SelectItem>
                           {courses.map(course => (
                             <SelectItem key={course.id} value={course.id}>
                               {course.title}
@@ -324,11 +326,11 @@ const TeacherStudents = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Search</Label>
+                      <Label>{t('common.search')}</Label>
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
-                          placeholder="Search by name or email..."
+                          placeholder={t('teacher.students.searchByName')}
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           className="pl-9"
@@ -342,16 +344,16 @@ const TeacherStudents = () => {
               {/* Students Table */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Students List</CardTitle>
+                  <CardTitle>{t('teacher.students.studentsList')}</CardTitle>
                   <CardDescription>
-                    {filteredStudents.length} student(s) found
+                    {t('teacher.students.studentsFound', { count: filteredStudents.length })}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {filteredStudents.length === 0 ? (
                     <div className="text-center py-12">
                       <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-600">No students found</p>
+                      <p className="text-gray-600">{t('teacher.students.noStudentsFound')}</p>
                     </div>
                   ) : (
                     <Table>
@@ -370,11 +372,11 @@ const TeacherStudents = () => {
                               checked={selectedStudents.size === filteredStudents.length && filteredStudents.length > 0}
                             />
                           </TableHead>
-                          <TableHead>Student</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Course</TableHead>
-                          <TableHead>Cohort</TableHead>
-                          <TableHead>Enrolled</TableHead>
+                          <TableHead>{t('teacher.students.student')}</TableHead>
+                          <TableHead>{t('teacher.students.email')}</TableHead>
+                          <TableHead>{t('teacher.students.course')}</TableHead>
+                          <TableHead>{t('teacher.students.cohort')}</TableHead>
+                          <TableHead>{t('teacher.students.enrolled')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -407,7 +409,7 @@ const TeacherStudents = () => {
                               {student.cohort_name ? (
                                 <Badge variant="secondary">{student.cohort_name}</Badge>
                               ) : (
-                                <span className="text-sm text-gray-400">No cohort</span>
+                                <span className="text-sm text-gray-400">{t('teacher.students.noCohort')}</span>
                               )}
                             </TableCell>
                             <TableCell className="text-sm text-gray-600">

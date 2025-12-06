@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,6 +76,7 @@ interface EnrolledStudent {
 
 const TeacherAssignments = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
@@ -121,7 +123,7 @@ const TeacherAssignments = () => {
         setSelectedCourseId(data[0].id);
       }
     } catch (error: any) {
-      toast.error("Failed to load courses");
+      toast.error(t('teacher.assignments.failedToLoad'));
       console.error(error);
     } finally {
       setLoading(false);
@@ -224,7 +226,7 @@ const TeacherAssignments = () => {
       
       setSubmissions(allSubmissions);
     } catch (error: any) {
-      toast.error("Failed to load submissions");
+      toast.error(t('teacher.assignments.failedToLoadSubmissions'));
       console.error(error);
     }
   };
@@ -247,7 +249,7 @@ const TeacherAssignments = () => {
 
       setEnrolledStudents(data || []);
     } catch (error: any) {
-      toast.error("Failed to load enrolled students");
+      toast.error(t('teacher.assignments.failedToLoadStudents'));
       console.error(error);
     }
   };
@@ -295,7 +297,7 @@ const TeacherAssignments = () => {
     const raw = editGrades[submissionId];
     const grade = parseInt(raw, 10);
     if (isNaN(grade) || grade < 0 || grade > 100) {
-      toast.error("Enter a valid grade 0-100");
+      toast.error(t('teacher.assignments.enterValidGrade'));
       return;
     }
     try {
@@ -320,10 +322,10 @@ const TeacherAssignments = () => {
       if (error) throw error;
       
       setSubmissions((prev) => prev.map((s) => (s.id === submissionId ? { ...s, grade } : s)));
-      toast.success("Grade saved");
+      toast.success(t('teacher.grades.gradeSaved'));
     } catch (e) {
       console.error(e);
-      toast.error("Failed to save grade");
+      toast.error(t('teacher.grades.failedToSave'));
     }
   };
 
@@ -343,8 +345,8 @@ const TeacherAssignments = () => {
 
         <div className="flex-1 flex flex-col overflow-hidden">
           <TeacherHeader 
-            title="Assignments"
-            subtitle="Track student submissions and progress"
+            title={t('assignments.assignments')}
+            subtitle={t('teacher.assignments.trackSubmissions')}
           />
 
           <main className="flex-1 overflow-y-auto p-4">
@@ -352,27 +354,27 @@ const TeacherAssignments = () => {
               {/* Course Selector */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Select Course</CardTitle>
+                  <CardTitle>{t('teacher.assignments.selectCourse')}</CardTitle>
                   <CardDescription>
-                    Choose a course to view its assignments
+                    {t('teacher.assignments.chooseToView')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {courses.length === 0 ? (
                     <div className="text-center py-8">
                       <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-600">No courses found</p>
+                      <p className="text-gray-600">{t('teacher.assignments.noCoursesFound')}</p>
                       <Button
                         onClick={() => navigate("/create-course")}
                         className="mt-4 bg-[#006d2c] hover:bg-[#005523]"
                       >
-                        Create Your First Course
+                        {t('teacher.assignments.createFirstCourse')}
                       </Button>
                     </div>
                   ) : (
                     <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a course" />
+                        <SelectValue placeholder={t('teacher.assignments.selectCourse')} />
                       </SelectTrigger>
                       <SelectContent>
                         {courses.map((course) => (
@@ -392,7 +394,7 @@ const TeacherAssignments = () => {
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('teacher.assignments.totalStudents')}</CardTitle>
                         <Users className="h-4 w-4 text-blue-500" />
                       </CardHeader>
                       <CardContent>
@@ -402,20 +404,20 @@ const TeacherAssignments = () => {
 
                     <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Submitted</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('teacher.assignments.submitted')}</CardTitle>
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">{submittedCount}</div>
                         <p className="text-xs text-muted-foreground">
-                          {totalStudents > 0 ? Math.round((submittedCount / totalStudents) * 100) : 0}% completion
+                          {totalStudents > 0 ? Math.round((submittedCount / totalStudents) * 100) : 0}% {t('teacher.assignments.completion')}
                         </p>
                       </CardContent>
                     </Card>
 
                     <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Not Submitted</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('teacher.assignments.notSubmitted')}</CardTitle>
                         <Clock className="h-4 w-4 text-orange-500" />
                       </CardHeader>
                       <CardContent>
@@ -425,7 +427,7 @@ const TeacherAssignments = () => {
 
                     <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Graded</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('teacher.assignments.graded')}</CardTitle>
                         <FileText className="h-4 w-4 text-purple-500" />
                       </CardHeader>
                       <CardContent>
@@ -458,7 +460,7 @@ const TeacherAssignments = () => {
                               onClick={() => navigate(`/create-course?edit=${selectedCourseId}`)}
                               className="bg-[#006d2c] hover:bg-[#005523]"
                             >
-                              Edit Assignment
+                              {t('teacher.assignments.editAssignment')}
                             </Button>
                           </div>
                         </div>
@@ -467,10 +469,10 @@ const TeacherAssignments = () => {
                         <Tabs defaultValue="submitted" className="w-full">
                           <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="submitted">
-                              Submitted ({submittedCount})
+                              {t('teacher.assignments.submitted')} ({submittedCount})
                             </TabsTrigger>
                             <TabsTrigger value="not-submitted">
-                              Not Submitted ({notSubmittedCount})
+                              {t('teacher.assignments.notSubmitted')} ({notSubmittedCount})
                             </TabsTrigger>
                           </TabsList>
 
@@ -479,7 +481,7 @@ const TeacherAssignments = () => {
                             {submissions.length === 0 ? (
                               <div className="text-center py-12">
                                 <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                                <p className="text-gray-600">No submissions yet</p>
+                                <p className="text-gray-600">{t('teacher.assignments.noSubmissions')}</p>
                               </div>
                             ) : (
                               submissions.map((submission) => (

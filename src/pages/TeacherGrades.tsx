@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,6 +82,7 @@ interface QuizAttempt {
 
 const TeacherGrades = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
@@ -132,7 +134,7 @@ const TeacherGrades = () => {
         setSelectedCourseId(data[0].id);
       }
     } catch (error: any) {
-      toast.error("Failed to load courses");
+      toast.error(t('teacher.grades.failedToLoad'));
       console.error(error);
     } finally {
       setLoading(false);
@@ -284,7 +286,7 @@ const TeacherGrades = () => {
       const grades = await Promise.all(gradesPromises);
       setStudentGrades(grades);
     } catch (error: any) {
-      toast.error("Failed to load grades");
+      toast.error(t('teacher.grades.failedToLoad'));
       console.error(error);
     }
   };
@@ -327,7 +329,7 @@ const TeacherGrades = () => {
 
       setQuizAttempts(attemptsWithTitles);
     } catch (error: any) {
-      toast.error("Failed to load quiz attempts");
+      toast.error(t('teacher.grades.failedToLoad'));
       console.error(error);
     }
   };
@@ -357,7 +359,7 @@ const TeacherGrades = () => {
 
     const grade = parseInt(gradeForm.grade);
     if (isNaN(grade) || grade < 0 || grade > 100) {
-      toast.error("Please enter a valid grade between 0 and 100");
+      toast.error(t('teacher.grades.enterValidGrade'));
       return;
     }
 
@@ -375,11 +377,11 @@ const TeacherGrades = () => {
 
       if (error) throw error;
 
-      toast.success("Grade saved successfully");
+      toast.success(t('teacher.grades.gradeSaved'));
       setShowGradeDialog(false);
       fetchStudentGrades();
     } catch (error: any) {
-      toast.error("Failed to save grade");
+      toast.error(t('teacher.grades.failedToSave'));
       console.error(error);
     } finally {
       setSaving(false);
@@ -565,8 +567,8 @@ const TeacherGrades = () => {
 
         <div className="flex-1 flex flex-col overflow-hidden">
           <TeacherHeader 
-            title="Grades"
-            subtitle="View quiz scores and grade assignments"
+            title={t('grades.grades')}
+            subtitle={t('teacher.grades.viewQuizScores')}
           >
             {selectedCourseId && studentGrades.length > 0 && (
               <Button 
@@ -575,7 +577,7 @@ const TeacherGrades = () => {
                 className="gap-2"
               >
                 <Download className="h-4 w-4" />
-                Export Excel
+                {t('common.download')} Excel
               </Button>
             )}
           </TeacherHeader>
@@ -585,27 +587,27 @@ const TeacherGrades = () => {
               {/* Course Selector */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Select Course</CardTitle>
+                  <CardTitle>{t('teacher.grades.selectCourse')}</CardTitle>
                   <CardDescription>
-                    Choose a course to view student grades
+                    {t('teacher.grades.chooseToView')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {courses.length === 0 ? (
                     <div className="text-center py-8">
                       <GraduationCap className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-600">No courses found</p>
+                      <p className="text-gray-600">{t('teacher.grades.noCoursesFound')}</p>
                       <Button
                         onClick={() => navigate("/create-course")}
                         className="mt-4 bg-[#006d2c] hover:bg-[#005523]"
                       >
-                        Create Your First Course
+                        {t('teacher.grades.createFirstCourse')}
                       </Button>
                     </div>
                   ) : (
                     <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a course" />
+                        <SelectValue placeholder={t('teacher.grades.selectCourse')} />
                       </SelectTrigger>
                       <SelectContent>
                         {courses.map((course) => (
@@ -624,8 +626,8 @@ const TeacherGrades = () => {
                   {/* Tabs for Quiz Marks and Assignments */}
                   <Tabs defaultValue="quizzes" className="space-y-6">
                     <TabsList className="grid w-full max-w-md grid-cols-2">
-                      <TabsTrigger value="quizzes">Quiz Marks</TabsTrigger>
-                      <TabsTrigger value="assignments">Assignments</TabsTrigger>
+                      <TabsTrigger value="quizzes">{t('teacher.grades.quizMarks')}</TabsTrigger>
+                      <TabsTrigger value="assignments">{t('assignments.assignments')}</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="quizzes" className="space-y-6">
@@ -637,7 +639,7 @@ const TeacherGrades = () => {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('teacher.students.totalStudents')}</CardTitle>
                         <GraduationCap className="h-4 w-4 text-blue-500" />
                       </CardHeader>
                       <CardContent>
@@ -647,7 +649,7 @@ const TeacherGrades = () => {
 
                     <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Class Average</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('teacher.grades.classAverage')}</CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-500" />
                       </CardHeader>
                       <CardContent>
@@ -655,14 +657,14 @@ const TeacherGrades = () => {
                           {averageOverallGrade > 0 ? averageOverallGrade.toFixed(1) : "N/A"}%
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Grade: {getGradeLetter(averageOverallGrade)}
+                          {t('teacher.grades.letter')}: {getGradeLetter(averageOverallGrade)}
                         </p>
                       </CardContent>
                     </Card>
 
                     <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Graded Assignments</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('teacher.grades.gradedAssignments')}</CardTitle>
                         <FileText className="h-4 w-4 text-purple-500" />
                       </CardHeader>
                       <CardContent>
@@ -670,7 +672,7 @@ const TeacherGrades = () => {
                           {studentGrades.filter(s => s.assignment_grade !== null).length}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          of {studentGrades.filter(s => s.submission_id !== null).length} submissions
+                          {studentGrades.filter(s => s.submission_id !== null).length} {t('teacher.grades.submissions')}
                         </p>
                       </CardContent>
                     </Card>
@@ -679,16 +681,16 @@ const TeacherGrades = () => {
                   {/* Grades Table */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Student Grades</CardTitle>
+                      <CardTitle>{t('teacher.grades.studentGrades')}</CardTitle>
                       <CardDescription>
-                        Quiz scores are auto-calculated. Click "Grade" to manually grade assignments.
+                        {t('teacher.grades.autoCalculated')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       {studentGrades.length === 0 ? (
                         <div className="text-center py-12">
                           <GraduationCap className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-600">No students enrolled in this course</p>
+                          <p className="text-gray-600">{t('teacher.grades.noStudentsEnrolled')}</p>
                         </div>
                       ) : (
                         <div className="overflow-x-auto">

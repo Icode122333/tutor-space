@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Home, Calendar, MessageSquare, BookOpen, GraduationCap, Users, FileText, Award, Settings, Megaphone } from "lucide-react";
+import { Home, Calendar, MessageSquare, BookOpen, GraduationCap, Users, FileText, Award, Settings, Megaphone, UsersRound } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar,
@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 const mainMenuItems = [
   { titleKey: "nav.dashboard", url: "/teacher/dashboard", icon: Home },
   { titleKey: "nav.students", url: "/teacher/students", icon: Users },
+  { titleKey: "nav.cohorts", url: "/teacher/cohorts", icon: UsersRound },
   { titleKey: "nav.assignments", url: "/teacher/assignments", icon: FileText },
   { titleKey: "nav.grades", url: "/teacher/grades", icon: Award },
   { titleKey: "nav.schedule", url: "/teacher/schedule", icon: Calendar },
