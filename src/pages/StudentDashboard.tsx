@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, BookOpen, CalendarDays, Clock, ChevronLeft, ChevronRight, Award } from "lucide-react";
+import { Search, BookOpen, CalendarDays, Clock, ChevronLeft, ChevronRight, Award, Megaphone } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -34,6 +34,7 @@ const StudentDashboard = () => {
   const [showJoinCohortDialog, setShowJoinCohortDialog] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [announcements, setAnnouncements] = useState<any[]>([]);
 
   const sliderImages = [
     "/images/Gemini_Generated_Image_lrwgaxlrwgaxlrwg.png",
@@ -52,6 +53,7 @@ const StudentDashboard = () => {
   useEffect(() => {
     if (profile) {
       fetchEnrolledCourses();
+      fetchAnnouncements();
     }
   }, [profile]);
 
@@ -123,6 +125,26 @@ const StudentDashboard = () => {
       if (!error) {
         setScheduledClasses(data || []);
       }
+    }
+  };
+
+  const fetchAnnouncements = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("teacher_announcements")
+        .select("*, courses(title)")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (!error) {
+        setAnnouncements(data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching announcements:", err);
     }
   };
 
@@ -493,6 +515,39 @@ const StudentDashboard = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Announcements Section */}
+              {announcements.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-orange-100 rounded-full p-2">
+                      <Megaphone className="h-6 w-6 text-orange-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">{t('dashboard.announcements', 'Announcements')}</h2>
+                      <p className="text-sm text-muted-foreground">{t('dashboard.latestFromTeachers', 'Latest updates from your teachers')}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {announcements.map((announcement) => (
+                      <Card key={announcement.id} className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h3 className="font-semibold text-gray-900">{announcement.title}</h3>
+                            <Badge variant="secondary" className="text-xs shrink-0">
+                              {announcement.courses?.title || t('dashboard.allCourses', 'All Courses')}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 line-clamp-2 mb-2">{announcement.message}</p>
+                          <p className="text-xs text-gray-400">
+                            {new Date(announcement.created_at).toLocaleDateString()}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* My Courses Section - Full Width Below */}
               <div>

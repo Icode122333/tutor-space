@@ -404,47 +404,142 @@ const TeacherGrades = () => {
     return "F";
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     if (studentGrades.length === 0) {
       toast.error("No data to export");
       return;
     }
 
+    toast.info("Preparing export with quiz details...");
+
     const courseName = courses.find(c => c.id === selectedCourseId)?.title || "Course";
     
-    // Prepare data for Excel
-    const excelData = studentGrades.map((student, index) => ({
+    // Get all lessons for this course to fetch quiz attempts
+    const { data: chapters } = await supabase
+      .from("course_chapters")
+      .select("id")
+      .eq("course_id", selectedCourseId);
+
+    const chapterIds = chapters?.map(ch => ch.id) || [];
+
+    const { data: lessons } = await supabase
+      .from("course_lessons")
+      .select("id, title")
+      .in("chapter_id", chapterIds)
+      .eq("content_type", "quiz");
+
+    const lessonIds = lessons?.map(l => l.id) || [];
+
+    // Fetch all quiz attempts for all students
+    const allQuizAttempts: any[] = [];
+    for (const student of studentGrades) {
+      const { data: attempts } = await supabase
+        .from("student_quiz_attempts")
+        .select("*")
+        .eq("student_id", student.student_id)
+        .in("lesson_id", lessonIds)
+        .order("submitted_at", { ascending: true });
+
+      if (attempts) {
+        // Group attempts by lesson to identify retakes
+        const attemptsByLesson: Record<string, any[]> = {};
+        attempts.forEach(attempt => {
+          if (!attemptsByLesson[attempt.lesson_id]) {
+            attemptsByLesson[attempt.lesson_id] = [];
+          }
+          attemptsByLesson[attempt.lesson_id].push(attempt);
+        });
+
+        // Add attempt number for each quiz
+        Object.entries(attemptsByLesson).forEach(([lessonId, lessonAttempts]) => {
+          lessonAttempts.forEach((attempt, index) => {
+            const lesson = lessons?.find(l => l.id === lessonId);
+            allQuizAttempts.push({
+              student_name: student.student_name,
+              student_email: student.student_email,
+              quiz_title: lesson?.title || "Unknown Quiz",
+              attempt_number: index + 1,
+              total_attempts: lessonAttempts.length,
+              score: attempt.score,
+              total_points: attempt.total_points,
+              percentage: ((attempt.score / attempt.total_points) * 100).toFixed(1),
+              passed: attempt.passed ? "Yes" : "No",
+              is_retake: index > 0 ? "Yes" : "No",
+              submitted_at: new Date(attempt.submitted_at).toLocaleString(),
+            });
+          });
+        });
+      }
+    }
+
+    // Prepare summary data for Excel (Sheet 1)
+    const summaryData = studentGrades.map((student, index) => ({
       "No.": index + 1,
       "Student Name": student.student_name,
       "Email": student.student_email,
       "Phone": student.student_phone || "N/A",
       "Quiz Average (%)": student.quiz_average !== null ? student.quiz_average.toFixed(1) : "N/A",
-      "Quiz Count": student.quiz_count,
+      "Total Quiz Attempts": student.quiz_count,
       "Assignment Grade (%)": student.assignment_grade !== null ? student.assignment_grade.toFixed(1) : "N/A",
       "Capstone Grade (%)": student.capstone_grade !== null ? student.capstone_grade.toFixed(1) : "N/A",
       "Overall Grade (%)": student.overall_grade !== null ? student.overall_grade.toFixed(1) : "N/A",
       "Letter Grade": getGradeLetter(student.overall_grade),
     }));
 
-    // Create workbook and worksheet
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(excelData);
+    // Prepare detailed quiz attempts data (Sheet 2)
+    const quizDetailsData = allQuizAttempts.map((attempt, index) => ({
+      "No.": index + 1,
+      "Student Name": attempt.student_name,
+      "Email": attempt.student_email,
+      "Quiz Title": attempt.quiz_title,
+      "Attempt #": attempt.attempt_number,
+      "Total Attempts": attempt.total_attempts,
+      "Is Retake": attempt.is_retake,
+      "Score": attempt.score,
+      "Total Points": attempt.total_points,
+      "Percentage (%)": attempt.percentage,
+      "Passed": attempt.passed,
+      "Submitted At": attempt.submitted_at,
+    }));
 
-    // Set column widths
-    ws["!cols"] = [
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Sheet 1: Summary
+    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+    wsSummary["!cols"] = [
       { wch: 5 },   // No.
       { wch: 25 },  // Name
       { wch: 30 },  // Email
       { wch: 15 },  // Phone
       { wch: 15 },  // Quiz Average
-      { wch: 12 },  // Quiz Count
+      { wch: 18 },  // Total Attempts
       { wch: 18 },  // Assignment
       { wch: 18 },  // Capstone
       { wch: 15 },  // Overall
       { wch: 12 },  // Letter
     ];
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
 
-    XLSX.utils.book_append_sheet(wb, ws, "Grades");
+    // Sheet 2: Quiz Details (all attempts including retakes)
+    if (quizDetailsData.length > 0) {
+      const wsQuizDetails = XLSX.utils.json_to_sheet(quizDetailsData);
+      wsQuizDetails["!cols"] = [
+        { wch: 5 },   // No.
+        { wch: 25 },  // Student Name
+        { wch: 30 },  // Email
+        { wch: 30 },  // Quiz Title
+        { wch: 10 },  // Attempt #
+        { wch: 12 },  // Total Attempts
+        { wch: 10 },  // Is Retake
+        { wch: 8 },   // Score
+        { wch: 12 },  // Total Points
+        { wch: 12 },  // Percentage
+        { wch: 8 },   // Passed
+        { wch: 20 },  // Submitted At
+      ];
+      XLSX.utils.book_append_sheet(wb, wsQuizDetails, "Quiz Attempts");
+    }
 
     // Generate filename with date
     const date = new Date().toISOString().split("T")[0];
@@ -452,7 +547,7 @@ const TeacherGrades = () => {
 
     // Download
     XLSX.writeFile(wb, filename);
-    toast.success("Grades exported successfully!");
+    toast.success("Grades exported with quiz details!");
   };
 
   if (loading) {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Home, Calendar, MessageSquare, BookOpen, GraduationCap, Users, FileText, Award, Settings } from "lucide-react";
+import { Home, Calendar, MessageSquare, BookOpen, GraduationCap, Users, FileText, Award, Settings, Megaphone } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar,
@@ -14,20 +14,23 @@ import {
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from 'react-i18next';
 
 const mainMenuItems = [
-  { title: "Dashboard", url: "/teacher/dashboard", icon: Home },
-  { title: "Students", url: "/teacher/students", icon: Users },
-  { title: "Assignments", url: "/teacher/assignments", icon: FileText },
-  { title: "Grades", url: "/teacher/grades", icon: Award },
-  { title: "Schedule", url: "/teacher/schedule", icon: Calendar },
-  { title: "Chat Group", url: "/teacher/chat", icon: MessageSquare },
-  { title: "Settings", url: "/teacher/settings", icon: Settings },
+  { titleKey: "nav.dashboard", url: "/teacher/dashboard", icon: Home },
+  { titleKey: "nav.students", url: "/teacher/students", icon: Users },
+  { titleKey: "nav.assignments", url: "/teacher/assignments", icon: FileText },
+  { titleKey: "nav.grades", url: "/teacher/grades", icon: Award },
+  { titleKey: "nav.schedule", url: "/teacher/schedule", icon: Calendar },
+  { titleKey: "nav.chatGroup", url: "/teacher/chat", icon: MessageSquare },
+  { titleKey: "dashboard.announcements", url: "/teacher/announcements", icon: Megaphone },
+  { titleKey: "nav.settings", url: "/teacher/settings", icon: Settings },
 ];
 
 export function TeacherSidebar() {
   const { state } = useSidebar();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const collapsed = state === "collapsed";
   const [courses, setCourses] = useState<any[]>([]);
 
@@ -66,7 +69,7 @@ export function TeacherSidebar() {
             <SidebarGroupContent className="px-2">
               <SidebarMenu className="space-y-1">
                 {mainMenuItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.titleKey}>
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={item.url}
@@ -77,7 +80,7 @@ export function TeacherSidebar() {
                         }
                       >
                         <item.icon className="h-5 w-5 flex-shrink-0" />
-                        {!collapsed && <span className="text-sm">{item.title}</span>}
+                        {!collapsed && <span className="text-sm">{t(item.titleKey)}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -90,7 +93,7 @@ export function TeacherSidebar() {
           {!collapsed && (
             <SidebarGroup className="mt-4 space-y-1">
               <SidebarGroupLabel className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                MY COURSES
+                {t('nav.myCourses').toUpperCase()}
               </SidebarGroupLabel>
               <SidebarGroupContent className="px-2">
                 {courses.length > 0 ? (
@@ -116,8 +119,8 @@ export function TeacherSidebar() {
                 ) : (
                   <div className="px-3 py-4 text-center">
                     <BookOpen className="h-8 w-8 text-gray-600 mx-auto mb-2" />
-                    <p className="text-xs text-gray-400">No courses yet</p>
-                    <p className="text-xs text-gray-500 mt-1">Create your first course</p>
+                    <p className="text-xs text-gray-400">{t('teacher.dashboard.noCourses')}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('teacher.dashboard.createFirst')}</p>
                   </div>
                 )}
               </SidebarGroupContent>

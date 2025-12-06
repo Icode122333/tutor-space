@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CourseCard } from "@/components/CourseCard";
 import { toast } from "sonner";
 import { useActivityTracker } from "@/hooks/useActivityTracker";
+import { useTranslation } from 'react-i18next';
 
 // Skeleton Components
 const StatCardSkeleton = () => (
@@ -55,6 +56,7 @@ const UpcomingClassSkeleton = () => (
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user, profile, loading: authLoading } = useAuth();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [courses, setCourses] = useState<any[]>([]);
@@ -173,7 +175,7 @@ const TeacherDashboard = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-300 border-t-[#006d2c] mx-auto mb-3"></div>
-          <p className="text-gray-500 text-sm">Loading...</p>
+          <p className="text-gray-500 text-sm">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -188,8 +190,8 @@ const TeacherDashboard = () => {
 
         <div className="flex-1 flex flex-col overflow-hidden">
           <TeacherHeader 
-            title={`Welcome back, ${profile?.full_name?.split(' ')[0] || 'Teacher'}`}
-            subtitle="Here's what's happening today"
+            title={`${t('teacher.dashboard.welcomeBack')}, ${profile?.full_name?.split(' ')[0] || t('onboarding.teacher')}`}
+            subtitle={t('teacher.dashboard.happeningToday')}
             loading={dataLoading}
           />
 
@@ -208,45 +210,45 @@ const TeacherDashboard = () => {
                   <>
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-600">Courses</CardTitle>
+                        <CardTitle className="text-sm font-medium text-gray-600">{t('nav.courses')}</CardTitle>
                         <BookOpen className="h-4 w-4 text-gray-400" />
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">{courses.length}</div>
-                        <p className="text-xs text-gray-500">Active courses</p>
+                        <p className="text-xs text-gray-500">{t('teacher.dashboard.activeCourses')}</p>
                       </CardContent>
                     </Card>
 
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-600">Students</CardTitle>
+                        <CardTitle className="text-sm font-medium text-gray-600">{t('nav.students')}</CardTitle>
                         <Users className="h-4 w-4 text-gray-400" />
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">{totalStudents}</div>
-                        <p className="text-xs text-gray-500">Enrolled</p>
+                        <p className="text-xs text-gray-500">{t('courses.enrolled')}</p>
                       </CardContent>
                     </Card>
 
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-600">Lessons</CardTitle>
+                        <CardTitle className="text-sm font-medium text-gray-600">{t('teacher.dashboard.lessons')}</CardTitle>
                         <PlayCircle className="h-4 w-4 text-gray-400" />
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">{totalLessons}</div>
-                        <p className="text-xs text-gray-500">Total lessons</p>
+                        <p className="text-xs text-gray-500">{t('teacher.dashboard.totalLessons')}</p>
                       </CardContent>
                     </Card>
 
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-600">Chapters</CardTitle>
+                        <CardTitle className="text-sm font-medium text-gray-600">{t('teacher.dashboard.chapters')}</CardTitle>
                         <Layers className="h-4 w-4 text-gray-400" />
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">{totalChapters}</div>
-                        <p className="text-xs text-gray-500">Total chapters</p>
+                        <p className="text-xs text-gray-500">{t('teacher.dashboard.totalChapters')}</p>
                       </CardContent>
                     </Card>
                   </>
@@ -261,15 +263,15 @@ const TeacherDashboard = () => {
                     <CardContent className="p-5">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-semibold mb-1">Create a new course</h3>
-                          <p className="text-sm text-white/80">Share your knowledge with students</p>
+                          <h3 className="font-semibold mb-1">{t('teacher.dashboard.readyToCreate')}</h3>
+                          <p className="text-sm text-white/80">{t('teacher.dashboard.shareKnowledge')}</p>
                         </div>
                         <Button 
                           onClick={() => navigate("/create-course")}
                           className="bg-white text-[#006d2c] hover:bg-gray-100"
                         >
                           <Plus className="h-4 w-4 mr-2" />
-                          New Course
+                          {t('courses.createCourse')}
                         </Button>
                       </div>
                     </CardContent>
@@ -280,8 +282,8 @@ const TeacherDashboard = () => {
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <CardTitle className="text-lg">My Courses</CardTitle>
-                          <CardDescription>Manage your courses</CardDescription>
+                          <CardTitle className="text-lg">{t('teacher.dashboard.myCourses')}</CardTitle>
+                          <CardDescription>{t('teacher.dashboard.manageEdit')}</CardDescription>
                         </div>
                         {!dataLoading && courses.length > 0 && (
                           <Badge variant="secondary">{courses.length}</Badge>
@@ -298,11 +300,11 @@ const TeacherDashboard = () => {
                       ) : courses.length === 0 ? (
                         <div className="text-center py-10">
                           <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                          <h3 className="font-medium text-gray-900 mb-1">No courses yet</h3>
-                          <p className="text-sm text-gray-500 mb-4">Create your first course to get started</p>
+                          <h3 className="font-medium text-gray-900 mb-1">{t('teacher.dashboard.noCourses')}</h3>
+                          <p className="text-sm text-gray-500 mb-4">{t('teacher.dashboard.createFirst')}</p>
                           <Button onClick={() => navigate("/create-course")} className="bg-[#006d2c] hover:bg-[#005523]">
                             <Plus className="h-4 w-4 mr-2" />
-                            Create Course
+                            {t('courses.createCourse')}
                           </Button>
                         </div>
                       ) : (
@@ -337,7 +339,7 @@ const TeacherDashboard = () => {
                   {/* Calendar */}
                   <Card>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Calendar</CardTitle>
+                      <CardTitle className="text-base">{t('teacher.dashboard.calendar')}</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0">
                       <Calendar
@@ -362,7 +364,7 @@ const TeacherDashboard = () => {
                   {/* Upcoming Classes */}
                   <Card>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Upcoming Classes</CardTitle>
+                      <CardTitle className="text-base">{t('teacher.dashboard.upcomingClasses')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {dataLoading ? (
@@ -373,7 +375,7 @@ const TeacherDashboard = () => {
                       ) : scheduledClasses.length === 0 ? (
                         <div className="text-center py-6">
                           <CalendarIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                          <p className="text-sm text-gray-500">No upcoming classes</p>
+                          <p className="text-sm text-gray-500">{t('schedule.noUpcomingClasses')}</p>
                         </div>
                       ) : (
                         scheduledClasses.slice(0, 3).map((classItem) => {
