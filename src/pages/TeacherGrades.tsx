@@ -16,8 +16,10 @@ import {
   TrendingUp,
   Edit,
   Save,
-  X
+  X,
+  Download
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import {
   Select,
@@ -56,11 +58,13 @@ interface StudentGrade {
   student_id: string;
   student_name: string;
   student_email: string;
+  student_phone: string | null;
   avatar_url: string | null;
   quiz_average: number | null;
   quiz_count: number;
   assignment_grade: number | null;
   assignment_feedback: string | null;
+  capstone_grade: number | null;
   submission_id: string | null;
   overall_grade: number | null;
 }
@@ -145,6 +149,7 @@ const TeacherGrades = () => {
           profiles (
             full_name,
             email,
+            phone,
             avatar_url
           )
         `)
@@ -223,6 +228,7 @@ const TeacherGrades = () => {
         }
 
         // 2. Get capstone submission
+        let capstoneGrade = null;
         if (capstone) {
           const { data: capstoneSubmission } = await supabase
             .from("capstone_submissions")
@@ -233,6 +239,7 @@ const TeacherGrades = () => {
 
           if (capstoneSubmission) {
             if (capstoneSubmission.grade !== null) {
+              capstoneGrade = capstoneSubmission.grade;
               assignmentGrades.push(capstoneSubmission.grade);
             }
             if (capstoneSubmission.feedback) {
@@ -262,11 +269,13 @@ const TeacherGrades = () => {
           student_id: studentId,
           student_name: enrollment.profiles.full_name,
           student_email: enrollment.profiles.email,
+          student_phone: enrollment.profiles.phone || null,
           avatar_url: enrollment.profiles.avatar_url,
           quiz_average: quizAverage,
           quiz_count: quizCount,
           assignment_grade: assignmentGrade,
           assignment_feedback: assignmentFeedback,
+          capstone_grade: capstoneGrade,
           submission_id: submissionId,
           overall_grade: overallGrade
         };
@@ -395,6 +404,57 @@ const TeacherGrades = () => {
     return "F";
   };
 
+  const exportToExcel = () => {
+    if (studentGrades.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    const courseName = courses.find(c => c.id === selectedCourseId)?.title || "Course";
+    
+    // Prepare data for Excel
+    const excelData = studentGrades.map((student, index) => ({
+      "No.": index + 1,
+      "Student Name": student.student_name,
+      "Email": student.student_email,
+      "Phone": student.student_phone || "N/A",
+      "Quiz Average (%)": student.quiz_average !== null ? student.quiz_average.toFixed(1) : "N/A",
+      "Quiz Count": student.quiz_count,
+      "Assignment Grade (%)": student.assignment_grade !== null ? student.assignment_grade.toFixed(1) : "N/A",
+      "Capstone Grade (%)": student.capstone_grade !== null ? student.capstone_grade.toFixed(1) : "N/A",
+      "Overall Grade (%)": student.overall_grade !== null ? student.overall_grade.toFixed(1) : "N/A",
+      "Letter Grade": getGradeLetter(student.overall_grade),
+    }));
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Set column widths
+    ws["!cols"] = [
+      { wch: 5 },   // No.
+      { wch: 25 },  // Name
+      { wch: 30 },  // Email
+      { wch: 15 },  // Phone
+      { wch: 15 },  // Quiz Average
+      { wch: 12 },  // Quiz Count
+      { wch: 18 },  // Assignment
+      { wch: 18 },  // Capstone
+      { wch: 15 },  // Overall
+      { wch: 12 },  // Letter
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Grades");
+
+    // Generate filename with date
+    const date = new Date().toISOString().split("T")[0];
+    const filename = `${courseName.replace(/[^a-zA-Z0-9]/g, "_")}_Grades_${date}.xlsx`;
+
+    // Download
+    XLSX.writeFile(wb, filename);
+    toast.success("Grades exported successfully!");
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -412,7 +472,18 @@ const TeacherGrades = () => {
           <TeacherHeader 
             title="Grades"
             subtitle="View quiz scores and grade assignments"
-          />
+          >
+            {selectedCourseId && studentGrades.length > 0 && (
+              <Button 
+                onClick={exportToExcel}
+                variant="outline"
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export Excel
+              </Button>
+            )}
+          </TeacherHeader>
 
           <main className="flex-1 overflow-y-auto p-4">
             <div className="max-w-7xl mx-auto space-y-6">
