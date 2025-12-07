@@ -691,33 +691,33 @@
     },
     "students": {
       "manageStudents": "Gérez vos étudiants et organisez-les en cohortes",
-      "createCohort": "Créer une cohorte",
+      "manageCohorts": "Gérer les cohortes",
       "totalStudents": "Total des étudiants",
       "acrossAllCourses": "Dans tous les cours",
       "activeCourses": "Cours actifs",
       "cohorts": "Cohortes",
       "studentGroups": "Groupes d'étudiants",
+      "unassigned": "Non assignés",
+      "noCohortAssigned": "Étudiants sans cohorte",
+      "cohortOverview": "Aperçu des cohortes",
+      "cohortOverviewDesc": "Cliquez sur une cohorte pour filtrer les étudiants",
+      "studentSingular": "étudiant",
+      "studentPlural": "étudiants",
       "filterStudents": "Filtrer les étudiants",
       "course": "Cours",
       "allCourses": "Tous les cours",
+      "cohort": "Cohorte",
+      "selectCohort": "Sélectionner une cohorte",
+      "allCohorts": "Toutes les cohortes",
       "searchByName": "Rechercher par nom ou email...",
       "studentsList": "Liste des étudiants",
       "studentsFound": "{count} étudiant(s) trouvé(s)",
       "noStudentsFound": "Aucun étudiant trouvé",
       "student": "Étudiant",
       "email": "Email",
-      "cohort": "Cohorte",
       "enrolled": "Inscrit",
       "noCohort": "Aucune cohorte",
-      "createNewCohort": "Créer une nouvelle cohorte",
-      "groupStudents": "Regroupez les étudiants sélectionnés dans une cohorte pour une meilleure organisation",
-      "cohortName": "Nom de la cohorte",
-      "cohortPlaceholder": "ex: Promotion janvier 2025",
-      "studentsSelected": "{count} étudiant(s) sélectionné(s)",
-      "enterCohortName": "Veuillez entrer un nom de cohorte",
-      "selectOneStudent": "Veuillez sélectionner au moins un étudiant",
-      "cohortCreated": "Cohorte \"{name}\" créée avec succès",
-      "failedToCreate": "Échec de la création de la cohorte"
+      "failedToLoad": "Échec du chargement des étudiants"
     },
     "assignments": {
       "trackSubmissions": "Suivez les soumissions et la progression des étudiants",
@@ -887,7 +887,8 @@
       "failedToCreate": "Échec de la création de la cohorte",
       "deleted": "Cohorte supprimée avec succès",
       "failedToDelete": "Échec de la suppression de la cohorte",
-      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette cohorte ?"
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette cohorte ?",
+      "noCourseLinked": "Cette cohorte n'a pas de cours lié. Veuillez lier un cours pour inscrire des étudiants."
     }
   }
 }

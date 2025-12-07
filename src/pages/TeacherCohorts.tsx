@@ -260,21 +260,55 @@ const TeacherCohorts = () => {
   const handleViewStudents = async (cohort: Cohort) => {
     setSelectedCohort(cohort);
     setShowStudentsDialog(true);
+    setCohortStudents([]); // Reset while loading
 
     try {
-      // Get students enrolled in this cohort
-      const { data: enrollments } = await supabase
+      // Primary method: Get students by cohort_name matching this cohort's name
+      const { data: cohortStudentsData, error: cohortError } = await supabase
         .from("course_enrollments")
         .select(`
           student_id,
           enrolled_at,
+          cohort_name,
           profiles:student_id (full_name, email, avatar_url)
         `)
         .eq("cohort_name", cohort.name);
 
-      setCohortStudents(enrollments || []);
+      if (cohortError) {
+        console.error("Error fetching cohort students:", cohortError);
+      }
+
+      // If we found students with this cohort_name, use them
+      if (cohortStudentsData && cohortStudentsData.length > 0) {
+        setCohortStudents(cohortStudentsData);
+        return;
+      }
+
+      // Fallback: If cohort has a linked course and no students with cohort_name,
+      // show all students enrolled in that course
+      if (cohort.course_id) {
+        const { data: courseStudents, error: courseError } = await supabase
+          .from("course_enrollments")
+          .select(`
+            student_id,
+            enrolled_at,
+            cohort_name,
+            profiles:student_id (full_name, email, avatar_url)
+          `)
+          .eq("course_id", cohort.course_id);
+
+        if (courseError) {
+          console.error("Error fetching course students:", courseError);
+        }
+
+        setCohortStudents(courseStudents || []);
+      } else {
+        // No linked course and no students with cohort_name
+        setCohortStudents([]);
+      }
     } catch (error) {
       console.error("Error fetching students:", error);
+      setCohortStudents([]);
     }
   };
 
@@ -282,36 +316,68 @@ const TeacherCohorts = () => {
     setProcessing(true);
     try {
       const cohort = cohorts.find(c => c.id === request.cohort_id);
-      if (!cohort) return;
+      if (!cohort) {
+        toast.error(t("common.error"));
+        return;
+      }
 
-      // Check if student is already enrolled
+      // Cohort must have a linked course to enroll students
+      if (!cohort.course_id) {
+        toast.error(t("teacher.cohorts.noCourseLinked"));
+        // Still approve the request but warn the teacher
+        await supabase
+          .from("cohort_join_requests")
+          .update({ status: "approved" })
+          .eq("id", request.id);
+        fetchData();
+        return;
+      }
+
+      // Check if student is already enrolled in this course
       const { data: existing } = await supabase
         .from("course_enrollments")
         .select("id")
         .eq("student_id", request.student_id)
         .eq("course_id", cohort.course_id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
-        // Update existing enrollment
-        await supabase
+        // Update existing enrollment with cohort_name
+        const { error: updateError } = await supabase
           .from("course_enrollments")
           .update({ cohort_name: cohort.name })
           .eq("id", existing.id);
-      } else if (cohort.course_id) {
-        // Create new enrollment
-        await supabase.from("course_enrollments").insert({
-          student_id: request.student_id,
-          course_id: cohort.course_id,
-          cohort_name: cohort.name,
-        });
+        
+        if (updateError) {
+          console.error("Error updating enrollment:", updateError);
+          throw updateError;
+        }
+      } else {
+        // Create new enrollment with cohort_name
+        const { error: insertError } = await supabase
+          .from("course_enrollments")
+          .insert({
+            student_id: request.student_id,
+            course_id: cohort.course_id,
+            cohort_name: cohort.name,
+          });
+        
+        if (insertError) {
+          console.error("Error creating enrollment:", insertError);
+          throw insertError;
+        }
       }
 
-      // Update request status
-      await supabase
+      // Update request status to approved
+      const { error: statusError } = await supabase
         .from("cohort_join_requests")
         .update({ status: "approved" })
         .eq("id", request.id);
+
+      if (statusError) {
+        console.error("Error updating request status:", statusError);
+        throw statusError;
+      }
 
       toast.success(t("teacher.cohorts.requestApproved"));
       fetchData();
@@ -352,13 +418,13 @@ const TeacherCohorts = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Create announcement with cohort type
-      const { error } = await supabase.from("announcements").insert({
+      // Create announcement using teacher_announcements table
+      // Include cohort name in title for identification
+      const { error } = await supabase.from("teacher_announcements").insert({
+        teacher_id: user.id,
+        course_id: selectedCohort.course_id || null,
         title: `[${selectedCohort.name}] ${announcement.title}`,
         message: announcement.message,
-        created_by: user.id,
-        target_audience: "students",
-        announcement_type: "cohort",
         is_active: true,
       });
 

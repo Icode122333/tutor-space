@@ -691,33 +691,33 @@
     },
     "students": {
       "manageStudents": "Manage your students and organize them into cohorts",
-      "createCohort": "Create Cohort",
+      "manageCohorts": "Manage Cohorts",
       "totalStudents": "Total Students",
       "acrossAllCourses": "Across all courses",
       "activeCourses": "Active courses",
       "cohorts": "Cohorts",
       "studentGroups": "Student groups",
+      "unassigned": "Unassigned",
+      "noCohortAssigned": "Students without cohort",
+      "cohortOverview": "Cohort Overview",
+      "cohortOverviewDesc": "Click on a cohort to filter students",
+      "studentSingular": "student",
+      "studentPlural": "students",
       "filterStudents": "Filter Students",
       "course": "Course",
       "allCourses": "All Courses",
+      "cohort": "Cohort",
+      "selectCohort": "Select Cohort",
+      "allCohorts": "All Cohorts",
       "searchByName": "Search by name or email...",
       "studentsList": "Students List",
       "studentsFound": "{count} student(s) found",
       "noStudentsFound": "No students found",
       "student": "Student",
       "email": "Email",
-      "cohort": "Cohort",
       "enrolled": "Enrolled",
       "noCohort": "No cohort",
-      "createNewCohort": "Create New Cohort",
-      "groupStudents": "Group selected students into a cohort for better organization",
-      "cohortName": "Cohort Name",
-      "cohortPlaceholder": "e.g., January 2025 Batch",
-      "studentsSelected": "{count} student(s) selected",
-      "enterCohortName": "Please enter a cohort name",
-      "selectOneStudent": "Please select at least one student",
-      "cohortCreated": "Cohort \"{name}\" created successfully",
-      "failedToCreate": "Failed to create cohort"
+      "failedToLoad": "Failed to load students"
     },
     "assignments": {
       "trackSubmissions": "Track student submissions and progress",
@@ -887,7 +887,8 @@
       "failedToCreate": "Failed to create cohort",
       "deleted": "Cohort deleted successfully",
       "failedToDelete": "Failed to delete cohort",
-      "deleteConfirm": "Are you sure you want to delete this cohort?"
+      "deleteConfirm": "Are you sure you want to delete this cohort?",
+      "noCourseLinked": "This cohort has no linked course. Please link a course to enroll students."
     }
   }
 }
