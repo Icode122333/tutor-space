@@ -5,14 +5,56 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BookOpen, GraduationCap, Users, BookOpenCheck, MessageSquare, FileText, Star, Menu, X, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { BookOpen, GraduationCap, Users, BookOpenCheck, MessageSquare, FileText, Star, Menu, X, ChevronLeft, ChevronRight, ExternalLink, Handshake, Building2, Mail, Phone, User, CheckCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+type ExhibitionProject = {
+  id: string;
+  student_name: string;
+  student_image_url: string | null;
+  course_name: string;
+  project_title: string;
+  project_description: string;
+  course_score: number;
+  achievements: string[];
+  technologies: string[];
+  project_link: string | null;
+  is_featured: boolean;
+  display_order: number;
+};
+
+type Testimonial = {
+  id: string;
+  student_name: string;
+  student_image_url: string | null;
+  testimonial_text: string;
+  rating: number;
+  course_name: string | null;
+  is_featured: boolean;
+  display_order: number;
+};
 
 const Index = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [demoDialogOpen, setDemoDialogOpen] = useState(false);
+  const [partnerDialogOpen, setPartnerDialogOpen] = useState(false);
+  const [partnerSubmitting, setPartnerSubmitting] = useState(false);
+  const [partnerSuccess, setPartnerSuccess] = useState(false);
   const [currentProjectIndex, setCurrentProjectIndex] = useState(0);
+  const [capstoneProjects, setCapstoneProjects] = useState<ExhibitionProject[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [testimonialsLoading, setTestimonialsLoading] = useState(true);
+  const [partnerFormData, setPartnerFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    organization: "",
+    message: "",
+  });
   const [demoFormData, setDemoFormData] = useState({
     name: "",
     email: "",
@@ -20,41 +62,45 @@ const Index = () => {
     organization: ""
   });
 
-  // Sample capstone projects data
-  const capstoneProjects = [
-    {
-      id: 1,
-      title: "AI-Powered Healthcare Dashboard",
-      description: "A comprehensive analytics platform that predicts patient outcomes using machine learning algorithms and real-time data visualization.",
-      image: "/images/unnamed-removebg-preview.png",
-      student: "Sarah Johnson",
-      tags: ["Machine Learning", "Healthcare", "Python"]
-    },
-    {
-      id: 2,
-      title: "E-Commerce Analytics Suite",
-      description: "Full-stack application providing real-time sales insights, customer behavior analysis, and inventory management for online retailers.",
-      image: "/images/unnamed-removebg-preview.png",
-      student: "Michael Chen",
-      tags: ["React", "Node.js", "Analytics"]
-    },
-    {
-      id: 3,
-      title: "Smart City Traffic Optimizer",
-      description: "IoT-based system that analyzes traffic patterns and optimizes signal timing to reduce congestion in urban areas by 35%.",
-      image: "/images/unnamed-removebg-preview.png",
-      student: "Aisha Patel",
-      tags: ["IoT", "Data Science", "Urban Planning"]
-    },
-    {
-      id: 4,
-      title: "Financial Risk Assessment Tool",
-      description: "Advanced predictive model that evaluates investment risks using historical data, market trends, and sentiment analysis.",
-      image: "/images/unnamed-removebg-preview.png",
-      student: "David Martinez",
-      tags: ["Finance", "AI", "Risk Analysis"]
-    }
-  ];
+  // Fetch featured exhibition projects and testimonials from database
+  useEffect(() => {
+    const fetchFeaturedProjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("exhibition_projects")
+          .select("*")
+          .eq("is_featured", true)
+          .order("display_order", { ascending: true });
+
+        if (error) throw error;
+        setCapstoneProjects(data || []);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      } finally {
+        setProjectsLoading(false);
+      }
+    };
+
+    const fetchTestimonials = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("testimonials")
+          .select("*")
+          .eq("is_featured", true)
+          .order("display_order", { ascending: true });
+
+        if (error) throw error;
+        setTestimonials(data || []);
+      } catch (error) {
+        console.error("Error fetching testimonials:", error);
+      } finally {
+        setTestimonialsLoading(false);
+      }
+    };
+
+    fetchFeaturedProjects();
+    fetchTestimonials();
+  }, []);
 
   const nextProject = () => {
     setCurrentProjectIndex((prev) => (prev + 1) % capstoneProjects.length);
@@ -72,11 +118,47 @@ const Index = () => {
 
   const handleDemoSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you can add logic to send the demo request to your backend
     console.log("Demo request:", demoFormData);
     toast.success("Demo request submitted! We'll contact you soon.");
     setDemoDialogOpen(false);
     setDemoFormData({ name: "", email: "", phone: "", organization: "" });
+  };
+
+  const handlePartnerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!partnerFormData.name || !partnerFormData.email || !partnerFormData.phone || !partnerFormData.organization) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    setPartnerSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("partner_requests")
+        .insert({
+          name: partnerFormData.name,
+          email: partnerFormData.email,
+          phone: partnerFormData.phone,
+          organization: partnerFormData.organization,
+          message: partnerFormData.message || null,
+        });
+
+      if (error) throw error;
+      
+      setPartnerSuccess(true);
+      setPartnerFormData({ name: "", email: "", phone: "", organization: "", message: "" });
+    } catch (error) {
+      console.error("Error submitting partner request:", error);
+      toast.error("Failed to submit request. Please try again.");
+    } finally {
+      setPartnerSubmitting(false);
+    }
+  };
+
+  const closePartnerDialog = () => {
+    setPartnerDialogOpen(false);
+    setPartnerSuccess(false);
   };
 
   return (
@@ -194,30 +276,47 @@ const Index = () => {
           >
             <source src="/videos/A_group_of_202511231942_dqqwc.mp4" type="video/mp4" />
           </video>
-          {/* Black overlay for text readability */}
-          <div className="absolute inset-0 bg-black/60"></div>
+          {/* Gradient overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent"></div>
         </div>
         
         <div className="container mx-auto px-6 md:px-12 relative z-10 pt-20">
           <div className="max-w-2xl">
-            <p className="text-sm md:text-base text-white/80 mb-4 uppercase tracking-wider">
-              Welcome to DataPlusLabs
-            </p>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-white mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
               Learn Whenever
               <br />
-              You Are
+              <span className="text-[#00ff88]">You Are</span>
             </h1>
-            <p className="text-base md:text-lg text-white/90 mb-8 max-w-xl">
-              Because every student is an experience learner.
+            <p className="text-base md:text-lg text-white/80 mb-10 max-w-xl leading-relaxed">
+              Because every student is an experience learner. Transform your skills with world-class courses and expert instructors.
             </p>
-            <Button
-              onClick={() => navigate("/signup")}
-              variant="outline"
-              className="border-2 border-white text-white bg-transparent hover:bg-white hover:text-black px-8 py-3 text-sm uppercase tracking-wider font-semibold transition-all duration-300"
-            >
-              Get Started
-            </Button>
+            
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button
+                onClick={() => navigate("/signup")}
+                className="bg-[#006d2c] hover:bg-[#005523] text-white px-8 py-6 text-sm uppercase tracking-wider font-semibold transition-all duration-300 shadow-lg shadow-[#006d2c]/30"
+              >
+                Get Started
+              </Button>
+              <Button
+                onClick={() => setPartnerDialogOpen(true)}
+                variant="outline"
+                className="border-2 border-white/50 text-white bg-white/10 backdrop-blur-sm hover:bg-white hover:text-black px-8 py-6 text-sm uppercase tracking-wider font-semibold transition-all duration-300"
+              >
+                Partner With Us
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+          <div className="flex flex-col items-center gap-2 animate-bounce">
+            <span className="text-white/60 text-xs uppercase tracking-widest">Scroll</span>
+            <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center pt-2">
+              <div className="w-1.5 h-3 bg-white/60 rounded-full"></div>
+            </div>
           </div>
         </div>
       </section>
@@ -470,135 +569,202 @@ const Index = () => {
           </div>
 
           <div className="max-w-7xl mx-auto">
-            {/* Horizontal Sliding Carousel */}
-            <div className="relative overflow-hidden px-4">
-              <div 
-                className="flex gap-8 transition-transform duration-700 ease-in-out"
-                style={{ transform: `translateX(calc(-${currentProjectIndex * 100}% - ${currentProjectIndex * 2}rem))` }}
-              >
-                {capstoneProjects.map((project, idx) => (
-                  <div key={project.id} className="min-w-[calc(100%-2rem)] flex-shrink-0">
-                    <Card className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl overflow-hidden mx-auto max-w-5xl">
-                      <div className="grid md:grid-cols-5 gap-0">
-                        {/* Left Side - Student Info */}
-                        <div className="md:col-span-2 p-8 bg-white">
-                          {/* Student Avatar */}
-                          <div className="flex items-center gap-4 mb-8">
-                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#006d2c] to-green-400 flex items-center justify-center">
-                              <span className="text-white font-bold text-2xl">{project.student.charAt(0)}</span>
-                            </div>
-                            <div>
-                              <p className="font-bold text-xl text-gray-900">{project.student}</p>
-                              <p className="text-sm text-gray-500">Data Scientist</p>
-                            </div>
-                          </div>
-
-                          {/* Score Circle */}
-                          <div className="flex justify-center mb-6">
-                            <div className="relative w-32 h-32">
-                              <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="64" cy="64" r="56" stroke="#e5e7eb" strokeWidth="10" fill="none" />
-                                <circle cx="64" cy="64" r="56" stroke="#00ff88" strokeWidth="10" fill="none" 
-                                  strokeDasharray={`${(94/100) * 351.86} 351.86`} strokeLinecap="round" />
-                              </svg>
-                              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-4xl font-bold text-gray-900">94</span>
-                                <span className="text-xs text-gray-500 uppercase">Score</span>
-                              </div>
-                            </div>
-                          </div>
-                          <p className="text-center text-sm text-gray-600 mb-8">Ranked in the top 5% of the graduating cohort.</p>
-                        </div>
-
-                        {/* Right Side - Project Details */}
-                        <div className="md:col-span-3 p-8 bg-gradient-to-br from-white to-gray-50">
-                          {/* Project Badge */}
-                          <div className="flex items-center justify-between mb-6">
-                            <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Capstone Project</span>
-                            <span className="text-xs text-green-600 font-bold uppercase">Completed</span>
-                          </div>
-
-                          {/* Project Title */}
-                          <h3 className="text-3xl font-bold text-gray-900 mb-4">{project.title}</h3>
-                          <p className="text-gray-600 mb-8 leading-relaxed">{project.description}</p>
-
-                          {/* Technologies & Distinctions */}
-                          <div className="grid md:grid-cols-2 gap-6 mb-8">
-                            {/* Technologies */}
-                            <div>
-                              <p className="text-sm font-bold text-gray-900 mb-3">Technologies</p>
-                              <div className="flex flex-wrap gap-2">
-                                {project.tags.map((tag, i) => (
-                                  <span key={i} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm font-medium">{tag}</span>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Distinctions */}
-                            <div>
-                              <p className="text-sm font-bold text-gray-900 mb-3">Distinctions</p>
-                              <ul className="space-y-2">
-                                <li className="flex items-center gap-2 text-sm text-gray-700">
-                                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                  Best Capstone 2024
-                                </li>
-                                <li className="flex items-center gap-2 text-sm text-gray-700">
-                                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                  Innovation Award
-                                </li>
-                                <li className="flex items-center gap-2 text-sm text-gray-700">
-                                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                  Published Research
-                                </li>
-                              </ul>
-                            </div>
-                          </div>
-
-                          {/* Buttons */}
-                          <div className="flex gap-4">
-                            <Button
-                              onClick={() => navigate("/exhibition")}
-                              className="bg-black hover:bg-gray-800 text-white px-8 py-3 rounded-full font-semibold"
-                            >
-                              View Case Study →
-                            </Button>
-                          </div>
+            {/* Skeleton Loading */}
+            {projectsLoading ? (
+              <div className="relative overflow-hidden px-4">
+                <Card className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl overflow-hidden mx-auto max-w-5xl animate-pulse">
+                  <div className="grid md:grid-cols-5 gap-0">
+                    <div className="md:col-span-2 p-8 bg-white">
+                      <div className="flex items-center gap-4 mb-8">
+                        <div className="w-20 h-20 rounded-full bg-gray-300" />
+                        <div className="space-y-2">
+                          <div className="h-5 bg-gray-300 rounded w-32" />
+                          <div className="h-4 bg-gray-200 rounded w-24" />
                         </div>
                       </div>
-                    </Card>
+                      <div className="flex justify-center mb-6">
+                        <div className="w-32 h-32 rounded-full bg-gray-200" />
+                      </div>
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto" />
+                    </div>
+                    <div className="md:col-span-3 p-8 bg-gradient-to-br from-white to-gray-50">
+                      <div className="flex justify-between mb-6">
+                        <div className="h-4 bg-gray-200 rounded w-24" />
+                        <div className="h-4 bg-gray-200 rounded w-20" />
+                      </div>
+                      <div className="h-8 bg-gray-300 rounded w-3/4 mb-4" />
+                      <div className="space-y-2 mb-8">
+                        <div className="h-4 bg-gray-200 rounded w-full" />
+                        <div className="h-4 bg-gray-200 rounded w-5/6" />
+                        <div className="h-4 bg-gray-200 rounded w-4/6" />
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-6 mb-8">
+                        <div className="space-y-2">
+                          <div className="h-4 bg-gray-300 rounded w-24" />
+                          <div className="flex gap-2">
+                            <div className="h-8 bg-gray-200 rounded w-20" />
+                            <div className="h-8 bg-gray-200 rounded w-16" />
+                            <div className="h-8 bg-gray-200 rounded w-18" />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="h-4 bg-gray-300 rounded w-24" />
+                          <div className="h-4 bg-gray-200 rounded w-32" />
+                          <div className="h-4 bg-gray-200 rounded w-28" />
+                        </div>
+                      </div>
+                      <div className="h-12 bg-gray-300 rounded-full w-48" />
+                    </div>
                   </div>
-                ))}
+                </Card>
               </div>
-
-              {/* Navigation Arrows */}
-              <button
-                onClick={prevProject}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-10"
-              >
-                <ChevronLeft className="w-6 h-6 text-gray-900" />
-              </button>
-              <button
-                onClick={nextProject}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-10"
-              >
-                <ChevronRight className="w-6 h-6 text-gray-900" />
-              </button>
-
-              {/* Dots Indicator */}
-              <div className="flex justify-center gap-2 mt-8">
-                {capstoneProjects.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentProjectIndex(idx)}
-                    className={`transition-all duration-300 rounded-full ${
-                      idx === currentProjectIndex
-                        ? 'w-8 h-3 bg-[#006d2c]'
-                        : 'w-3 h-3 bg-gray-300 hover:bg-gray-400'
-                    }`}
-                  />
-                ))}
+            ) : capstoneProjects.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500">No featured projects yet. Check back soon!</p>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Horizontal Sliding Carousel */}
+                <div className="relative overflow-hidden px-4">
+                  <div 
+                    className="flex gap-8 transition-transform duration-700 ease-in-out"
+                    style={{ transform: `translateX(calc(-${currentProjectIndex * 100}% - ${currentProjectIndex * 2}rem))` }}
+                  >
+                    {capstoneProjects.map((project) => (
+                      <div key={project.id} className="min-w-[calc(100%-2rem)] flex-shrink-0">
+                        <Card className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl overflow-hidden mx-auto max-w-5xl">
+                          <div className="grid md:grid-cols-5 gap-0">
+                            {/* Left Side - Student Info */}
+                            <div className="md:col-span-2 p-8 bg-white">
+                              {/* Student Avatar */}
+                              <div className="flex items-center gap-4 mb-8">
+                                {project.student_image_url ? (
+                                  <img
+                                    src={project.student_image_url}
+                                    alt={project.student_name}
+                                    className="w-20 h-20 rounded-full object-cover border-4 border-[#006d2c]/20"
+                                  />
+                                ) : (
+                                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#006d2c] to-green-400 flex items-center justify-center">
+                                    <span className="text-white font-bold text-2xl">{project.student_name.charAt(0)}</span>
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="font-bold text-xl text-gray-900">{project.student_name}</p>
+                                  <p className="text-sm text-gray-500">{project.course_name}</p>
+                                </div>
+                              </div>
+
+                              {/* Score Circle */}
+                              <div className="flex justify-center mb-6">
+                                <div className="relative w-32 h-32">
+                                  <svg className="w-full h-full transform -rotate-90">
+                                    <circle cx="64" cy="64" r="56" stroke="#e5e7eb" strokeWidth="10" fill="none" />
+                                    <circle cx="64" cy="64" r="56" stroke="#00ff88" strokeWidth="10" fill="none" 
+                                      strokeDasharray={`${(project.course_score/100) * 351.86} 351.86`} strokeLinecap="round" />
+                                  </svg>
+                                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span className="text-4xl font-bold text-gray-900">{project.course_score}</span>
+                                    <span className="text-xs text-gray-500 uppercase">Score</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <p className="text-center text-sm text-gray-600 mb-8">
+                                {project.course_score >= 90 ? "Ranked in the top 5% of the graduating cohort." : "Outstanding achievement in the program."}
+                              </p>
+                            </div>
+
+                            {/* Right Side - Project Details */}
+                            <div className="md:col-span-3 p-8 bg-gradient-to-br from-white to-gray-50">
+                              {/* Project Badge */}
+                              <div className="flex items-center justify-between mb-6">
+                                <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Capstone Project</span>
+                                <span className="text-xs text-green-600 font-bold uppercase">Completed</span>
+                              </div>
+
+                              {/* Project Title */}
+                              <h3 className="text-3xl font-bold text-gray-900 mb-4">{project.project_title}</h3>
+                              <p className="text-gray-600 mb-8 leading-relaxed">{project.project_description}</p>
+
+                              {/* Technologies & Distinctions */}
+                              <div className="grid md:grid-cols-2 gap-6 mb-8">
+                                {/* Technologies */}
+                                <div>
+                                  <p className="text-sm font-bold text-gray-900 mb-3">Technologies</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {(project.technologies || []).map((tech, i) => (
+                                      <span key={i} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm font-medium">{tech}</span>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Distinctions */}
+                                <div>
+                                  <p className="text-sm font-bold text-gray-900 mb-3">Distinctions</p>
+                                  <ul className="space-y-2">
+                                    {(project.achievements || []).map((achievement, i) => (
+                                      <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
+                                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                        {achievement}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+
+                              {/* Buttons */}
+                              <div className="flex gap-4">
+                                <Button
+                                  onClick={() => project.project_link ? window.open(project.project_link, '_blank') : navigate("/exhibition")}
+                                  className="bg-black hover:bg-gray-800 text-white px-8 py-3 rounded-full font-semibold"
+                                >
+                                  View Case Study →
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Navigation Arrows */}
+                  {capstoneProjects.length > 1 && (
+                    <>
+                      <button
+                        onClick={prevProject}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-10"
+                      >
+                        <ChevronLeft className="w-6 h-6 text-gray-900" />
+                      </button>
+                      <button
+                        onClick={nextProject}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-10"
+                      >
+                        <ChevronRight className="w-6 h-6 text-gray-900" />
+                      </button>
+                    </>
+                  )}
+
+                  {/* Dots Indicator */}
+                  {capstoneProjects.length > 1 && (
+                    <div className="flex justify-center gap-2 mt-8">
+                      {capstoneProjects.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentProjectIndex(idx)}
+                          className={`transition-all duration-300 rounded-full ${
+                            idx === currentProjectIndex
+                              ? 'w-8 h-3 bg-[#006d2c]'
+                              : 'w-3 h-3 bg-gray-300 hover:bg-gray-400'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* View All Button */}
             <div className="text-center mt-12">
@@ -620,120 +786,135 @@ const Index = () => {
             <h2 className="text-4xl font-bold mb-4 text-[#006d2c]" style={{ fontFamily: 'Roboto, sans-serif' }}>What our happy Students say about us</h2>
           </div>
 
-          {/* Animated scrolling container */}
-          <div className="relative">
-            <div className="flex gap-6 animate-scroll-rtl">
-              {/* First set of testimonials */}
-              <div className="flex-shrink-0 w-[350px] bg-[#006d2c] rounded-3xl p-8 relative shadow-lg">
-                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#006d2c] to-[#006d2c] border-4 border-white"></div>
-                </div>
-                <div className="mt-8">
-                  <div className="text-white text-5xl font-bold mb-4">"</div>
-                  <h3 className="font-bold text-white text-center mb-4">Uwimana Aline</h3>
-                  <p className="text-white/90 text-sm text-center leading-relaxed mb-6">
-                    DataPlus Labs has transformed my understanding of data analytics. The courses are comprehensive and practical!
-                  </p>
+          {/* Skeleton Loading */}
+          {testimonialsLoading ? (
+            <div className="flex gap-6 justify-center">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex-shrink-0 w-[350px] bg-white rounded-3xl p-8 shadow-lg animate-pulse">
+                  <div className="flex justify-center mb-6">
+                    <div className="w-20 h-20 rounded-full bg-gray-300" />
+                  </div>
+                  <div className="h-8 bg-gray-200 rounded w-8 mx-auto mb-4" />
+                  <div className="h-5 bg-gray-300 rounded w-32 mx-auto mb-4" />
+                  <div className="space-y-2 mb-6">
+                    <div className="h-3 bg-gray-200 rounded w-full" />
+                    <div className="h-3 bg-gray-200 rounded w-5/6 mx-auto" />
+                    <div className="h-3 bg-gray-200 rounded w-4/6 mx-auto" />
+                  </div>
                   <div className="flex gap-1 justify-center">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 fill-white text-white" />
+                    {[...Array(5)].map((_, j) => (
+                      <div key={j} className="w-5 h-5 bg-gray-200 rounded" />
                     ))}
                   </div>
                 </div>
-              </div>
-
-              <div className="flex-shrink-0 w-[350px] bg-white rounded-3xl p-8 relative border-2 border-[#006d2c] shadow-lg">
-                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-100 to-green-200 border-4 border-white"></div>
-                </div>
-                <div className="mt-8">
-                  <div className="text-[#006d2c] text-5xl font-bold mb-4">"</div>
-                  <h3 className="font-bold text-black text-center mb-4">Nkurunziza Jean</h3>
-                  <p className="text-gray-600 text-sm text-center leading-relaxed mb-6">
-                    Excellent platform for learning data science. The instructors are knowledgeable and supportive.
-                  </p>
-                  <div className="flex gap-1 justify-center">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 fill-[#006d2c] text-[#006d2c]" />
-                    ))}
+              ))}
+            </div>
+          ) : testimonials.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No testimonials yet. Check back soon!</p>
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="flex gap-6 animate-scroll-rtl">
+                {/* First set of testimonials */}
+                {testimonials.map((testimonial, index) => (
+                  <div
+                    key={testimonial.id}
+                    className={`flex-shrink-0 w-[350px] rounded-3xl p-8 relative shadow-lg ${
+                      index % 3 === 0 ? 'bg-[#006d2c]' : 'bg-white border-2 border-[#006d2c]'
+                    }`}
+                  >
+                    <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
+                      {testimonial.student_image_url ? (
+                        <img
+                          src={testimonial.student_image_url}
+                          alt={testimonial.student_name}
+                          className="w-24 h-24 rounded-full border-4 border-white object-cover"
+                        />
+                      ) : (
+                        <div className={`w-24 h-24 rounded-full border-4 border-white flex items-center justify-center ${
+                          index % 3 === 0 ? 'bg-white' : 'bg-gradient-to-br from-green-100 to-green-200'
+                        }`}>
+                          <span className={`text-2xl font-bold ${index % 3 === 0 ? 'text-[#006d2c]' : 'text-[#006d2c]'}`}>
+                            {testimonial.student_name.charAt(0)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-8">
+                      <div className={`text-5xl font-bold mb-4 ${index % 3 === 0 ? 'text-white' : 'text-[#006d2c]'}`}>"</div>
+                      <h3 className={`font-bold text-center mb-4 ${index % 3 === 0 ? 'text-white' : 'text-black'}`}>
+                        {testimonial.student_name}
+                      </h3>
+                      <p className={`text-sm text-center leading-relaxed mb-6 ${index % 3 === 0 ? 'text-white/90' : 'text-gray-600'}`}>
+                        {testimonial.testimonial_text}
+                      </p>
+                      <div className="flex gap-1 justify-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-5 w-5 ${
+                              i < testimonial.rating
+                                ? index % 3 === 0 ? 'fill-white text-white' : 'fill-[#006d2c] text-[#006d2c]'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-
-              <div className="flex-shrink-0 w-[350px] bg-white rounded-3xl p-8 relative border-2 border-green-200 shadow-lg">
-                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#006d2c] to-green-300 border-4 border-white"></div>
-                </div>
-                <div className="mt-8">
-                  <div className="text-green-400 text-5xl font-bold mb-4">"</div>
-                  <h3 className="font-bold text-black text-center mb-4">Mukamana Grace</h3>
-                  <p className="text-gray-600 text-sm text-center leading-relaxed mb-6">
-                    I love how DataPlus Labs makes complex data concepts easy to understand. Highly recommended!
-                  </p>
-                  <div className="flex gap-1 justify-center">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 fill-green-400 text-green-400" />
-                    ))}
+                ))}
+                {/* Duplicate set for seamless loop */}
+                {testimonials.map((testimonial, index) => (
+                  <div
+                    key={`dup-${testimonial.id}`}
+                    className={`flex-shrink-0 w-[350px] rounded-3xl p-8 relative shadow-lg ${
+                      index % 3 === 0 ? 'bg-[#006d2c]' : 'bg-white border-2 border-[#006d2c]'
+                    }`}
+                  >
+                    <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
+                      {testimonial.student_image_url ? (
+                        <img
+                          src={testimonial.student_image_url}
+                          alt={testimonial.student_name}
+                          className="w-24 h-24 rounded-full border-4 border-white object-cover"
+                        />
+                      ) : (
+                        <div className={`w-24 h-24 rounded-full border-4 border-white flex items-center justify-center ${
+                          index % 3 === 0 ? 'bg-white' : 'bg-gradient-to-br from-green-100 to-green-200'
+                        }`}>
+                          <span className={`text-2xl font-bold ${index % 3 === 0 ? 'text-[#006d2c]' : 'text-[#006d2c]'}`}>
+                            {testimonial.student_name.charAt(0)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-8">
+                      <div className={`text-5xl font-bold mb-4 ${index % 3 === 0 ? 'text-white' : 'text-[#006d2c]'}`}>"</div>
+                      <h3 className={`font-bold text-center mb-4 ${index % 3 === 0 ? 'text-white' : 'text-black'}`}>
+                        {testimonial.student_name}
+                      </h3>
+                      <p className={`text-sm text-center leading-relaxed mb-6 ${index % 3 === 0 ? 'text-white/90' : 'text-gray-600'}`}>
+                        {testimonial.testimonial_text}
+                      </p>
+                      <div className="flex gap-1 justify-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-5 w-5 ${
+                              i < testimonial.rating
+                                ? index % 3 === 0 ? 'fill-white text-white' : 'fill-[#006d2c] text-[#006d2c]'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Duplicate set for seamless loop */}
-              <div className="flex-shrink-0 w-[350px] bg-[#006d2c] rounded-3xl p-8 relative shadow-lg">
-                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#006d2c] to-[#006d2c] border-4 border-white"></div>
-                </div>
-                <div className="mt-8">
-                  <div className="text-white text-5xl font-bold mb-4">"</div>
-                  <h3 className="font-bold text-white text-center mb-4">Uwimana Aline</h3>
-                  <p className="text-white/90 text-sm text-center leading-relaxed mb-6">
-                    DataPlus Labs has transformed my understanding of data analytics. The courses are comprehensive and practical!
-                  </p>
-                  <div className="flex gap-1 justify-center">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 fill-white text-white" />
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex-shrink-0 w-[350px] bg-white rounded-3xl p-8 relative border-2 border-[#006d2c] shadow-lg">
-                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-100 to-green-200 border-4 border-white"></div>
-                </div>
-                <div className="mt-8">
-                  <div className="text-[#006d2c] text-5xl font-bold mb-4">"</div>
-                  <h3 className="font-bold text-black text-center mb-4">Nkurunziza Jean</h3>
-                  <p className="text-gray-600 text-sm text-center leading-relaxed mb-6">
-                    Excellent platform for learning data science. The instructors are knowledgeable and supportive.
-                  </p>
-                  <div className="flex gap-1 justify-center">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 fill-[#006d2c] text-[#006d2c]" />
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex-shrink-0 w-[350px] bg-white rounded-3xl p-8 relative border-2 border-green-200 shadow-lg">
-                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#006d2c] to-green-300 border-4 border-white"></div>
-                </div>
-                <div className="mt-8">
-                  <div className="text-green-400 text-5xl font-bold mb-4">"</div>
-                  <h3 className="font-bold text-black text-center mb-4">Mukamana Grace</h3>
-                  <p className="text-gray-600 text-sm text-center leading-relaxed mb-6">
-                    I love how DataPlus Labs makes complex data concepts easy to understand. Highly recommended!
-                  </p>
-                  <div className="flex gap-1 justify-center">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 fill-green-400 text-green-400" />
-                    ))}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -1010,6 +1191,150 @@ const Index = () => {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Partner Request Dialog */}
+      <Dialog open={partnerDialogOpen} onOpenChange={closePartnerDialog}>
+        <DialogContent className="sm:max-w-[520px] p-0 overflow-hidden">
+          {partnerSuccess ? (
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Request Submitted!</h3>
+              <p className="text-gray-600 mb-6">
+                Thank you for your interest in partnering with us. Our team will review your request and get back to you within 2-3 business days.
+              </p>
+              <Button
+                onClick={closePartnerDialog}
+                className="bg-[#006d2c] hover:bg-[#005523] text-white px-8"
+              >
+                Close
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Header with gradient */}
+              <div className="bg-gradient-to-r from-[#006d2c] to-green-600 p-6 text-white">
+                <div className="flex items-center gap-3 mb-2">
+                  <Handshake className="w-8 h-8" />
+                  <h2 className="text-2xl font-bold">Partner With Us</h2>
+                </div>
+                <p className="text-white/80 text-sm">
+                  Join our network of partners and help shape the future of education
+                </p>
+              </div>
+
+              <form onSubmit={handlePartnerSubmit} className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="partner-name" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-400" />
+                      Full Name *
+                    </Label>
+                    <Input
+                      id="partner-name"
+                      type="text"
+                      placeholder="John Doe"
+                      required
+                      value={partnerFormData.name}
+                      onChange={(e) => setPartnerFormData({ ...partnerFormData, name: e.target.value })}
+                      className="h-11 border-gray-200 focus:border-[#006d2c] focus:ring-[#006d2c]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="partner-phone" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-gray-400" />
+                      Phone Number *
+                    </Label>
+                    <Input
+                      id="partner-phone"
+                      type="tel"
+                      placeholder="+250 xxx xxx xxx"
+                      required
+                      value={partnerFormData.phone}
+                      onChange={(e) => setPartnerFormData({ ...partnerFormData, phone: e.target.value })}
+                      className="h-11 border-gray-200 focus:border-[#006d2c] focus:ring-[#006d2c]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="partner-email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-gray-400" />
+                    Email Address *
+                  </Label>
+                  <Input
+                    id="partner-email"
+                    type="email"
+                    placeholder="john@company.com"
+                    required
+                    value={partnerFormData.email}
+                    onChange={(e) => setPartnerFormData({ ...partnerFormData, email: e.target.value })}
+                    className="h-11 border-gray-200 focus:border-[#006d2c] focus:ring-[#006d2c]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="partner-org" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-gray-400" />
+                    Organization *
+                  </Label>
+                  <Input
+                    id="partner-org"
+                    type="text"
+                    placeholder="Your company or organization name"
+                    required
+                    value={partnerFormData.organization}
+                    onChange={(e) => setPartnerFormData({ ...partnerFormData, organization: e.target.value })}
+                    className="h-11 border-gray-200 focus:border-[#006d2c] focus:ring-[#006d2c]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="partner-message" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-gray-400" />
+                    Message (Optional)
+                  </Label>
+                  <Textarea
+                    id="partner-message"
+                    placeholder="Tell us about your partnership interests..."
+                    value={partnerFormData.message}
+                    onChange={(e) => setPartnerFormData({ ...partnerFormData, message: e.target.value })}
+                    className="border-gray-200 focus:border-[#006d2c] focus:ring-[#006d2c] resize-none"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={closePartnerDialog}
+                    className="flex-1 h-11 border-gray-200 hover:bg-gray-50"
+                    disabled={partnerSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 h-11 bg-[#006d2c] hover:bg-[#005523] text-white"
+                    disabled={partnerSubmitting}
+                  >
+                    {partnerSubmitting ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Submitting...
+                      </span>
+                    ) : (
+                      "Submit Request"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

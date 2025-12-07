@@ -48,6 +48,9 @@ import AdminSettings from "./pages/AdminSettings";
 import AdminStudentProgress from "./pages/AdminStudentProgress";
 import AdminCertificates from "./pages/AdminCertificates";
 import AdminAnnouncements from "./pages/AdminAnnouncements";
+import AdminExhibition from "./pages/AdminExhibition";
+import AdminTestimonials from "./pages/AdminTestimonials";
+import AdminPartners from "./pages/AdminPartners";
 import TeacherPendingApproval from "./pages/TeacherPendingApproval";
 
 const queryClient = new QueryClient();
@@ -105,6 +108,9 @@ const App = () => (
           <Route path="/admin/student-progress" element={<AdminStudentProgress />} />
           <Route path="/admin/certificates" element={<AdminCertificates />} />
           <Route path="/admin/announcements" element={<AdminAnnouncements />} />
+          <Route path="/admin/exhibition" element={<AdminExhibition />} />
+          <Route path="/admin/testimonials" element={<AdminTestimonials />} />
+          <Route path="/admin/partners" element={<AdminPartners />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

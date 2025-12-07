@@ -20,7 +20,10 @@ import {
   Settings,
   FileText,
   Shield,
-  Award
+  Award,
+  Trophy,
+  MessageSquare,
+  Handshake
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -59,6 +62,12 @@ export function AdminSidebar({
 
   const noticeItems = [
     { title: "Announcements", url: "/admin/announcements", icon: Bell },
+  ];
+
+  const contentItems = [
+    { title: "Exhibition", url: "/admin/exhibition", icon: Trophy },
+    { title: "Testimonials", url: "/admin/testimonials", icon: MessageSquare },
+    { title: "Partner Requests", url: "/admin/partners", icon: Handshake },
   ];
 
   const courseItems = [
@@ -212,6 +221,35 @@ export function AdminSidebar({
             <SidebarGroupContent className="px-2">
               <SidebarMenu className="space-y-1">
                 {noticeItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end
+                        className={({ isActive }) =>
+                          isActive
+                            ? "bg-[#006d2c] text-white font-medium rounded-xl px-3 py-2.5 flex items-center gap-3"
+                            : "text-gray-300 hover:bg-white/10 hover:text-white rounded-xl px-3 py-2.5 flex items-center gap-3"
+                        }
+                      >
+                        <item.icon className="h-5 w-5 flex-shrink-0" />
+                        {!collapsed && <span className="text-sm">{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {/* Content */}
+          <SidebarGroup className="mt-4 space-y-1">
+            <SidebarGroupLabel className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              CONTENT
+            </SidebarGroupLabel>
+            <SidebarGroupContent className="px-2">
+              <SidebarMenu className="space-y-1">
+                {contentItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
                       <NavLink

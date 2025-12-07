@@ -5,7 +5,6 @@ import { BookOpen, Users, Clock, GraduationCap, Award, ExternalLink } from "luci
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import LoadingSpinner from "@/components/LoadingSpinner";
 
 type Course = {
   id: string;
@@ -21,19 +20,52 @@ type Course = {
   } | null;
 };
 
+type ExhibitionProject = {
+  id: string;
+  student_name: string;
+  student_image_url: string | null;
+  course_name: string;
+  project_title: string;
+  project_description: string;
+  course_score: number;
+  achievements: string[];
+  technologies: string[];
+  project_link: string | null;
+  is_featured: boolean;
+  display_order: number;
+};
+
 const Exhibition = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [projectsLoading, setProjectsLoading] = useState(true);
+  const [studentProjects, setStudentProjects] = useState<ExhibitionProject[]>([]);
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchCourses();
+    fetchProjects();
   }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("exhibition_projects")
+        .select("*")
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+      setStudentProjects(data || []);
+    } catch (error: any) {
+      console.error("Error fetching projects:", error);
+    } finally {
+      setProjectsLoading(false);
+    }
+  };
 
   const fetchCourses = async () => {
     try {
-      // Fetch all courses
       const { data: coursesData, error: coursesError } = await supabase
         .from("courses")
         .select(`
@@ -46,7 +78,6 @@ const Exhibition = () => {
 
       if (coursesError) throw coursesError;
 
-      // Check if user is logged in and fetch their enrollments
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: enrollmentsData } = await supabase
@@ -67,31 +98,6 @@ const Exhibition = () => {
     }
   };
 
-  const handleEnroll = async (courseId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error("Please login to enroll in courses");
-      navigate("/auth");
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from("course_enrollments")
-        .insert({
-          student_id: user.id,
-          course_id: courseId,
-        });
-
-      if (error) throw error;
-
-      toast.success("Successfully enrolled in course!");
-      fetchCourses();
-    } catch (error: any) {
-      toast.error("Failed to enroll in course");
-    }
-  };
-
   const gradients = [
     'from-blue-500 to-purple-600',
     'from-green-500 to-teal-600',
@@ -99,85 +105,6 @@ const Exhibition = () => {
     'from-pink-500 to-rose-600',
     'from-indigo-500 to-blue-600',
     'from-yellow-500 to-orange-600',
-  ];
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
-  const studentProjects = [
-    {
-      id: 1,
-      studentName: "Uwimana Aline",
-      profileImage: "/images/students.webp",
-      courseName: "Advanced Data Analytics",
-      projectTitle: "Rwanda Healthcare Data Analysis System",
-      projectDescription: "Developed a comprehensive data analytics platform that analyzes patient records and hospital efficiency metrics across 15 health centers in Kigali. The system provides real-time dashboards for healthcare administrators to make data-driven decisions, resulting in 25% improvement in patient wait times.",
-      courseScore: 94,
-      achievements: ["Best Capstone Project 2024", "Innovation Award", "Published Research Paper"],
-      technologies: ["Python", "Pandas", "Tableau", "SQL"],
-      projectLink: "#"
-    },
-    {
-      id: 2,
-      studentName: "Nkurunziza Jean",
-      profileImage: "/images/teacher.webp",
-      courseName: "Full Stack Web Development",
-      projectTitle: "E-Learning Platform for Rural Schools",
-      projectDescription: "Built a mobile-first e-learning platform specifically designed for low-bandwidth environments in rural Rwanda. The platform serves over 500 students across 8 schools, providing offline-capable course materials, video lessons, and interactive quizzes. Teachers can track student progress and engagement through an intuitive dashboard.",
-      courseScore: 91,
-      achievements: ["Community Impact Award", "Top Graduate", "Deployed in 8 Schools"],
-      technologies: ["React", "Node.js", "MongoDB", "PWA"],
-      projectLink: "#"
-    },
-    {
-      id: 3,
-      studentName: "Mukamana Grace",
-      profileImage: "/images/students.webp",
-      courseName: "Machine Learning & AI",
-      projectTitle: "Agricultural Crop Disease Detection App",
-      projectDescription: "Created a mobile application using computer vision and machine learning to detect crop diseases in cassava and banana plants. Farmers can take photos of their crops and receive instant diagnosis with treatment recommendations. The app has been downloaded by over 2,000 farmers and achieved 89% accuracy in disease detection.",
-      courseScore: 96,
-      achievements: ["Excellence in AI Award", "Startup Funding Secured", "Featured in Tech Magazine"],
-      technologies: ["TensorFlow", "Flutter", "Python", "Firebase"],
-      projectLink: "#"
-    },
-    {
-      id: 4,
-      studentName: "Habimana Patrick",
-      profileImage: "/images/teacher.webp",
-      courseName: "Business Intelligence & Analytics",
-      projectTitle: "SME Financial Management Dashboard",
-      projectDescription: "Designed an all-in-one financial management and business intelligence dashboard for small and medium enterprises in Rwanda. The platform integrates with mobile money APIs, provides cash flow forecasting, inventory management, and generates automated financial reports. Currently used by 45 local businesses.",
-      courseScore: 88,
-      achievements: ["Entrepreneurship Award", "45+ Active Users", "Revenue Generating"],
-      technologies: ["Power BI", "Excel", "SQL Server", "Python"],
-      projectLink: "#"
-    },
-    {
-      id: 5,
-      studentName: "Ingabire Sarah",
-      profileImage: "/images/students.webp",
-      courseName: "Data Science & Visualization",
-      projectTitle: "Climate Change Impact Visualization for Rwanda",
-      projectDescription: "Developed interactive data visualizations showing the impact of climate change on Rwanda's agriculture, water resources, and biodiversity. The project combines historical weather data, satellite imagery, and predictive models to help policymakers understand long-term environmental trends. Presented to the Ministry of Environment.",
-      courseScore: 93,
-      achievements: ["Research Excellence Award", "Government Presentation", "Conference Speaker"],
-      technologies: ["D3.js", "Python", "R", "GIS"],
-      projectLink: "#"
-    },
-    {
-      id: 6,
-      studentName: "Mugisha Eric",
-      profileImage: "/images/teacher.webp",
-      courseName: "Software Engineering",
-      projectTitle: "Smart Transportation Route Optimizer",
-      projectDescription: "Built a route optimization system for public transportation in Kigali that uses real-time traffic data and machine learning algorithms to suggest optimal routes for buses and motorcycle taxis. The system reduces average travel time by 18% and fuel consumption by 22%. Pilot program running with 3 transport companies.",
-      courseScore: 90,
-      achievements: ["Innovation Challenge Winner", "Pilot Program Active", "Patent Pending"],
-      technologies: ["Java", "Spring Boot", "PostgreSQL", "Google Maps API"],
-      projectLink: "#"
-    }
   ];
 
   return (
@@ -238,87 +165,145 @@ const Exhibition = () => {
       {/* Projects Gallery */}
       <section className="py-12 px-4">
         <div className="container mx-auto">
-          <div className="grid md:grid-cols-2 gap-8 max-w-7xl mx-auto">
-            {studentProjects.map((project) => (
-              <Card
-                key={project.id}
-                className="bg-white border-2 border-gray-200 hover:border-[#006d2c] transition-all duration-300 hover:shadow-xl overflow-hidden"
-              >
-                <CardContent className="p-0">
-                  {/* Header with Profile */}
-                  <div className="bg-gradient-to-r from-[#006d2c] to-[#006d2c] p-6">
-                    <div className="flex items-center gap-4 mb-4">
-                      <img
-                        src={project.profileImage}
-                        alt={project.studentName}
-                        className="w-20 h-20 rounded-full border-4 border-white object-cover"
-                      />
-                      <div>
-                        <h3 className="text-2xl font-bold text-black">{project.studentName}</h3>
-                        <p className="text-black/80 font-medium">{project.courseName}</p>
+          {projectsLoading ? (
+            <div className="grid md:grid-cols-2 gap-8 max-w-7xl mx-auto">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i} className="bg-white border-2 border-gray-200 overflow-hidden animate-pulse">
+                  <CardContent className="p-0">
+                    <div className="bg-gradient-to-r from-gray-300 to-gray-200 p-6">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="w-20 h-20 rounded-full bg-gray-400" />
+                        <div className="space-y-2">
+                          <div className="h-6 bg-gray-400 rounded w-32" />
+                          <div className="h-4 bg-gray-300 rounded w-24" />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="h-8 bg-gray-200 rounded-full w-36" />
+                        <div className="w-8 h-8 bg-gray-300 rounded" />
                       </div>
                     </div>
-
-                    {/* Score Badge */}
-                    <div className="flex items-center justify-between">
-                      <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full">
-                        <span className="text-black font-bold">Course Score: {project.courseScore}%</span>
-                      </div>
-                      <GraduationCap className="w-8 h-8 text-black" />
-                    </div>
-                  </div>
-
-                  {/* Project Details */}
-                  <div className="p-6">
-                    <h4 className="text-xl font-bold text-black mb-3">
-                      {project.projectTitle}
-                    </h4>
-
-                    <p className="text-gray-700 text-sm mb-4 leading-relaxed">
-                      {project.projectDescription}
-                    </p>
-
-                    {/* Technologies */}
-                    <div className="mb-4">
-                      <p className="text-xs font-semibold text-gray-500 mb-2">TECHNOLOGIES USED</p>
-                      <div className="flex flex-wrap gap-2">
-                        {project.technologies.map((tech, idx) => (
-                          <span
-                            key={idx}
-                            className="px-3 py-1 bg-green-50 border border-[#006d2c]/30 rounded-full text-xs text-black font-medium"
-                          >
-                            {tech}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Achievements */}
-                    <div className="mb-4">
-                      <p className="text-xs font-semibold text-gray-500 mb-2">ACHIEVEMENTS</p>
+                    <div className="p-6 space-y-4">
+                      <div className="h-6 bg-gray-300 rounded w-3/4" />
                       <div className="space-y-2">
-                        {project.achievements.map((achievement, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <Award className="w-4 h-4 text-[#006d2c]" />
-                            <span className="text-sm text-gray-700">{achievement}</span>
+                        <div className="h-4 bg-gray-200 rounded w-full" />
+                        <div className="h-4 bg-gray-200 rounded w-5/6" />
+                        <div className="h-4 bg-gray-200 rounded w-4/6" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-gray-300 rounded w-24" />
+                        <div className="flex gap-2">
+                          <div className="h-6 bg-gray-200 rounded-full w-16" />
+                          <div className="h-6 bg-gray-200 rounded-full w-20" />
+                          <div className="h-6 bg-gray-200 rounded-full w-14" />
+                        </div>
+                      </div>
+                      <div className="h-10 bg-gray-300 rounded w-full mt-4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : studentProjects.length === 0 ? (
+            <div className="text-center py-16">
+              <GraduationCap className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">No Projects Yet</h3>
+              <p className="text-gray-500">Check back soon for amazing student projects!</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-8 max-w-7xl mx-auto">
+              {studentProjects.map((project) => (
+                <Card
+                  key={project.id}
+                  className="bg-white border-2 border-gray-200 hover:border-[#006d2c] transition-all duration-300 hover:shadow-xl overflow-hidden"
+                >
+                  <CardContent className="p-0">
+                    {/* Header with Profile */}
+                    <div className="bg-gradient-to-r from-[#006d2c] to-[#006d2c] p-6">
+                      <div className="flex items-center gap-4 mb-4">
+                        {project.student_image_url ? (
+                          <img
+                            src={project.student_image_url}
+                            alt={project.student_name}
+                            className="w-20 h-20 rounded-full border-4 border-white object-cover"
+                          />
+                        ) : (
+                          <div className="w-20 h-20 rounded-full border-4 border-white bg-white flex items-center justify-center">
+                            <span className="text-[#006d2c] font-bold text-2xl">{project.student_name.charAt(0)}</span>
                           </div>
-                        ))}
+                        )}
+                        <div>
+                          <h3 className="text-2xl font-bold text-white">{project.student_name}</h3>
+                          <p className="text-white/80 font-medium">{project.course_name}</p>
+                        </div>
+                      </div>
+
+                      {/* Score Badge */}
+                      <div className="flex items-center justify-between">
+                        <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full">
+                          <span className="text-black font-bold">Course Score: {project.course_score}%</span>
+                        </div>
+                        <GraduationCap className="w-8 h-8 text-white" />
                       </div>
                     </div>
 
-                    {/* View Project Link */}
-                    <Button
-                      onClick={() => window.open(project.projectLink, '_blank')}
-                      className="w-full bg-[#006d2c] hover:bg-[#006d2c] text-black font-medium mt-4"
-                    >
-                      <span>View Full Project Details</span>
-                      <ExternalLink className="w-4 h-4 ml-2" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    {/* Project Details */}
+                    <div className="p-6">
+                      <h4 className="text-xl font-bold text-black mb-3">
+                        {project.project_title}
+                      </h4>
+
+                      <p className="text-gray-700 text-sm mb-4 leading-relaxed">
+                        {project.project_description}
+                      </p>
+
+                      {/* Technologies */}
+                      {project.technologies && project.technologies.length > 0 && (
+                        <div className="mb-4">
+                          <p className="text-xs font-semibold text-gray-500 mb-2">TECHNOLOGIES USED</p>
+                          <div className="flex flex-wrap gap-2">
+                            {project.technologies.map((tech, idx) => (
+                              <span
+                                key={idx}
+                                className="px-3 py-1 bg-green-50 border border-[#006d2c]/30 rounded-full text-xs text-black font-medium"
+                              >
+                                {tech}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Achievements */}
+                      {project.achievements && project.achievements.length > 0 && (
+                        <div className="mb-4">
+                          <p className="text-xs font-semibold text-gray-500 mb-2">ACHIEVEMENTS</p>
+                          <div className="space-y-2">
+                            {project.achievements.map((achievement, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <Award className="w-4 h-4 text-[#006d2c]" />
+                                <span className="text-sm text-gray-700">{achievement}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* View Project Link */}
+                      <Button
+                        onClick={() => project.project_link && window.open(project.project_link, '_blank')}
+                        className="w-full bg-[#006d2c] hover:bg-[#005523] text-white font-medium mt-4"
+                        disabled={!project.project_link}
+                      >
+                        <span>View Full Project Details</span>
+                        <ExternalLink className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
