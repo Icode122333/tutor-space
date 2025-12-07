@@ -237,39 +237,39 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
   return (
     <div className="space-y-4">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('gradesTable.totalAttempts')}</p>
-                <p className="text-2xl font-bold">{filteredGrades.length}</p>
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-1 sm:gap-0">
+              <div className="text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('gradesTable.totalAttempts')}</p>
+                <p className="text-lg sm:text-2xl font-bold">{filteredGrades.length}</p>
               </div>
-              <Trophy className="h-8 w-8 text-primary" />
+              <Trophy className="h-5 w-5 sm:h-8 sm:w-8 text-primary hidden sm:block" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('gradesTable.averageScore')}</p>
-                <p className="text-2xl font-bold">{getAverageScore()}%</p>
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-1 sm:gap-0">
+              <div className="text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('gradesTable.averageScore')}</p>
+                <p className="text-lg sm:text-2xl font-bold">{getAverageScore()}%</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-green-600" />
+              <TrendingUp className="h-5 w-5 sm:h-8 sm:w-8 text-green-600 hidden sm:block" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('gradesTable.passRate')}</p>
-                <p className="text-2xl font-bold">{getPassRate()}%</p>
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-1 sm:gap-0">
+              <div className="text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('gradesTable.passRate')}</p>
+                <p className="text-lg sm:text-2xl font-bold">{getPassRate()}%</p>
               </div>
-              <TrendingDown className="h-8 w-8 text-blue-600" />
+              <TrendingDown className="h-5 w-5 sm:h-8 sm:w-8 text-blue-600 hidden sm:block" />
             </div>
           </CardContent>
         </Card>
@@ -277,29 +277,29 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
 
       {/* Main Table */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>{t('gradesTable.quizGrades')}</CardTitle>
-            <Button onClick={exportToCSV} variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
+        <CardHeader className="p-3 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+            <CardTitle className="text-base sm:text-lg">{t('gradesTable.quizGrades')}</CardTitle>
+            <Button onClick={exportToCSV} variant="outline" size="sm" className="text-xs sm:text-sm">
+              <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               {t('gradesTable.exportCSV')}
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
           {showFilters && (
-            <div className="flex gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4 sm:mb-6">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-2.5 sm:top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={t('gradesTable.searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 text-sm"
                 />
               </div>
               <Select value={courseFilter} onValueChange={setCourseFilter}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full sm:w-[200px] text-sm">
                   <SelectValue placeholder={t('gradesTable.allCourses')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -314,17 +314,52 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
             </div>
           )}
 
-          <div className="rounded-md border">
+          {/* Mobile Card View */}
+          <div className="block sm:hidden space-y-3">
+            {filteredGrades.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                {t('gradesTable.noQuizGrades')}
+              </div>
+            ) : (
+              filteredGrades.map((grade) => (
+                <Card key={grade.id} className="border">
+                  <CardContent className="p-3 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{grade.lesson_title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{grade.course_title}</p>
+                      </div>
+                      <Badge variant={grade.passed ? "default" : "destructive"} className="text-xs ml-2">
+                        {grade.passed ? t('gradesTable.passed') : t('gradesTable.failed')}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono font-semibold">{grade.score}/{grade.total_points}</span>
+                        <span className="text-muted-foreground">({grade.percentage}%)</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(grade.submitted_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="rounded-md border hidden sm:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  {!studentId && <TableHead>{t('gradesTable.student')}</TableHead>}
-                  <TableHead>{t('gradesTable.course')}</TableHead>
-                  <TableHead>{t('gradesTable.quiz')}</TableHead>
-                  <TableHead>{t('gradesTable.marks')}</TableHead>
-                  <TableHead>{t('gradesTable.percentage')}</TableHead>
-                  <TableHead>{t('gradesTable.status')}</TableHead>
-                  <TableHead>{t('gradesTable.date')}</TableHead>
+                  {!studentId && <TableHead className="text-xs sm:text-sm">{t('gradesTable.student')}</TableHead>}
+                  <TableHead className="text-xs sm:text-sm">{t('gradesTable.course')}</TableHead>
+                  <TableHead className="text-xs sm:text-sm">{t('gradesTable.quiz')}</TableHead>
+                  <TableHead className="text-xs sm:text-sm">{t('gradesTable.marks')}</TableHead>
+                  <TableHead className="text-xs sm:text-sm">{t('gradesTable.percentage')}</TableHead>
+                  <TableHead className="text-xs sm:text-sm">{t('gradesTable.status')}</TableHead>
+                  <TableHead className="text-xs sm:text-sm">{t('gradesTable.date')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -340,30 +375,30 @@ export function GradesTable({ teacherId, studentId, showFilters = true }: Grades
                       {!studentId && (
                         <TableCell>
                           <div>
-                            <div className="font-medium">{grade.student_name}</div>
+                            <div className="font-medium text-sm">{grade.student_name}</div>
                             <div className="text-xs text-muted-foreground">{grade.student_email}</div>
                           </div>
                         </TableCell>
                       )}
                       <TableCell>
                         <div>
-                          <div className="font-medium">{grade.course_title}</div>
+                          <div className="font-medium text-sm">{grade.course_title}</div>
                           <div className="text-xs text-muted-foreground">{grade.chapter_title}</div>
                         </div>
                       </TableCell>
-                      <TableCell>{grade.lesson_title}</TableCell>
-                      <TableCell className="font-mono font-semibold">
+                      <TableCell className="text-sm">{grade.lesson_title}</TableCell>
+                      <TableCell className="font-mono font-semibold text-sm">
                         {grade.score}/{grade.total_points}
                       </TableCell>
                       <TableCell>
-                        <span className="font-semibold">{grade.percentage}%</span>
+                        <span className="font-semibold text-sm">{grade.percentage}%</span>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={grade.passed ? "default" : "destructive"}>
+                        <Badge variant={grade.passed ? "default" : "destructive"} className="text-xs">
                           {grade.passed ? t('gradesTable.passed') : t('gradesTable.failed')}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-xs sm:text-sm text-muted-foreground">
                         {new Date(grade.submitted_at).toLocaleDateString()}
                       </TableCell>
                     </TableRow>

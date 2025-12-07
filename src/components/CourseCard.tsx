@@ -66,12 +66,12 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
       onMouseLeave={handleMouseLeave}
     >
       <Card
-        className="group hover:shadow-2xl transition-all duration-300 border border-black cursor-pointer rounded-2xl overflow-hidden h-full flex flex-col"
+        className="group hover:shadow-2xl transition-all duration-300 border border-black cursor-pointer rounded-xl sm:rounded-2xl overflow-hidden h-full flex flex-col"
         onClick={onClick}
       >
         <CardContent className="p-0 flex flex-col h-full">
           {/* Course Image */}
-          <div className={`relative h-40 bg-gradient-to-br ${gradient} overflow-hidden`}>
+          <div className={`relative h-28 sm:h-40 bg-gradient-to-br ${gradient} overflow-hidden`}>
             {course.thumbnail_url ? (
               <img
                 src={course.thumbnail_url}
@@ -80,14 +80,14 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
-                <BookOpen className="h-12 w-12 text-white/30" />
+                <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 text-white/30" />
               </div>
             )}
             {/* Level Badge */}
             {course.level && (
-              <div className="absolute top-3 right-3">
+              <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
                 <Badge
-                  className={`${
+                  className={`text-xs sm:text-sm ${
                     course.level === "beginner"
                       ? "bg-green-500"
                       : course.level === "intermediate"
@@ -102,29 +102,29 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
           </div>
 
           {/* Course Info */}
-          <div className="p-4 flex-1 flex flex-col">
-            <h3 className="font-bold text-lg mb-2 line-clamp-2 transition-colors">
+          <div className="p-3 sm:p-4 flex-1 flex flex-col">
+            <h3 className="font-bold text-sm sm:text-lg mb-1 sm:mb-2 line-clamp-2 transition-colors">
               {course.title}
             </h3>
             
             {course.description && (
-              <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+              <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-2 sm:mb-3 hidden sm:block">
                 {course.description}
               </p>
             )}
 
-            <div className="mt-auto space-y-2">
+            <div className="mt-auto space-y-1.5 sm:space-y-2">
               {showTeacher && course.profiles && (
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Users className="h-4 w-4" />
-                  <span>{course.profiles.full_name}</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-500">
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="truncate">{course.profiles.full_name}</span>
                 </div>
               )}
               
               {isEnrolled ? (
                 <Button
                   disabled
-                  className="w-full bg-gray-300 text-gray-600 cursor-not-allowed"
+                  className="w-full bg-gray-300 text-gray-600 cursor-not-allowed text-xs sm:text-sm"
                   size="sm"
                 >
                   {t('courseCard.enrolled')}
@@ -135,7 +135,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
                     e.stopPropagation();
                     onEnroll();
                   }}
-                  className="w-full bg-[#006d2c] hover:bg-[#005523] text-white"
+                  className="w-full bg-[#006d2c] hover:bg-[#005523] text-white text-xs sm:text-sm"
                   size="sm"
                 >
                   {t('courseCard.enrollNow')}
@@ -146,9 +146,9 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
         </CardContent>
       </Card>
 
-      {/* Udemy-style Hover Popup */}
+      {/* Udemy-style Hover Popup - Hidden on mobile */}
       {showHoverCard && (
-        <div className={`absolute top-0 w-96 z-50 animate-in fade-in duration-200 ${
+        <div className={`absolute top-0 w-96 z-50 animate-in fade-in duration-200 hidden lg:block ${
           showPopupOnLeft 
             ? 'right-full mr-2 slide-in-from-right-2' 
             : 'left-full ml-2 slide-in-from-left-2'

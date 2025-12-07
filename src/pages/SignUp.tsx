@@ -81,7 +81,17 @@ const SignUp = () => {
         // Check if email confirmation is required
         if (data.user.identities && data.user.identities.length === 0) {
           // Email needs to be verified
-          toast.success(t('signUp.accountCreated'));
+          toast.success(
+            "🎉 Account created successfully! Please check your email to verify your account before logging in.",
+            {
+              duration: 10000,
+              style: {
+                background: '#006d2c',
+                color: 'white',
+                border: 'none',
+              },
+            }
+          );
           navigate("/verify-email");
           return;
         }
@@ -114,7 +124,17 @@ const SignUp = () => {
         }
 
         // For instant signup (no email verification), redirect to onboarding
-        toast.success(t('signUp.accountCreatedSuccess'));
+        toast.success(
+          "🎉 Account created successfully! Please verify your email to complete registration.",
+          {
+            duration: 10000,
+            style: {
+              background: '#006d2c',
+              color: 'white',
+              border: 'none',
+            },
+          }
+        );
         navigate(selectedRole === "teacher" ? "/teacher/onboarding" : "/onboarding");
       }
     } catch (error: any) {

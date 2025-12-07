@@ -192,24 +192,24 @@ const StudentDashboard = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background gap-4">
+      <div className="min-h-screen flex w-full bg-background gap-0 md:gap-4">
         <StudentSidebar />
 
-        <div className="flex-1 flex flex-col py-4 pr-4">
-          <header className="border bg-card px-4 sm:px-6 py-3 rounded-2xl shadow-sm mb-4">
+        <div className="flex-1 flex flex-col py-2 px-2 md:py-4 md:pr-4 md:pl-0">
+          <header className="border bg-card px-3 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl shadow-sm mb-3 sm:mb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                 <SidebarTrigger />
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-xl sm:text-2xl font-bold truncate leading-tight">
+                  <h1 className="text-lg sm:text-2xl font-bold truncate leading-tight">
                     {t('dashboard.hello')}, {profile?.full_name?.split(' ').pop() || t('onboarding.student')} 👋
                   </h1>
-                  <p className="text-xs sm:text-sm text-muted-foreground">{t('dashboard.welcomeBack')}</p>
+                  <p className="text-xs text-muted-foreground hidden sm:block">{t('dashboard.welcomeBack')}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-1.5 sm:gap-3">
                 <LanguageSelector />
-                <div className="relative hidden sm:block">
+                <div className="relative hidden md:block">
                   <input
                     type="text"
                     placeholder={t('common.search')}
@@ -220,11 +220,11 @@ const StudentDashboard = () => {
                   <Search className="h-4 w-4 text-[#006D2C] absolute right-3 top-1/2 -translate-y-1/2" />
                 </div>
                 <NotificationBell />
-                <Avatar className="h-9 w-9 border-2 border-[#006D2C]">
+                <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-[#006D2C]">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="User Avatar" className="object-cover" />
                   ) : (
-                    <AvatarFallback className="bg-[#006D2C] text-white">
+                    <AvatarFallback className="bg-[#006D2C] text-white text-sm">
                       {profile?.full_name?.charAt(0) || 'U'}
                     </AvatarFallback>
                   )}
@@ -234,12 +234,12 @@ const StudentDashboard = () => {
           </header>
 
           <main className="flex-1 overflow-auto">
-            <div className="max-w-7xl mx-auto space-y-6">
+            <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
               {/* Top Section - Cohort Banner and Calendar/Upcoming Classes Side by Side */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Banner Slider - Takes 2 columns */}
                 <div className="lg:col-span-2">
-                  <div className="relative overflow-hidden rounded-2xl min-h-[280px] shadow-lg bg-gray-900">
+                  <div className="relative overflow-hidden rounded-xl sm:rounded-2xl min-h-[200px] sm:min-h-[280px] shadow-lg bg-gray-900">
                     {/* Background Image Slider */}
                     {sliderImages.map((image, index) => (
                       <div
@@ -263,23 +263,23 @@ const StudentDashboard = () => {
                     ))}
 
                     {/* Content - Different for each slide */}
-                    <div className="relative z-10 px-4 py-2.5 min-h-[280px] flex items-center">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+                    <div className="relative z-10 px-3 sm:px-4 py-2 sm:py-2.5 min-h-[200px] sm:min-h-[280px] flex items-center">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 w-full">
                         {/* Slide 1 Content - Learn with us */}
                         {currentSlide === 0 && (
                           <div className="flex-1 text-white animate-in fade-in slide-in-from-left-4 duration-700">
-                            <h2 className="text-2xl sm:text-4xl font-bold mb-2 leading-tight tracking-wide drop-shadow-md">
+                            <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2 leading-tight tracking-wide drop-shadow-md">
                               {t('slider.learnWithUs')}
                             </h2>
-                            <p className="text-xl sm:text-2xl font-semibold mb-4 tracking-wide drop-shadow-md">
+                            <p className="text-base sm:text-2xl font-semibold mb-3 sm:mb-4 tracking-wide drop-shadow-md">
                               {t('slider.wheneverYouAre')}
                             </p>
                             <Button
                               onClick={() => navigate("/courses")}
-                              className="bg-[#006D2C] hover:bg-[#005523] text-white font-semibold px-6 py-2.5 rounded-full flex items-center gap-2 text-base w-fit shadow-lg"
+                              className="bg-[#006D2C] hover:bg-[#005523] text-white font-semibold px-4 sm:px-6 py-2 sm:py-2.5 rounded-full flex items-center gap-2 text-sm sm:text-base w-fit shadow-lg"
                             >
                               {t('slider.browseCourses')}
-                              <BookOpen className="w-5 h-5" />
+                              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
                             </Button>
                           </div>
                         )}
@@ -287,19 +287,19 @@ const StudentDashboard = () => {
                         {/* Slide 2 Content - Cohort */}
                         {currentSlide === 1 && (
                           <div className="flex-1 text-white animate-in fade-in slide-in-from-left-4 duration-700">
-                            <h2 className="text-2xl sm:text-3xl font-bold mb-2 leading-tight tracking-wide drop-shadow-md">
+                            <h2 className="text-xl sm:text-3xl font-bold mb-1 sm:mb-2 leading-tight tracking-wide drop-shadow-md">
                               {t('dashboard.goFarWithTeam')}
                             </h2>
-                            <p className="text-xl sm:text-2xl font-semibold mb-4 tracking-wide drop-shadow-md">
+                            <p className="text-base sm:text-2xl font-semibold mb-3 sm:mb-4 tracking-wide drop-shadow-md">
                               {t('dashboard.startWithCohort')}
                             </p>
                             <Button
                               onClick={() => setShowJoinCohortDialog(true)}
-                              className="bg-white text-[#006D2C] hover:bg-gray-100 font-semibold px-6 py-2.5 rounded-full flex items-center gap-2 text-base w-fit shadow-lg"
+                              className="bg-white text-[#006D2C] hover:bg-gray-100 font-semibold px-4 sm:px-6 py-2 sm:py-2.5 rounded-full flex items-center gap-2 text-sm sm:text-base w-fit shadow-lg"
                             >
                               {t('dashboard.joinNow')}
-                              <div className="w-6 h-6 rounded-full bg-[#006D2C] flex items-center justify-center">
-                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#006D2C] flex items-center justify-center">
+                                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                               </div>
@@ -332,10 +332,10 @@ const StudentDashboard = () => {
                 </div>
 
                 {/* Right Sidebar - Calendar Widget and Upcoming Classes - Takes 1 column */}
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {/* Calendar Card - One Week View */}
                   <Card className="border-2">
-                    <CardContent className="p-4">
+                    <CardContent className="p-3 sm:p-4">
                       {/* Calendar Header */}
                       <div className="flex items-center justify-between mb-4">
                         <Button
@@ -448,10 +448,10 @@ const StudentDashboard = () => {
                   </Card>
 
                   {/* Upcoming Classes */}
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     {scheduledClasses.slice(0, 2).map((scheduledClass, index) => {
                       const classDate = new Date(scheduledClass.scheduled_time);
-                      const dateStr = classDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+                      const dateStr = classDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                       const timeStr = classDate.toLocaleTimeString('en-US', {
                         hour: 'numeric',
                         minute: '2-digit',
@@ -476,17 +476,17 @@ const StudentDashboard = () => {
                           className="border-2 hover:border-[#006d2c] transition-all cursor-pointer group"
                           onClick={() => navigate("/student/schedule")}
                         >
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-3">
-                              <div className={`w-12 h-12 rounded-full ${color.bg} flex items-center justify-center flex-shrink-0`}>
-                                <BookOpen className="h-6 w-6 text-white" />
+                          <CardContent className="p-3 sm:p-4">
+                            <div className="flex items-start gap-2 sm:gap-3">
+                              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${color.bg} flex items-center justify-center flex-shrink-0`}>
+                                <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs text-gray-500 mb-1">{color.label}</p>
-                                <h4 className="font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-[#006d2c] transition-colors">
+                                <p className="text-xs text-gray-500 mb-0.5 sm:mb-1">{color.label}</p>
+                                <h4 className="font-bold text-gray-900 text-sm sm:text-base mb-1 sm:mb-2 line-clamp-1 group-hover:text-[#006d2c] transition-colors">
                                   {scheduledClass.title}
                                 </h4>
-                                <div className="flex items-center gap-3 text-xs text-gray-600">
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-gray-600">
                                   <div className="flex items-center gap-1">
                                     <CalendarDays className="h-3 w-3" />
                                     <span>{dateStr}</span>
@@ -497,7 +497,7 @@ const StudentDashboard = () => {
                                   </div>
                                 </div>
                               </div>
-                              <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-[#006d2c] transition-colors" />
+                              <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 group-hover:text-[#006d2c] transition-colors" />
                             </div>
                           </CardContent>
                         </Card>
@@ -506,8 +506,8 @@ const StudentDashboard = () => {
 
                     {scheduledClasses.length === 0 && (
                       <Card className="border-2 border-dashed">
-                        <CardContent className="p-8 text-center">
-                          <CalendarDays className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                        <CardContent className="p-6 sm:p-8 text-center">
+                          <CalendarDays className="h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-2 sm:mb-3" />
                           <p className="text-sm text-gray-600">{t('dashboard.noUpcomingClasses')}</p>
                         </CardContent>
                       </Card>
@@ -519,26 +519,26 @@ const StudentDashboard = () => {
               {/* Announcements Section */}
               {announcements.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="bg-orange-100 rounded-full p-2">
-                      <Megaphone className="h-6 w-6 text-orange-600" />
+                  <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                    <div className="bg-orange-100 rounded-full p-1.5 sm:p-2">
+                      <Megaphone className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold">{t('dashboard.announcements', 'Announcements')}</h2>
-                      <p className="text-sm text-muted-foreground">{t('dashboard.latestFromTeachers', 'Latest updates from your teachers')}</p>
+                      <h2 className="text-lg sm:text-2xl font-bold">{t('dashboard.announcements', 'Announcements')}</h2>
+                      <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">{t('dashboard.latestFromTeachers', 'Latest updates from your teachers')}</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {announcements.map((announcement) => (
                       <Card key={announcement.id} className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <h3 className="font-semibold text-gray-900">{announcement.title}</h3>
-                            <Badge variant="secondary" className="text-xs shrink-0">
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-2">
+                            <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-1">{announcement.title}</h3>
+                            <Badge variant="secondary" className="text-xs shrink-0 hidden sm:inline-flex">
                               {announcement.courses?.title || t('dashboard.allCourses', 'All Courses')}
                             </Badge>
                           </div>
-                          <p className="text-sm text-gray-600 line-clamp-2 mb-2">{announcement.message}</p>
+                          <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-1.5 sm:mb-2">{announcement.message}</p>
                           <p className="text-xs text-gray-400">
                             {new Date(announcement.created_at).toLocaleDateString()}
                           </p>
@@ -551,10 +551,10 @@ const StudentDashboard = () => {
 
               {/* My Courses Section - Full Width Below */}
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold">{t('courses.myCourses')}</h2>
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <h2 className="text-lg sm:text-2xl font-bold">{t('courses.myCourses')}</h2>
                   {!coursesLoading && enrolledCourses.length > 0 && (
-                    <Badge variant="secondary" className="text-sm">
+                    <Badge variant="secondary" className="text-xs sm:text-sm">
                       {enrolledCourses.length} {enrolledCourses.length === 1 ? t('dashboard.course') : t('dashboard.courses')}
                     </Badge>
                   )}
@@ -562,17 +562,17 @@ const StudentDashboard = () => {
 
                 {coursesLoading ? (
                   // Skeleton loader for courses
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                     {[1, 2, 3, 4].map((i) => (
-                      <Card key={i} className="overflow-hidden rounded-2xl border animate-pulse">
-                        <div className="h-40 bg-gradient-to-br from-gray-200 to-gray-300" />
-                        <CardContent className="p-4 space-y-3">
-                          <div className="h-5 bg-gray-200 rounded w-3/4" />
-                          <div className="h-4 bg-gray-200 rounded w-full" />
-                          <div className="h-4 bg-gray-200 rounded w-2/3" />
-                          <div className="flex items-center gap-2 pt-2">
-                            <div className="h-4 w-4 bg-gray-200 rounded-full" />
-                            <div className="h-3 bg-gray-200 rounded w-24" />
+                      <Card key={i} className="overflow-hidden rounded-xl sm:rounded-2xl border animate-pulse">
+                        <div className="h-28 sm:h-40 bg-gradient-to-br from-gray-200 to-gray-300" />
+                        <CardContent className="p-3 sm:p-4 space-y-2 sm:space-y-3">
+                          <div className="h-4 sm:h-5 bg-gray-200 rounded w-3/4" />
+                          <div className="h-3 sm:h-4 bg-gray-200 rounded w-full" />
+                          <div className="h-3 sm:h-4 bg-gray-200 rounded w-2/3" />
+                          <div className="flex items-center gap-2 pt-1 sm:pt-2">
+                            <div className="h-3 w-3 sm:h-4 sm:w-4 bg-gray-200 rounded-full" />
+                            <div className="h-2 sm:h-3 bg-gray-200 rounded w-16 sm:w-24" />
                           </div>
                         </CardContent>
                       </Card>
@@ -587,7 +587,7 @@ const StudentDashboard = () => {
 
                   if (filteredCourses.length > 0) {
                     return (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                         {filteredCourses.map((enrollment, index) => {
                           const course = enrollment.courses;
                           const gradients = [
@@ -619,12 +619,12 @@ const StudentDashboard = () => {
                     // Show "no results" message when searching but no matches
                     return (
                       <Card className="border-2 border-dashed">
-                        <CardContent className="flex flex-col items-center justify-center py-12">
-                          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                            <Search className="h-8 w-8 text-gray-400" />
+                        <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 px-4">
+                          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3 sm:mb-4">
+                            <Search className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
                           </div>
-                          <h3 className="text-lg font-semibold mb-2">{t('searchResults.noCoursesFound')}</h3>
-                          <p className="text-sm text-gray-600 text-center">
+                          <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">{t('searchResults.noCoursesFound')}</h3>
+                          <p className="text-xs sm:text-sm text-gray-600 text-center">
                             {t('searchResults.noCoursesMatch')} "{searchQuery}"
                           </p>
                         </CardContent>
@@ -634,15 +634,15 @@ const StudentDashboard = () => {
                     // Show "no courses enrolled" message
                     return (
                       <Card className="border-2 border-dashed">
-                        <CardContent className="flex flex-col items-center justify-center py-12">
-                          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                            <BookOpen className="h-8 w-8 text-gray-400" />
+                        <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 px-4">
+                          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3 sm:mb-4">
+                            <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
                           </div>
-                          <h3 className="text-lg font-semibold mb-2">{t('dashboard.noCourses')}</h3>
-                          <p className="text-sm text-gray-600 text-center mb-4">
+                          <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">{t('dashboard.noCourses')}</h3>
+                          <p className="text-xs sm:text-sm text-gray-600 text-center mb-3 sm:mb-4">
                             {t('dashboard.notEnrolled')}
                           </p>
-                          <Button onClick={() => navigate("/courses")} className="bg-[#006d2c] hover:bg-[#005523]">
+                          <Button onClick={() => navigate("/courses")} className="bg-[#006d2c] hover:bg-[#005523] text-sm">
                             {t('dashboard.browseCourses')}
                           </Button>
                         </CardContent>
@@ -655,16 +655,18 @@ const StudentDashboard = () => {
               {/* Quiz Scores/Marks Section */}
               {studentId && enrolledCourses.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="bg-purple-100 rounded-full p-2">
-                      <Award className="h-6 w-6 text-purple-600" />
+                  <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                    <div className="bg-purple-100 rounded-full p-1.5 sm:p-2">
+                      <Award className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold">{t('dashboard.myQuizScores')}</h2>
-                      <p className="text-sm text-muted-foreground">{t('dashboard.trackQuizPerformance')}</p>
+                      <h2 className="text-lg sm:text-2xl font-bold">{t('dashboard.myQuizScores')}</h2>
+                      <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">{t('dashboard.trackQuizPerformance')}</p>
                     </div>
                   </div>
-                  <GradesTable studentId={studentId} showFilters={false} />
+                  <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+                    <GradesTable studentId={studentId} showFilters={false} />
+                  </div>
                 </div>
               )}
             </div>
