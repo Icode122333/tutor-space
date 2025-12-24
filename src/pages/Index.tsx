@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BookOpen, GraduationCap, Users, BookOpenCheck, MessageSquare, FileText, Star, Menu, X, ChevronLeft, ChevronRight, ExternalLink, Handshake, Building2, Mail, Phone, User, CheckCircle } from "lucide-react";
+import { MessageSquare, FileText, Star, Menu, X, ChevronLeft, ChevronRight, Handshake, Building2, Mail, Phone, User, CheckCircle, ArrowRight, Clock, Users, BookOpen } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 type ExhibitionProject = {
   id: string;
@@ -36,6 +37,20 @@ type Testimonial = {
   display_order: number;
 };
 
+type Course = {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  level: string | null;
+  profiles: {
+    full_name: string;
+  } | null;
+  _count?: {
+    enrollments: number;
+  };
+};
+
 const Index = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -48,6 +63,8 @@ const Index = () => {
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [testimonialsLoading, setTestimonialsLoading] = useState(true);
+  const [featuredCourses, setFeaturedCourses] = useState<Course[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(true);
   const [partnerFormData, setPartnerFormData] = useState({
     name: "",
     email: "",
@@ -100,7 +117,34 @@ const Index = () => {
 
     fetchFeaturedProjects();
     fetchTestimonials();
+    fetchFeaturedCourses();
   }, []);
+
+  const fetchFeaturedCourses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("courses")
+        .select(`
+          id,
+          title,
+          description,
+          thumbnail_url,
+          level,
+          profiles (
+            full_name
+          )
+        `)
+        .limit(4)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setFeaturedCourses(data || []);
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
 
   const nextProject = () => {
     setCurrentProjectIndex((prev) => (prev + 1) % capstoneProjects.length);
@@ -387,6 +431,161 @@ const Index = () => {
                 />
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Courses Section */}
+      <section className="py-20 bg-gradient-to-b from-white to-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-12">
+            <div>
+              <span className="inline-block px-4 py-1.5 bg-[#006d2c]/10 text-[#006d2c] text-sm font-semibold rounded-full mb-4">
+                Popular Courses
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2" style={{ fontFamily: 'Roboto, sans-serif' }}>
+                Explore Our Courses
+              </h2>
+              <p className="text-gray-600 max-w-xl">
+                Start your learning journey with our most popular courses taught by industry experts
+              </p>
+            </div>
+            <Button
+              onClick={() => navigate("/courses")}
+              variant="outline"
+              className="mt-6 md:mt-0 group border-[#006d2c] text-[#006d2c] hover:bg-[#006d2c] hover:text-white transition-all duration-300"
+            >
+              View All Courses
+              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </div>
+
+          {coursesLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i} className="overflow-hidden rounded-2xl border-0 shadow-lg animate-pulse">
+                  <div className="h-48 bg-gradient-to-br from-gray-200 to-gray-300" />
+                  <CardContent className="p-5 space-y-3">
+                    <div className="h-5 bg-gray-200 rounded w-3/4" />
+                    <div className="h-4 bg-gray-200 rounded w-full" />
+                    <div className="h-4 bg-gray-200 rounded w-2/3" />
+                    <div className="flex items-center gap-2 pt-2">
+                      <div className="h-8 w-8 bg-gray-200 rounded-full" />
+                      <div className="h-3 bg-gray-200 rounded w-24" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : featuredCourses.length === 0 ? (
+            <div className="text-center py-16 bg-gray-50 rounded-3xl">
+              <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">No courses available yet</h3>
+              <p className="text-gray-500">Check back soon for exciting new courses!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredCourses.map((course, index) => {
+                const gradients = [
+                  'from-violet-500 to-purple-600',
+                  'from-emerald-500 to-teal-600',
+                  'from-orange-500 to-red-500',
+                  'from-blue-500 to-indigo-600',
+                ];
+                const gradient = gradients[index % gradients.length];
+
+                return (
+                  <Card
+                    key={course.id}
+                    className="group overflow-hidden rounded-2xl border-0 shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer bg-white"
+                    onClick={() => navigate(`/course/${course.id}`)}
+                  >
+                    {/* Course Image */}
+                    <div className={`relative h-48 bg-gradient-to-br ${gradient} overflow-hidden`}>
+                      {course.thumbnail_url ? (
+                        <img
+                          src={course.thumbnail_url}
+                          alt={course.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <BookOpen className="h-16 w-16 text-white/30" />
+                        </div>
+                      )}
+                      {/* Overlay gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      
+                      {/* Level Badge */}
+                      {course.level && (
+                        <Badge
+                          className={`absolute top-3 right-3 ${
+                            course.level === "beginner"
+                              ? "bg-green-500"
+                              : course.level === "intermediate"
+                              ? "bg-yellow-500"
+                              : "bg-red-500"
+                          } text-white border-0`}
+                        >
+                          {course.level}
+                        </Badge>
+                      )}
+
+                      {/* Quick View Button */}
+                      <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                        <Button
+                          size="sm"
+                          className="w-full bg-white/95 text-gray-900 hover:bg-white font-medium"
+                        >
+                          View Course
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Course Info */}
+                    <CardContent className="p-5">
+                      <h3 className="font-bold text-lg mb-2 line-clamp-2 text-gray-900 group-hover:text-[#006d2c] transition-colors">
+                        {course.title}
+                      </h3>
+                      
+                      {course.description && (
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-4">
+                          {course.description}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                        {course.profiles && (
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-[#006d2c]/10 flex items-center justify-center">
+                              <Users className="h-4 w-4 text-[#006d2c]" />
+                            </div>
+                            <span className="text-sm text-gray-600 truncate max-w-[120px]">
+                              {course.profiles.full_name}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <Clock className="h-4 w-4" />
+                          <span>Self-paced</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {/* View More CTA for Mobile */}
+          <div className="mt-10 text-center md:hidden">
+            <Button
+              onClick={() => navigate("/courses")}
+              className="bg-[#006d2c] hover:bg-[#005523] text-white px-8 py-6 rounded-full shadow-lg shadow-[#006d2c]/20"
+            >
+              Explore All Courses
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
         </div>
       </section>
@@ -780,140 +979,126 @@ const Index = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-gradient-to-br from-green-50 via-white to-green-100 overflow-hidden">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4 text-[#006d2c]" style={{ fontFamily: 'Roboto, sans-serif' }}>What our happy Students say about us</h2>
+      <section className="py-24 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute top-0 left-0 w-72 h-72 bg-[#006d2c]/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#006d2c]/5 rounded-full translate-x-1/3 translate-y-1/3" />
+        
+        <div className="container mx-auto px-4 relative z-10">
+          {/* Section Header */}
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-1.5 bg-[#006d2c]/10 text-[#006d2c] text-sm font-semibold rounded-full mb-4">
+              Testimonials
+            </span>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900" style={{ fontFamily: 'Roboto, sans-serif' }}>
+              What Our Students Say
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+              Hear from our community of learners who have transformed their careers
+            </p>
           </div>
 
           {/* Skeleton Loading */}
           {testimonialsLoading ? (
-            <div className="flex gap-6 justify-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex-shrink-0 w-[350px] bg-white rounded-3xl p-8 shadow-lg animate-pulse">
-                  <div className="flex justify-center mb-6">
-                    <div className="w-20 h-20 rounded-full bg-gray-300" />
+                <div key={i} className="bg-white rounded-2xl p-8 shadow-lg animate-pulse">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-14 h-14 rounded-full bg-gray-200" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-24 mb-2" />
+                      <div className="h-3 bg-gray-100 rounded w-20" />
+                    </div>
                   </div>
-                  <div className="h-8 bg-gray-200 rounded w-8 mx-auto mb-4" />
-                  <div className="h-5 bg-gray-300 rounded w-32 mx-auto mb-4" />
-                  <div className="space-y-2 mb-6">
-                    <div className="h-3 bg-gray-200 rounded w-full" />
-                    <div className="h-3 bg-gray-200 rounded w-5/6 mx-auto" />
-                    <div className="h-3 bg-gray-200 rounded w-4/6 mx-auto" />
+                  <div className="space-y-2 mb-4">
+                    <div className="h-3 bg-gray-100 rounded w-full" />
+                    <div className="h-3 bg-gray-100 rounded w-5/6" />
+                    <div className="h-3 bg-gray-100 rounded w-4/6" />
                   </div>
-                  <div className="flex gap-1 justify-center">
+                  <div className="flex gap-1">
                     {[...Array(5)].map((_, j) => (
-                      <div key={j} className="w-5 h-5 bg-gray-200 rounded" />
+                      <div key={j} className="w-4 h-4 bg-gray-200 rounded" />
                     ))}
                   </div>
                 </div>
               ))}
             </div>
           ) : testimonials.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No testimonials yet. Check back soon!</p>
+            <div className="text-center py-16 bg-white rounded-3xl shadow-sm max-w-2xl mx-auto">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="w-10 h-10 text-gray-300" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">No testimonials yet</h3>
+              <p className="text-gray-500">Check back soon for student reviews!</p>
             </div>
           ) : (
-            <div className="relative">
-              <div className="flex gap-6 animate-scroll-rtl">
-                {/* First set of testimonials */}
+            <>
+              {/* Testimonials Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 {testimonials.map((testimonial, index) => (
                   <div
                     key={testimonial.id}
-                    className={`flex-shrink-0 w-[350px] rounded-3xl p-8 relative shadow-lg ${
-                      index % 3 === 0 ? 'bg-[#006d2c]' : 'bg-white border-2 border-[#006d2c]'
+                    className={`group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 ${
+                      index === 0 ? 'md:col-span-2 lg:col-span-1' : ''
                     }`}
                   >
-                    <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
+                    {/* Quote icon */}
+                    <div className="absolute top-6 right-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <svg className="w-16 h-16 text-[#006d2c]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                      </svg>
+                    </div>
+
+                    {/* Rating Stars */}
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-5 w-5 ${
+                            i < testimonial.rating
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'fill-gray-200 text-gray-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Testimonial Text */}
+                    <p className="text-gray-700 leading-relaxed mb-8 text-base">
+                      "{testimonial.testimonial_text}"
+                    </p>
+
+                    {/* Student Info */}
+                    <div className="flex items-center gap-4">
                       {testimonial.student_image_url ? (
                         <img
                           src={testimonial.student_image_url}
                           alt={testimonial.student_name}
-                          className="w-24 h-24 rounded-full border-4 border-white object-cover"
+                          className="w-14 h-14 rounded-full object-cover ring-4 ring-[#006d2c]/10"
                         />
                       ) : (
-                        <div className={`w-24 h-24 rounded-full border-4 border-white flex items-center justify-center ${
-                          index % 3 === 0 ? 'bg-white' : 'bg-gradient-to-br from-green-100 to-green-200'
-                        }`}>
-                          <span className={`text-2xl font-bold ${index % 3 === 0 ? 'text-[#006d2c]' : 'text-[#006d2c]'}`}>
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#006d2c] to-green-500 flex items-center justify-center ring-4 ring-[#006d2c]/10">
+                          <span className="text-white font-bold text-lg">
                             {testimonial.student_name.charAt(0)}
                           </span>
                         </div>
                       )}
-                    </div>
-                    <div className="mt-8">
-                      <div className={`text-5xl font-bold mb-4 ${index % 3 === 0 ? 'text-white' : 'text-[#006d2c]'}`}>"</div>
-                      <h3 className={`font-bold text-center mb-4 ${index % 3 === 0 ? 'text-white' : 'text-black'}`}>
-                        {testimonial.student_name}
-                      </h3>
-                      <p className={`text-sm text-center leading-relaxed mb-6 ${index % 3 === 0 ? 'text-white/90' : 'text-gray-600'}`}>
-                        {testimonial.testimonial_text}
-                      </p>
-                      <div className="flex gap-1 justify-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-5 w-5 ${
-                              i < testimonial.rating
-                                ? index % 3 === 0 ? 'fill-white text-white' : 'fill-[#006d2c] text-[#006d2c]'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
+                      <div>
+                        <h4 className="font-bold text-gray-900">{testimonial.student_name}</h4>
+                        {testimonial.course_name && (
+                          <p className="text-sm text-[#006d2c] font-medium">{testimonial.course_name}</p>
+                        )}
                       </div>
                     </div>
-                  </div>
-                ))}
-                {/* Duplicate set for seamless loop */}
-                {testimonials.map((testimonial, index) => (
-                  <div
-                    key={`dup-${testimonial.id}`}
-                    className={`flex-shrink-0 w-[350px] rounded-3xl p-8 relative shadow-lg ${
-                      index % 3 === 0 ? 'bg-[#006d2c]' : 'bg-white border-2 border-[#006d2c]'
-                    }`}
-                  >
-                    <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
-                      {testimonial.student_image_url ? (
-                        <img
-                          src={testimonial.student_image_url}
-                          alt={testimonial.student_name}
-                          className="w-24 h-24 rounded-full border-4 border-white object-cover"
-                        />
-                      ) : (
-                        <div className={`w-24 h-24 rounded-full border-4 border-white flex items-center justify-center ${
-                          index % 3 === 0 ? 'bg-white' : 'bg-gradient-to-br from-green-100 to-green-200'
-                        }`}>
-                          <span className={`text-2xl font-bold ${index % 3 === 0 ? 'text-[#006d2c]' : 'text-[#006d2c]'}`}>
-                            {testimonial.student_name.charAt(0)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-8">
-                      <div className={`text-5xl font-bold mb-4 ${index % 3 === 0 ? 'text-white' : 'text-[#006d2c]'}`}>"</div>
-                      <h3 className={`font-bold text-center mb-4 ${index % 3 === 0 ? 'text-white' : 'text-black'}`}>
-                        {testimonial.student_name}
-                      </h3>
-                      <p className={`text-sm text-center leading-relaxed mb-6 ${index % 3 === 0 ? 'text-white/90' : 'text-gray-600'}`}>
-                        {testimonial.testimonial_text}
-                      </p>
-                      <div className="flex gap-1 justify-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-5 w-5 ${
-                              i < testimonial.rating
-                                ? index % 3 === 0 ? 'fill-white text-white' : 'fill-[#006d2c] text-[#006d2c]'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
+
+                    {/* Decorative bottom border */}
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#006d2c] to-green-400 rounded-b-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 ))}
               </div>
-            </div>
+
+
+            </>
           )}
         </div>
       </section>

@@ -75,7 +75,8 @@
     "passwordRequired": "Le mot de passe est requis",
     "invalidEmail": "Adresse email invalide",
     "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères",
-    "passwordsDontMatch": "Les mots de passe ne correspondent pas"
+    "passwordsDontMatch": "Les mots de passe ne correspondent pas",
+    "usedLast": "Utilisé en dernier"
   },
   "dashboard": {
     "welcome": "Bienvenue",
@@ -488,6 +489,8 @@
     "loginHere": "Connectez-vous ici",
     "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
     "emailAlreadyRegistered": "Cet email est déjà enregistré. Veuillez vous connecter.",
+    "emailAlreadyExists": "Cet email est déjà enregistré. Veuillez vous connecter.",
+    "goToLogin": "Se connecter",
     "accountCreated": "Compte créé ! Veuillez vérifier votre email pour confirmer votre compte.",
     "accountCreatedSuccess": "Compte créé avec succès !",
     "joinCommunity": "Rejoignez notre communauté d'apprentissage",

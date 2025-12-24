@@ -75,7 +75,8 @@
     "passwordRequired": "Password is required",
     "invalidEmail": "Invalid email address",
     "passwordTooShort": "Password must be at least 6 characters",
-    "passwordsDontMatch": "Passwords don't match"
+    "passwordsDontMatch": "Passwords don't match",
+    "usedLast": "Used last"
   },
   "dashboard": {
     "welcome": "Welcome",
@@ -488,6 +489,8 @@
     "loginHere": "Login Here",
     "passwordsDoNotMatch": "Passwords do not match",
     "emailAlreadyRegistered": "This email is already registered. Please sign in instead.",
+    "emailAlreadyExists": "This email is already registered. Please sign in instead.",
+    "goToLogin": "Sign In",
     "accountCreated": "Account created! Please check your email to verify your account.",
     "accountCreatedSuccess": "Account created successfully!",
     "joinCommunity": "Join Our Learning Community",
