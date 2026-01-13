@@ -1,73 +1,123 @@
-# Welcome to your Lovable project
+# DATAPLUS
 
-## Project info
+A comprehensive Learning Management System (LMS) built with React, TypeScript, and Supabase. TutorSpace provides a complete platform for online education with dedicated portals for students, teachers, and administrators.
 
-**URL**: https://lovable.dev/projects/5071b3bc-e35a-42f4-8784-99c17a1244a4
+## Features
 
-## How can I edit this code?
+### Student Portal
+- Dashboard with enrolled courses and progress tracking
+- Course browsing and enrollment
+- Assignment submissions with file uploads
+- Real-time chat with teachers
+- Schedule management
+- Certificates upon course completion
+- Score tracking and grades view
+- Subscription management
+- Multi-language support (English/French)
 
-There are several ways of editing your application.
+### Teacher Portal
+- Course creation and management
+- Student management and cohort organization
+- Assignment creation and grading
+- Announcements to students
+- Real-time chat with students
+- Schedule management
+- Grade management
 
-**Use Lovable**
+### Admin Portal
+- User management (students, teachers, admins)
+- Teacher approval workflow
+- Course moderation
+- Certificate management
+- Announcements system
+- Exhibition project management
+- Testimonials management
+- Partner requests handling
+- Email campaigns
+- Activity logs and analytics
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/5071b3bc-e35a-42f4-8784-99c17a1244a4) and start prompting.
+## Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React 18, TypeScript, Vite
+- **Styling**: Tailwind CSS, shadcn/ui components
+- **State Management**: TanStack React Query
+- **Backend**: Supabase (PostgreSQL, Auth, Storage, Edge Functions)
+- **Routing**: React Router v6
+- **Forms**: React Hook Form + Zod validation
+- **i18n**: i18next (English, French)
+- **Charts**: Recharts
 
-**Use your preferred IDE**
+## Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Node.js 18+ 
+- npm or bun
+- Supabase account and project
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Getting Started
 
-Follow these steps:
+### 1. Clone the repository
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```bash
+git clone <repository-url>
+cd tutor-space
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 2. Install dependencies
 
-# Step 3: Install the necessary dependencies.
-npm i
+```bash
+npm install
+# or
+bun install
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 3. Start Development Server
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be available at `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Available Scripts
 
-**Use GitHub Codespaces**
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Project Structure
 
-## What technologies are used for this project?
+```
+tutor-space/
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── hooks/          # Custom React hooks
+│   ├── i18n/           # Internationalization config and locales
+│   ├── integrations/   # External service integrations
+│   ├── lib/            # Utility functions
+│   ├── pages/          # Page components
+│   └── App.tsx         # Main app component with routing
+├── Database/
+│   ├── functions/      # Edge functions (e.g., send-email)
+│   └── migrations/     # Database migrations
+├── public/             # Static assets
+└── package.json
+```
 
-This project is built with:
+## Deployment
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Netlify
 
-## How can I deploy this project?
+The project includes `netlify.toml` for Netlify deployment. Simply connect your repository to Netlify.
 
-Simply open [Lovable](https://lovable.dev/projects/5071b3bc-e35a-42f4-8784-99c17a1244a4) and click on Share -> Publish.
+### Vercel
 
-## Can I connect a custom domain to my Lovable project?
+A `vercel.json` configuration is included for Vercel deployment.
 
-Yes, you can!
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## License
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Private project - All rights reserved.
+
