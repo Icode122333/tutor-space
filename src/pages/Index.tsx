@@ -1,70 +1,30 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Menu, X, CheckCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageSquare, FileText, Star, Menu, X, ChevronLeft, ChevronRight, Handshake, Building2, Mail, Phone, User, CheckCircle, ArrowRight, Clock, Users, BookOpen } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
 
-type ExhibitionProject = {
-  id: string;
-  student_name: string;
-  student_image_url: string | null;
-  course_name: string;
-  project_title: string;
-  project_description: string;
-  course_score: number;
-  achievements: string[];
-  technologies: string[];
-  project_link: string | null;
-  is_featured: boolean;
-  display_order: number;
-};
-
-type Testimonial = {
-  id: string;
-  student_name: string;
-  student_image_url: string | null;
-  testimonial_text: string;
-  rating: number;
-  course_name: string | null;
-  is_featured: boolean;
-  display_order: number;
-};
-
-type Course = {
-  id: string;
-  title: string;
-  description: string | null;
-  thumbnail_url: string | null;
-  level: string | null;
-  profiles: {
-    full_name: string;
-  } | null;
-  _count?: {
-    enrollments: number;
-  };
-};
+// Import new modular components
+import { HeroSection } from "@/components/landing/HeroSection";
+import { PartnersSection } from "@/components/landing/PartnersSection";
+import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { CoursesPreviewSection } from "@/components/landing/CoursesPreviewSection";
+import { LearningModelSection } from "@/components/landing/LearningModelSection";
+import { CapstoneFrameworkSection } from "@/components/landing/CapstoneFrameworkSection";
+import { TargetAudienceSection } from "@/components/landing/TargetAudienceSection";
+import { B2BSection, FinalCTASection, Footer } from "@/components/landing/FooterInfo";
 
 const Index = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [demoDialogOpen, setDemoDialogOpen] = useState(false);
   const [partnerDialogOpen, setPartnerDialogOpen] = useState(false);
   const [partnerSubmitting, setPartnerSubmitting] = useState(false);
   const [partnerSuccess, setPartnerSuccess] = useState(false);
-  const [currentProjectIndex, setCurrentProjectIndex] = useState(0);
-  const [capstoneProjects, setCapstoneProjects] = useState<ExhibitionProject[]>([]);
-  const [projectsLoading, setProjectsLoading] = useState(true);
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [testimonialsLoading, setTestimonialsLoading] = useState(true);
-  const [featuredCourses, setFeaturedCourses] = useState<Course[]>([]);
-  const [coursesLoading, setCoursesLoading] = useState(true);
   const [partnerFormData, setPartnerFormData] = useState({
     name: "",
     email: "",
@@ -72,105 +32,9 @@ const Index = () => {
     organization: "",
     message: "",
   });
-  const [demoFormData, setDemoFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    organization: ""
-  });
-
-  // Fetch featured exhibition projects and testimonials from database
-  useEffect(() => {
-    const fetchFeaturedProjects = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("exhibition_projects")
-          .select("*")
-          .eq("is_featured", true)
-          .order("display_order", { ascending: true });
-
-        if (error) throw error;
-        setCapstoneProjects(data || []);
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-      } finally {
-        setProjectsLoading(false);
-      }
-    };
-
-    const fetchTestimonials = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("testimonials")
-          .select("*")
-          .eq("is_featured", true)
-          .order("display_order", { ascending: true });
-
-        if (error) throw error;
-        setTestimonials(data || []);
-      } catch (error) {
-        console.error("Error fetching testimonials:", error);
-      } finally {
-        setTestimonialsLoading(false);
-      }
-    };
-
-    fetchFeaturedProjects();
-    fetchTestimonials();
-    fetchFeaturedCourses();
-  }, []);
-
-  const fetchFeaturedCourses = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("courses")
-        .select(`
-          id,
-          title,
-          description,
-          thumbnail_url,
-          level,
-          profiles (
-            full_name
-          )
-        `)
-        .limit(4)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setFeaturedCourses(data || []);
-    } catch (error) {
-      console.error("Error fetching courses:", error);
-    } finally {
-      setCoursesLoading(false);
-    }
-  };
-
-  const nextProject = () => {
-    setCurrentProjectIndex((prev) => (prev + 1) % capstoneProjects.length);
-  };
-
-  const prevProject = () => {
-    setCurrentProjectIndex((prev) => (prev - 1 + capstoneProjects.length) % capstoneProjects.length);
-  };
-
-  // Auto-advance slider every 6 seconds
-  useEffect(() => {
-    const timer = setInterval(nextProject, 6000);
-    return () => clearInterval(timer);
-  }, [currentProjectIndex]);
-
-  const handleDemoSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Demo request:", demoFormData);
-    toast.success("Demo request submitted! We'll contact you soon.");
-    setDemoDialogOpen(false);
-    setDemoFormData({ name: "", email: "", phone: "", organization: "" });
-  };
 
   const handlePartnerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!partnerFormData.name || !partnerFormData.email || !partnerFormData.phone || !partnerFormData.organization) {
       toast.error("Please fill in all required fields");
       return;
@@ -189,7 +53,6 @@ const Index = () => {
         });
 
       if (error) throw error;
-      
       setPartnerSuccess(true);
       setPartnerFormData({ name: "", email: "", phone: "", organization: "", message: "" });
     } catch (error) {
@@ -209,1312 +72,128 @@ const Index = () => {
     <div className="min-h-screen relative">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50">
-        <div className="bg-white/90 backdrop-blur-md shadow-sm">
+        <div className="bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
           <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
               <img
                 src="/images/dataplus_logggg-removebg-preview.png"
                 alt="DataPlus Logo"
-                className="w-8 h-8 object-contain"
+                className="w-10 h-10 object-contain"
               />
-              <span className="text-xl font-bold" style={{ color: '#008000' }}>Labs</span>
+              <span className="text-xl font-bold text-gray-900 tracking-tight">DATA+</span>
             </div>
+
             <div className="hidden md:flex items-center gap-8">
-              <a href="#home" className="text-sm font-medium text-black hover:text-[#006d2c] transition-colors">Home</a>
-              <button onClick={() => navigate("/courses")} className="text-sm font-medium text-black hover:text-[#006d2c] transition-colors">Courses</button>
-              <button onClick={() => navigate("/about")} className="text-sm font-medium text-black hover:text-[#006d2c] transition-colors">About</button>
-              <button onClick={() => navigate("/contact")} className="text-sm font-medium text-black hover:text-[#006d2c] transition-colors">Contact</button>
-              <button onClick={() => navigate("/exhibition")} className="text-sm font-medium text-black hover:text-[#006d2c] transition-colors">Exhibition</button>
+              <a href="#home" className="text-sm font-medium text-gray-600 hover:text-[#006d2c] transition-colors">Home</a>
+              <button onClick={() => navigate("/courses")} className="text-sm font-medium text-gray-600 hover:text-[#006d2c] transition-colors">Courses</button>
+              <button onClick={() => navigate("/about")} className="text-sm font-medium text-gray-600 hover:text-[#006d2c] transition-colors">About</button>
+              <button onClick={() => navigate("/contact")} className="text-sm font-medium text-gray-600 hover:text-[#006d2c] transition-colors">Contact</button>
+              <button onClick={() => navigate("/exhibition")} className="text-sm font-medium text-gray-600 hover:text-[#006d2c] transition-colors">Exhibition</button>
             </div>
+
             <div className="flex items-center gap-3">
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={() => navigate("/auth")}
-                className="bg-white border-gray-300 text-black hover:bg-[#006d2c] hover:text-white"
+                className="hidden md:flex text-gray-700 hover:text-[#006d2c] hover:bg-green-50"
               >
                 Login
               </Button>
               <Button
                 onClick={() => navigate("/signup")}
-                className="bg-[#006d2c] hover:bg-[#006d2c] text-black font-medium"
+                className="bg-[#006d2c] hover:bg-[#005523] text-white font-medium rounded-full px-6 shadow-lg shadow-green-900/10"
               >
-                Sign Up
+                Get Started
               </Button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Floating Hamburger Menu Button (Mobile Only - Top Left) */}
+      {/* Mobile Menu Button */}
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="md:hidden fixed top-24 left-6 z-50 bg-[#006d2c] hover:bg-[#006d2c] text-black p-3 rounded-full shadow-2xl transition-all duration-300 hover:scale-110"
+        className="md:hidden fixed top-5 right-6 z-[60] text-gray-900 p-2 bg-white rounded-lg shadow-md"
       >
-        {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </button>
 
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)}>
-          <div
-            className="fixed top-40 left-6 bg-white rounded-2xl shadow-2xl p-6 w-64 animate-in slide-in-from-left-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex flex-col gap-4">
-              <a
-                href="#home"
-                className="text-base font-medium text-black hover:text-[#006d2c] transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Home
-              </a>
-              <a
-                href="#courses"
-                className="text-base font-medium text-black hover:text-[#006d2c] transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Courses
-              </a>
-              <button
-                onClick={() => {
-                  navigate("/about");
-                  setMobileMenuOpen(false);
-                }}
-                className="text-base font-medium text-black hover:text-[#006d2c] transition-colors py-2 text-left"
-              >
-                About
-              </button>
-              <button
-                onClick={() => {
-                  navigate("/contact");
-                  setMobileMenuOpen(false);
-                }}
-                className="text-base font-medium text-black hover:text-[#006d2c] transition-colors py-2 text-left"
-              >
-                Contact
-              </button>
-              <button
-                onClick={() => {
-                  navigate("/exhibition");
-                  setMobileMenuOpen(false);
-                }}
-                className="text-base font-medium text-black hover:text-[#006d2c] transition-colors py-2 text-left"
-              >
-                Exhibition
-              </button>
-            </div>
+        <div className="md:hidden fixed inset-0 z-50 bg-white p-8 pt-24 animate-in slide-in-from-right">
+          <div className="flex flex-col gap-6 text-xl font-medium">
+            <a href="#home" onClick={() => setMobileMenuOpen(false)}>Home</a>
+            <button onClick={() => { navigate("/courses"); setMobileMenuOpen(false); }} className="text-left">Courses</button>
+            <button onClick={() => { navigate("/about"); setMobileMenuOpen(false); }} className="text-left">About</button>
+            <button onClick={() => { navigate("/exhibition"); setMobileMenuOpen(false); }} className="text-left">Exhibition</button>
+            <hr className="border-gray-100" />
+            <button onClick={() => { navigate("/auth"); setMobileMenuOpen(false); }} className="text-left text-[#006d2c]">Login</button>
+            <Button onClick={() => { navigate("/signup"); setMobileMenuOpen(false); }} className="bg-[#006d2c] text-white">Sign Up</Button>
           </div>
         </div>
       )}
 
-      {/* Hero Section - Fullscreen */}
-      <section id="home" className="relative flex items-center justify-center h-screen overflow-hidden">
-        {/* Video Background - Fullscreen */}
-        <div className="absolute inset-0 z-0">
-          <video 
-            autoPlay 
-            loop 
-            muted 
-            playsInline
-            className="w-full h-full object-cover"
-          >
-            <source src="/videos/A_group_of_202511231942_dqqwc.mp4" type="video/mp4" />
-          </video>
-          {/* Gradient overlay for better text readability */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent"></div>
-        </div>
-        
-        <div className="container mx-auto px-6 md:px-12 relative z-10 pt-20">
-          <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-white mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
-              Learn Whenever
-              <br />
-              <span className="text-[#00ff88]">You Are</span>
-            </h1>
-            <p className="text-base md:text-lg text-white/80 mb-10 max-w-xl leading-relaxed">
-              Because every student is an experience learner. Transform your skills with world-class courses and expert instructors.
-            </p>
-            
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button
-                onClick={() => navigate("/signup")}
-                className="bg-[#006d2c] hover:bg-[#005523] text-white px-8 py-6 text-sm uppercase tracking-wider font-semibold transition-all duration-300 shadow-lg shadow-[#006d2c]/30"
-              >
-                Get Started
-              </Button>
-              <Button
-                onClick={() => setPartnerDialogOpen(true)}
-                variant="outline"
-                className="border-2 border-white/50 text-white bg-white/10 backdrop-blur-sm hover:bg-white hover:text-black px-8 py-6 text-sm uppercase tracking-wider font-semibold transition-all duration-300"
-              >
-                Partner With Us
-              </Button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
-          <div className="flex flex-col items-center gap-2 animate-bounce">
-            <span className="text-white/60 text-xs uppercase tracking-widest">Scroll</span>
-            <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center pt-2">
-              <div className="w-1.5 h-3 bg-white/60 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Main Content Sections */}
+      <HeroSection />
+      <PartnersSection />
+      <FeaturesSection />
+      <CoursesPreviewSection />
+      <LearningModelSection />
+      <CapstoneFrameworkSection />
+      <TargetAudienceSection />
+      <B2BSection />
+      <FinalCTASection />
+      <Footer />
 
-      {/* Powered By Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <p className="text-center text-sm text-gray-500 mb-12 font-medium">Our Partners</p>
-          <div className="relative overflow-hidden">
-            <div className="flex gap-8 animate-scroll-left">
-              {/* First set of logos */}
-              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-                <img
-                  src="/images/logos/logo-rwanda-nisr-transparent_0.png"
-                  alt="NISR Rwanda"
-                  className="h-12 w-auto object-contain"
-                />
-              </div>
-              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-                <img
-                  src="/images/logos/partner1.jpg"
-                  alt="Partner 1"
-                  className="h-12 w-auto object-contain"
-                />
-              </div>
-              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-                <img
-                  src="/images/logos/partner2.jpg"
-                  alt="Partner 2"
-                  className="h-12 w-auto object-contain"
-                />
-              </div>
-              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-                <img
-                  src="/images/logos/partner3.png"
-                  alt="Partner 3"
-                  className="h-12 w-auto object-contain"
-                />
-              </div>
+      {/* Partner Request Dialog - Hidden trigger utilized by Hero Section */}
+      <button id="partner-dialog" className="hidden" onClick={() => setPartnerDialogOpen(true)} />
 
-              {/* Duplicate set for seamless loop */}
-              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-                <img
-                  src="/images/logos/logo-rwanda-nisr-transparent_0.png"
-                  alt="NISR Rwanda"
-                  className="h-12 w-auto object-contain"
-                />
-              </div>
-              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-                <img
-                  src="/images/logos/partner1.jpg"
-                  alt="Partner 1"
-                  className="h-12 w-auto object-contain"
-                />
-              </div>
-              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-                <img
-                  src="/images/logos/partner2.jpg"
-                  alt="Partner 2"
-                  className="h-12 w-auto object-contain"
-                />
-              </div>
-              <div className="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 min-w-[180px] flex items-center justify-center flex-shrink-0">
-                <img
-                  src="/images/logos/partner3.png"
-                  alt="Partner 3"
-                  className="h-12 w-auto object-contain"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Courses Section */}
-      <section className="py-20 bg-gradient-to-b from-white to-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-12">
-            <div>
-              <span className="inline-block px-4 py-1.5 bg-[#006d2c]/10 text-[#006d2c] text-sm font-semibold rounded-full mb-4">
-                Popular Courses
-              </span>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2" style={{ fontFamily: 'Roboto, sans-serif' }}>
-                Explore Our Courses
-              </h2>
-              <p className="text-gray-600 max-w-xl">
-                Start your learning journey with our most popular courses taught by industry experts
-              </p>
-            </div>
-            <Button
-              onClick={() => navigate("/courses")}
-              variant="outline"
-              className="mt-6 md:mt-0 group border-[#006d2c] text-[#006d2c] hover:bg-[#006d2c] hover:text-white transition-all duration-300"
-            >
-              View All Courses
-              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </div>
-
-          {coursesLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i} className="overflow-hidden rounded-2xl border-0 shadow-lg animate-pulse">
-                  <div className="h-48 bg-gradient-to-br from-gray-200 to-gray-300" />
-                  <CardContent className="p-5 space-y-3">
-                    <div className="h-5 bg-gray-200 rounded w-3/4" />
-                    <div className="h-4 bg-gray-200 rounded w-full" />
-                    <div className="h-4 bg-gray-200 rounded w-2/3" />
-                    <div className="flex items-center gap-2 pt-2">
-                      <div className="h-8 w-8 bg-gray-200 rounded-full" />
-                      <div className="h-3 bg-gray-200 rounded w-24" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : featuredCourses.length === 0 ? (
-            <div className="text-center py-16 bg-gray-50 rounded-3xl">
-              <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">No courses available yet</h3>
-              <p className="text-gray-500">Check back soon for exciting new courses!</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredCourses.map((course, index) => {
-                const gradients = [
-                  'from-violet-500 to-purple-600',
-                  'from-emerald-500 to-teal-600',
-                  'from-orange-500 to-red-500',
-                  'from-blue-500 to-indigo-600',
-                ];
-                const gradient = gradients[index % gradients.length];
-
-                return (
-                  <Card
-                    key={course.id}
-                    className="group overflow-hidden rounded-2xl border-0 shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer bg-white"
-                    onClick={() => navigate(`/course/${course.id}`)}
-                  >
-                    {/* Course Image */}
-                    <div className={`relative h-48 bg-gradient-to-br ${gradient} overflow-hidden`}>
-                      {course.thumbnail_url ? (
-                        <img
-                          src={course.thumbnail_url}
-                          alt={course.title}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <BookOpen className="h-16 w-16 text-white/30" />
-                        </div>
-                      )}
-                      {/* Overlay gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      
-                      {/* Level Badge */}
-                      {course.level && (
-                        <Badge
-                          className={`absolute top-3 right-3 ${
-                            course.level === "beginner"
-                              ? "bg-green-500"
-                              : course.level === "intermediate"
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                          } text-white border-0`}
-                        >
-                          {course.level}
-                        </Badge>
-                      )}
-
-                      {/* Quick View Button */}
-                      <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                        <Button
-                          size="sm"
-                          className="w-full bg-white/95 text-gray-900 hover:bg-white font-medium"
-                        >
-                          View Course
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Course Info */}
-                    <CardContent className="p-5">
-                      <h3 className="font-bold text-lg mb-2 line-clamp-2 text-gray-900 group-hover:text-[#006d2c] transition-colors">
-                        {course.title}
-                      </h3>
-                      
-                      {course.description && (
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-4">
-                          {course.description}
-                        </p>
-                      )}
-
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                        {course.profiles && (
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-[#006d2c]/10 flex items-center justify-center">
-                              <Users className="h-4 w-4 text-[#006d2c]" />
-                            </div>
-                            <span className="text-sm text-gray-600 truncate max-w-[120px]">
-                              {course.profiles.full_name}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                          <Clock className="h-4 w-4" />
-                          <span>Self-paced</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-
-          {/* View More CTA for Mobile */}
-          <div className="mt-10 text-center md:hidden">
-            <Button
-              onClick={() => navigate("/courses")}
-              className="bg-[#006d2c] hover:bg-[#005523] text-white px-8 py-6 rounded-full shadow-lg shadow-[#006d2c]/20"
-            >
-              Explore All Courses
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Course Tracks Section */}
-      <section id="courses" className="py-20 bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-[#006d2c]" style={{ fontFamily: 'Roboto, sans-serif' }}>Our Learning Tracks</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Develop your mind & skills by our intense tracks that covers all you need.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto mb-20">
-            {/* Student Track */}
-            <div
-              className="group cursor-pointer rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 bg-white overflow-hidden"
-              onClick={() => navigate("/auth?role=student")}
-            >
-              {/* Image Container - Takes most of the space */}
-              <div className="relative h-96 overflow-hidden bg-gradient-to-br from-orange-50 to-teal-50">
-                <img
-                  src="/images/student.webp"
-                  alt="Student Learning"
-                  className="w-full h-full object-cover"
-                />
-                {/* Badge on image */}
-                <div className="absolute top-6 left-6">
-                  <div className="bg-black text-white text-xs font-semibold px-4 py-1.5 rounded-full">
-                    Student
-                  </div>
-                </div>
-              </div>
-              
-              {/* Content Section - Compact at bottom */}
-              <div className="p-6 bg-white">
-                <h3 className="text-xl font-bold mb-2 text-gray-900">
-                  Learn & Grow
-                </h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  Master skills, build projects
-                </p>
-                <button className="bg-[#006d2c] hover:bg-[#005523] text-white font-semibold px-6 py-2.5 rounded-lg transition-colors">
-                  Get Started
-                </button>
-              </div>
-            </div>
-
-            {/* Teacher Track */}
-            <div
-              className="group cursor-pointer rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 bg-white overflow-hidden"
-              onClick={() => navigate("/auth?role=teacher")}
-            >
-              {/* Image Container - Takes most of the space */}
-              <div className="relative h-96 overflow-hidden bg-gradient-to-br from-pink-50 to-blue-50">
-                <img
-                  src="/images/teacher1.webp"
-                  alt="Teacher Teaching"
-                  className="w-full h-full object-cover"
-                />
-                {/* Badge on image */}
-                <div className="absolute top-6 left-6">
-                  <div className="bg-black text-white text-xs font-semibold px-4 py-1.5 rounded-full">
-                    Teacher
-                  </div>
-                </div>
-              </div>
-              
-              {/* Content Section - Compact at bottom */}
-              <div className="p-6 bg-white">
-                <h3 className="text-xl font-bold mb-2 text-gray-900">
-                  Teach & Inspire
-                </h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  Share expertise, empower learners
-                </p>
-                <button className="bg-[#006d2c] hover:bg-[#005523] text-white font-semibold px-6 py-2.5 rounded-lg transition-colors">
-                  Get Started
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-[#006d2c]" style={{ fontFamily: 'Roboto, sans-serif' }}>
-              Why Students Choose Us
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-              Everything you need to accelerate your learning journey and land your dream career
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-            {/* Course Management Card */}
-            <Card className="group relative overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 bg-white rounded-3xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#006d2c]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <CardContent className="pt-8 pb-8 px-6 relative z-10">
-                <div className="flex justify-center mb-6">
-                  <div className="relative w-48 h-48 flex items-center justify-center">
-                    <img
-                      src="/images/unnamed-removebg-preview.png"
-                      alt="Course Management Illustration"
-                      className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-500"
-                    />
-                  </div>
-                </div>
-                <h3 className="font-bold text-xl mb-3 text-gray-900 text-center group-hover:text-[#006d2c] transition-colors duration-300">
-                  Learn at Your Own Pace
-                </h3>
-                <p className="text-sm text-gray-600 text-center leading-relaxed">
-                  No more rigid schedules. Access world-class courses anytime, anywhere. Our intuitive platform adapts to your learning style, 
-                  so you can master skills faster and retain knowledge longer. Your success, your timeline.
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Assignments & Quizzes Card */}
-            <Card className="group relative overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 bg-white rounded-3xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#006d2c]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <CardContent className="pt-8 pb-8 px-6 relative z-10">
-                <div className="flex justify-center mb-6">
-                  <div className="relative w-48 h-48 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl transform rotate-6 group-hover:rotate-12 transition-transform duration-500"></div>
-                    <div className="relative bg-white rounded-2xl p-8 shadow-md">
-                      <FileText className="h-20 w-20 text-[#006d2c]" />
-                    </div>
-                  </div>
-                </div>
-                <h3 className="font-bold text-xl mb-3 text-gray-900 text-center group-hover:text-[#006d2c] transition-colors duration-300">
-                  Get Instant Feedback
-                </h3>
-                <p className="text-sm text-gray-600 text-center leading-relaxed">
-                  Stop waiting days for grades. Our smart assessment system gives you immediate, detailed feedback on every quiz and assignment. 
-                  Know exactly where you stand and what to improve—turning mistakes into breakthroughs in real-time.
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Real-time Communication Card */}
-            <Card className="group relative overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 bg-white rounded-3xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#006d2c]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <CardContent className="pt-8 pb-8 px-6 relative z-10">
-                <div className="flex justify-center mb-6">
-                  <div className="relative w-48 h-48 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl transform -rotate-6 group-hover:-rotate-12 transition-transform duration-500"></div>
-                    <div className="relative bg-white rounded-2xl p-8 shadow-md">
-                      <MessageSquare className="h-20 w-20 text-[#006d2c]" />
-                    </div>
-                  </div>
-                </div>
-                <h3 className="font-bold text-xl mb-3 text-gray-900 text-center group-hover:text-[#006d2c] transition-colors duration-300">
-                  Never Learn Alone
-                </h3>
-                <p className="text-sm text-gray-600 text-center leading-relaxed">
-                  Join a thriving community of learners and mentors. Get unstuck fast with real-time chat, collaborate on projects, 
-                  and build connections that last beyond the classroom. Because the best learning happens together.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Student Success Stories Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-[#006d2c]" style={{ fontFamily: 'Roboto, sans-serif' }}>
-              Student Success Stories
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-              Real projects. Real impact. See what our students have built.
-            </p>
-          </div>
-
-          <div className="max-w-7xl mx-auto">
-            {/* Skeleton Loading */}
-            {projectsLoading ? (
-              <div className="relative overflow-hidden px-4">
-                <Card className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl overflow-hidden mx-auto max-w-5xl animate-pulse">
-                  <div className="grid md:grid-cols-5 gap-0">
-                    <div className="md:col-span-2 p-8 bg-white">
-                      <div className="flex items-center gap-4 mb-8">
-                        <div className="w-20 h-20 rounded-full bg-gray-300" />
-                        <div className="space-y-2">
-                          <div className="h-5 bg-gray-300 rounded w-32" />
-                          <div className="h-4 bg-gray-200 rounded w-24" />
-                        </div>
-                      </div>
-                      <div className="flex justify-center mb-6">
-                        <div className="w-32 h-32 rounded-full bg-gray-200" />
-                      </div>
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto" />
-                    </div>
-                    <div className="md:col-span-3 p-8 bg-gradient-to-br from-white to-gray-50">
-                      <div className="flex justify-between mb-6">
-                        <div className="h-4 bg-gray-200 rounded w-24" />
-                        <div className="h-4 bg-gray-200 rounded w-20" />
-                      </div>
-                      <div className="h-8 bg-gray-300 rounded w-3/4 mb-4" />
-                      <div className="space-y-2 mb-8">
-                        <div className="h-4 bg-gray-200 rounded w-full" />
-                        <div className="h-4 bg-gray-200 rounded w-5/6" />
-                        <div className="h-4 bg-gray-200 rounded w-4/6" />
-                      </div>
-                      <div className="grid md:grid-cols-2 gap-6 mb-8">
-                        <div className="space-y-2">
-                          <div className="h-4 bg-gray-300 rounded w-24" />
-                          <div className="flex gap-2">
-                            <div className="h-8 bg-gray-200 rounded w-20" />
-                            <div className="h-8 bg-gray-200 rounded w-16" />
-                            <div className="h-8 bg-gray-200 rounded w-18" />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="h-4 bg-gray-300 rounded w-24" />
-                          <div className="h-4 bg-gray-200 rounded w-32" />
-                          <div className="h-4 bg-gray-200 rounded w-28" />
-                        </div>
-                      </div>
-                      <div className="h-12 bg-gray-300 rounded-full w-48" />
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            ) : capstoneProjects.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500">No featured projects yet. Check back soon!</p>
-              </div>
-            ) : (
-              <>
-                {/* Horizontal Sliding Carousel */}
-                <div className="relative overflow-hidden px-4">
-                  <div 
-                    className="flex gap-8 transition-transform duration-700 ease-in-out"
-                    style={{ transform: `translateX(calc(-${currentProjectIndex * 100}% - ${currentProjectIndex * 2}rem))` }}
-                  >
-                    {capstoneProjects.map((project) => (
-                      <div key={project.id} className="min-w-[calc(100%-2rem)] flex-shrink-0">
-                        <Card className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl overflow-hidden mx-auto max-w-5xl">
-                          <div className="grid md:grid-cols-5 gap-0">
-                            {/* Left Side - Student Info */}
-                            <div className="md:col-span-2 p-8 bg-white">
-                              {/* Student Avatar */}
-                              <div className="flex items-center gap-4 mb-8">
-                                {project.student_image_url ? (
-                                  <img
-                                    src={project.student_image_url}
-                                    alt={project.student_name}
-                                    className="w-20 h-20 rounded-full object-cover border-4 border-[#006d2c]/20"
-                                  />
-                                ) : (
-                                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#006d2c] to-green-400 flex items-center justify-center">
-                                    <span className="text-white font-bold text-2xl">{project.student_name.charAt(0)}</span>
-                                  </div>
-                                )}
-                                <div>
-                                  <p className="font-bold text-xl text-gray-900">{project.student_name}</p>
-                                  <p className="text-sm text-gray-500">{project.course_name}</p>
-                                </div>
-                              </div>
-
-                              {/* Score Circle */}
-                              <div className="flex justify-center mb-6">
-                                <div className="relative w-32 h-32">
-                                  <svg className="w-full h-full transform -rotate-90">
-                                    <circle cx="64" cy="64" r="56" stroke="#e5e7eb" strokeWidth="10" fill="none" />
-                                    <circle cx="64" cy="64" r="56" stroke="#00ff88" strokeWidth="10" fill="none" 
-                                      strokeDasharray={`${(project.course_score/100) * 351.86} 351.86`} strokeLinecap="round" />
-                                  </svg>
-                                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span className="text-4xl font-bold text-gray-900">{project.course_score}</span>
-                                    <span className="text-xs text-gray-500 uppercase">Score</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <p className="text-center text-sm text-gray-600 mb-8">
-                                {project.course_score >= 90 ? "Ranked in the top 5% of the graduating cohort." : "Outstanding achievement in the program."}
-                              </p>
-                            </div>
-
-                            {/* Right Side - Project Details */}
-                            <div className="md:col-span-3 p-8 bg-gradient-to-br from-white to-gray-50">
-                              {/* Project Badge */}
-                              <div className="flex items-center justify-between mb-6">
-                                <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Capstone Project</span>
-                                <span className="text-xs text-green-600 font-bold uppercase">Completed</span>
-                              </div>
-
-                              {/* Project Title */}
-                              <h3 className="text-3xl font-bold text-gray-900 mb-4">{project.project_title}</h3>
-                              <p className="text-gray-600 mb-8 leading-relaxed">{project.project_description}</p>
-
-                              {/* Technologies & Distinctions */}
-                              <div className="grid md:grid-cols-2 gap-6 mb-8">
-                                {/* Technologies */}
-                                <div>
-                                  <p className="text-sm font-bold text-gray-900 mb-3">Technologies</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {(project.technologies || []).map((tech, i) => (
-                                      <span key={i} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm font-medium">{tech}</span>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Distinctions */}
-                                <div>
-                                  <p className="text-sm font-bold text-gray-900 mb-3">Distinctions</p>
-                                  <ul className="space-y-2">
-                                    {(project.achievements || []).map((achievement, i) => (
-                                      <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
-                                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                        {achievement}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              </div>
-
-                              {/* Buttons */}
-                              <div className="flex gap-4">
-                                <Button
-                                  onClick={() => project.project_link ? window.open(project.project_link, '_blank') : navigate("/exhibition")}
-                                  className="bg-black hover:bg-gray-800 text-white px-8 py-3 rounded-full font-semibold"
-                                >
-                                  View Case Study →
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Navigation Arrows */}
-                  {capstoneProjects.length > 1 && (
-                    <>
-                      <button
-                        onClick={prevProject}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-10"
-                      >
-                        <ChevronLeft className="w-6 h-6 text-gray-900" />
-                      </button>
-                      <button
-                        onClick={nextProject}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-10"
-                      >
-                        <ChevronRight className="w-6 h-6 text-gray-900" />
-                      </button>
-                    </>
-                  )}
-
-                  {/* Dots Indicator */}
-                  {capstoneProjects.length > 1 && (
-                    <div className="flex justify-center gap-2 mt-8">
-                      {capstoneProjects.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setCurrentProjectIndex(idx)}
-                          className={`transition-all duration-300 rounded-full ${
-                            idx === currentProjectIndex
-                              ? 'w-8 h-3 bg-[#006d2c]'
-                              : 'w-3 h-3 bg-gray-300 hover:bg-gray-400'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* View All Button */}
-            <div className="text-center mt-12">
-              <Button
-                onClick={() => navigate("/exhibition")}
-                className="bg-[#006d2c] hover:bg-[#005523] text-white px-8 py-3 rounded-lg font-semibold"
-              >
-                View All Projects in Exhibition
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-24 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute top-0 left-0 w-72 h-72 bg-[#006d2c]/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#006d2c]/5 rounded-full translate-x-1/3 translate-y-1/3" />
-        
-        <div className="container mx-auto px-4 relative z-10">
-          {/* Section Header */}
-          <div className="text-center mb-16">
-            <span className="inline-block px-4 py-1.5 bg-[#006d2c]/10 text-[#006d2c] text-sm font-semibold rounded-full mb-4">
-              Testimonials
-            </span>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900" style={{ fontFamily: 'Roboto, sans-serif' }}>
-              What Our Students Say
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-              Hear from our community of learners who have transformed their careers
-            </p>
-          </div>
-
-          {/* Skeleton Loading */}
-          {testimonialsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl p-8 shadow-lg animate-pulse">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-14 h-14 rounded-full bg-gray-200" />
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded w-24 mb-2" />
-                      <div className="h-3 bg-gray-100 rounded w-20" />
-                    </div>
-                  </div>
-                  <div className="space-y-2 mb-4">
-                    <div className="h-3 bg-gray-100 rounded w-full" />
-                    <div className="h-3 bg-gray-100 rounded w-5/6" />
-                    <div className="h-3 bg-gray-100 rounded w-4/6" />
-                  </div>
-                  <div className="flex gap-1">
-                    {[...Array(5)].map((_, j) => (
-                      <div key={j} className="w-4 h-4 bg-gray-200 rounded" />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : testimonials.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-3xl shadow-sm max-w-2xl mx-auto">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="w-10 h-10 text-gray-300" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">No testimonials yet</h3>
-              <p className="text-gray-500">Check back soon for student reviews!</p>
-            </div>
-          ) : (
-            <>
-              {/* Testimonials Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                {testimonials.map((testimonial, index) => (
-                  <div
-                    key={testimonial.id}
-                    className={`group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 ${
-                      index === 0 ? 'md:col-span-2 lg:col-span-1' : ''
-                    }`}
-                  >
-                    {/* Quote icon */}
-                    <div className="absolute top-6 right-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                      <svg className="w-16 h-16 text-[#006d2c]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-                      </svg>
-                    </div>
-
-                    {/* Rating Stars */}
-                    <div className="flex gap-1 mb-6">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-5 w-5 ${
-                            i < testimonial.rating
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'fill-gray-200 text-gray-200'
-                          }`}
-                        />
-                      ))}
-                    </div>
-
-                    {/* Testimonial Text */}
-                    <p className="text-gray-700 leading-relaxed mb-8 text-base">
-                      "{testimonial.testimonial_text}"
-                    </p>
-
-                    {/* Student Info */}
-                    <div className="flex items-center gap-4">
-                      {testimonial.student_image_url ? (
-                        <img
-                          src={testimonial.student_image_url}
-                          alt={testimonial.student_name}
-                          className="w-14 h-14 rounded-full object-cover ring-4 ring-[#006d2c]/10"
-                        />
-                      ) : (
-                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#006d2c] to-green-500 flex items-center justify-center ring-4 ring-[#006d2c]/10">
-                          <span className="text-white font-bold text-lg">
-                            {testimonial.student_name.charAt(0)}
-                          </span>
-                        </div>
-                      )}
-                      <div>
-                        <h4 className="font-bold text-gray-900">{testimonial.student_name}</h4>
-                        {testimonial.course_name && (
-                          <p className="text-sm text-[#006d2c] font-medium">{testimonial.course_name}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Decorative bottom border */}
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#006d2c] to-green-400 rounded-b-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                ))}
-              </div>
-
-
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 relative overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0 -z-10">
-          <img
-            src="/images/Screenshot 2025-10-25 193149 (1).webp"
-            alt="Background"
-            className="w-full h-full object-cover"
-          />
-          {/* Dark overlay for text visibility */}
-          <div className="absolute inset-0 bg-black/60"></div>
-        </div>
-
-        <div className="container mx-auto px-4 text-center relative z-10">
-          <h2 
-            className="text-4xl md:text-5xl font-bold mb-4 text-[#006d2c]"
-            style={{ 
-              fontFamily: 'Roboto, sans-serif',
-              textShadow: '2px 2px 8px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 255, 255, 0.3)'
-            }}
-          >
-            Ready to start learning?
-          </h2>
-          <p 
-            className="text-lg md:text-xl mb-8 text-white"
-            style={{ 
-              textShadow: '1px 1px 6px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 0, 0, 0.5)'
-            }}
-          >
-            Join thousands of students and teachers already using DataPlus Labs
-          </p>
-          <Button
-            size="lg"
-            onClick={() => navigate("/signup")}
-            className="bg-[#006d2c] hover:bg-[#005523] text-white font-semibold px-8 py-6 text-lg shadow-2xl"
-          >
-            Get Started Today
-          </Button>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gradient-to-br from-green-50 via-white to-green-100 py-16">
-        <div className="container mx-auto px-4">
-          <div className="bg-white rounded-3xl shadow-lg p-12 max-w-7xl mx-auto">
-            <div className="grid md:grid-cols-4 gap-12 mb-8">
-              {/* Brand Section */}
-              <div className="md:col-span-1">
-                <div className="flex items-center gap-3 mb-4">
-                  <img
-                    src="/images/dataplus_logggg-removebg-preview.png"
-                    alt="DataPlus Logo"
-                    className="w-10 h-10 object-contain"
-                  />
-                  <span className="text-xl font-bold text-black">DataPlus Labs</span>
-                </div>
-                <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-                  DataPlus Labs empowers teams to transform raw data into clear, compelling visuals — making insights easier to share, understand, and act on.
-                </p>
-                <div className="flex items-center gap-4">
-                  <a href="#" className="text-gray-600 hover:text-[#006d2c] transition-colors">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
-                    </svg>
-                  </a>
-                  <a href="#" className="text-gray-600 hover:text-[#006d2c] transition-colors">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path fillRule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clipRule="evenodd" />
-                    </svg>
-                  </a>
-                  <a href="#" className="text-gray-600 hover:text-[#006d2c] transition-colors">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path fillRule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" clipRule="evenodd" />
-                    </svg>
-                  </a>
-                  <a href="#" className="text-gray-600 hover:text-[#006d2c] transition-colors">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-                    </svg>
-                  </a>
-                </div>
-              </div>
-
-              {/* Product Links */}
-              <div>
-                <h3 className="font-bold text-black mb-4">Product</h3>
-                <ul className="space-y-3">
-                  <li>
-                    <a href="#courses" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                      Courses
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                      Pricing
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                      Integrations
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                      Changelog
-                    </a>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Resources Links */}
-              <div>
-                <h3 className="font-bold text-black mb-4">Resources</h3>
-                <ul className="space-y-3">
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                      Documentation
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                      Tutorials
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                      Blog
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                      Support
-                    </a>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Company Links */}
-              <div>
-                <h3 className="font-bold text-black mb-4">Company</h3>
-                <ul className="space-y-3">
-                  <li>
-                    <button onClick={() => navigate("/about")} className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                      About
-                    </button>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                      Careers
-                    </a>
-                  </li>
-                  <li>
-                    <button onClick={() => navigate("/contact")} className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                      Contact
-                    </button>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                      Partners
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Bottom Section */}
-            <div className="pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-sm text-gray-600">
-                © 2025 DataPlus Labs. All rights reserved.
-              </p>
-              <div className="flex items-center gap-6">
-                <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                  Privacy Policy
-                </a>
-                <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                  Terms of Service
-                </a>
-                <a href="#" className="text-sm text-gray-600 hover:text-[#006d2c] transition-colors">
-                  Cookie Settings
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* Demo Request Dialog */}
-      <Dialog open={demoDialogOpen} onOpenChange={setDemoDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-[#006d2c]">Request a Demo</DialogTitle>
-            <DialogDescription className="text-gray-600">
-              Fill out the form below and we'll get back to you shortly to schedule your personalized demo.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleDemoSubmit} className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="demo-name" className="text-sm font-medium text-gray-700">
-                Full Name*
-              </Label>
-              <Input
-                id="demo-name"
-                type="text"
-                placeholder="Enter your full name"
-                required
-                value={demoFormData.name}
-                onChange={(e) => setDemoFormData({ ...demoFormData, name: e.target.value })}
-                className="h-11 px-4 border-gray-300 rounded-lg focus:border-[#006d2c] focus:ring-[#006d2c]"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="demo-email" className="text-sm font-medium text-gray-700">
-                Email Address*
-              </Label>
-              <Input
-                id="demo-email"
-                type="email"
-                placeholder="Enter your email"
-                required
-                value={demoFormData.email}
-                onChange={(e) => setDemoFormData({ ...demoFormData, email: e.target.value })}
-                className="h-11 px-4 border-gray-300 rounded-lg focus:border-[#006d2c] focus:ring-[#006d2c]"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="demo-phone" className="text-sm font-medium text-gray-700">
-                Phone Number*
-              </Label>
-              <Input
-                id="demo-phone"
-                type="tel"
-                placeholder="Enter your phone number"
-                required
-                value={demoFormData.phone}
-                onChange={(e) => setDemoFormData({ ...demoFormData, phone: e.target.value })}
-                className="h-11 px-4 border-gray-300 rounded-lg focus:border-[#006d2c] focus:ring-[#006d2c]"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="demo-organization" className="text-sm font-medium text-gray-700">
-                Organization*
-              </Label>
-              <Input
-                id="demo-organization"
-                type="text"
-                placeholder="Enter your organization name"
-                required
-                value={demoFormData.organization}
-                onChange={(e) => setDemoFormData({ ...demoFormData, organization: e.target.value })}
-                className="h-11 px-4 border-gray-300 rounded-lg focus:border-[#006d2c] focus:ring-[#006d2c]"
-              />
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setDemoDialogOpen(false)}
-                className="flex-1 h-11 border-gray-300 hover:bg-gray-50"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1 h-11 bg-[#006d2c] hover:bg-[#005523] text-white transition-colors duration-300"
-              >
-                Submit Request
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Partner Request Dialog */}
       <Dialog open={partnerDialogOpen} onOpenChange={closePartnerDialog}>
-        <DialogContent className="sm:max-w-[520px] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[500px]">
           {partnerSuccess ? (
             <div className="p-8 text-center">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle className="w-10 h-10 text-green-600" />
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Request Submitted!</h3>
-              <p className="text-gray-600 mb-6">
-                Thank you for your interest in partnering with us. Our team will review your request and get back to you within 2-3 business days.
-              </p>
-              <Button
-                onClick={closePartnerDialog}
-                className="bg-[#006d2c] hover:bg-[#005523] text-white px-8"
-              >
-                Close
-              </Button>
+              <p className="text-gray-600 mb-6">We'll get back to you within 24 hours.</p>
+              <Button onClick={closePartnerDialog} className="w-full bg-[#006d2c]">Close</Button>
             </div>
           ) : (
             <>
-              {/* Header with gradient */}
-              <div className="bg-gradient-to-r from-[#006d2c] to-green-600 p-6 text-white">
-                <div className="flex items-center gap-3 mb-2">
-                  <Handshake className="w-8 h-8" />
-                  <h2 className="text-2xl font-bold">Partner With Us</h2>
-                </div>
-                <p className="text-white/80 text-sm">
-                  Join our network of partners and help shape the future of education
-                </p>
-              </div>
-
-              <form onSubmit={handlePartnerSubmit} className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-[#006d2c]">Partner With Us</DialogTitle>
+                <DialogDescription>
+                  Join our network of organizations transforming Africa's data landscape.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handlePartnerSubmit} className="space-y-4 mt-4">
+                <div className="grid gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="partner-name" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-400" />
-                      Full Name *
-                    </Label>
-                    <Input
-                      id="partner-name"
-                      type="text"
-                      placeholder="John Doe"
-                      required
-                      value={partnerFormData.name}
-                      onChange={(e) => setPartnerFormData({ ...partnerFormData, name: e.target.value })}
-                      className="h-11 border-gray-200 focus:border-[#006d2c] focus:ring-[#006d2c]"
-                    />
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input id="name" required value={partnerFormData.name} onChange={(e) => setPartnerFormData({ ...partnerFormData, name: e.target.value })} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="partner-phone" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      Phone Number *
-                    </Label>
-                    <Input
-                      id="partner-phone"
-                      type="tel"
-                      placeholder="+250 xxx xxx xxx"
-                      required
-                      value={partnerFormData.phone}
-                      onChange={(e) => setPartnerFormData({ ...partnerFormData, phone: e.target.value })}
-                      className="h-11 border-gray-200 focus:border-[#006d2c] focus:ring-[#006d2c]"
-                    />
+                    <Label htmlFor="email">Work Email</Label>
+                    <Input id="email" type="email" required value={partnerFormData.email} onChange={(e) => setPartnerFormData({ ...partnerFormData, email: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input id="phone" required value={partnerFormData.phone} onChange={(e) => setPartnerFormData({ ...partnerFormData, phone: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="org">Organization</Label>
+                    <Input id="org" required value={partnerFormData.organization} onChange={(e) => setPartnerFormData({ ...partnerFormData, organization: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="message">How can we help?</Label>
+                    <Textarea id="message" value={partnerFormData.message} onChange={(e) => setPartnerFormData({ ...partnerFormData, message: e.target.value })} />
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="partner-email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-gray-400" />
-                    Email Address *
-                  </Label>
-                  <Input
-                    id="partner-email"
-                    type="email"
-                    placeholder="john@company.com"
-                    required
-                    value={partnerFormData.email}
-                    onChange={(e) => setPartnerFormData({ ...partnerFormData, email: e.target.value })}
-                    className="h-11 border-gray-200 focus:border-[#006d2c] focus:ring-[#006d2c]"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="partner-org" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-gray-400" />
-                    Organization *
-                  </Label>
-                  <Input
-                    id="partner-org"
-                    type="text"
-                    placeholder="Your company or organization name"
-                    required
-                    value={partnerFormData.organization}
-                    onChange={(e) => setPartnerFormData({ ...partnerFormData, organization: e.target.value })}
-                    className="h-11 border-gray-200 focus:border-[#006d2c] focus:ring-[#006d2c]"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="partner-message" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-gray-400" />
-                    Message (Optional)
-                  </Label>
-                  <Textarea
-                    id="partner-message"
-                    placeholder="Tell us about your partnership interests..."
-                    value={partnerFormData.message}
-                    onChange={(e) => setPartnerFormData({ ...partnerFormData, message: e.target.value })}
-                    className="border-gray-200 focus:border-[#006d2c] focus:ring-[#006d2c] resize-none"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={closePartnerDialog}
-                    className="flex-1 h-11 border-gray-200 hover:bg-gray-50"
-                    disabled={partnerSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1 h-11 bg-[#006d2c] hover:bg-[#005523] text-white"
-                    disabled={partnerSubmitting}
-                  >
-                    {partnerSubmitting ? (
-                      <span className="flex items-center gap-2">
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Submitting...
-                      </span>
-                    ) : (
-                      "Submit Request"
-                    )}
+                <div className="flex justify-end gap-3 mt-6">
+                  <Button type="button" variant="outline" onClick={closePartnerDialog}>Cancel</Button>
+                  <Button type="submit" className="bg-[#006d2c] text-white" disabled={partnerSubmitting}>
+                    {partnerSubmitting ? "Sending..." : "Submit Request"}
                   </Button>
                 </div>
               </form>
@@ -1522,6 +201,7 @@ const Index = () => {
           )}
         </DialogContent>
       </Dialog>
+
     </div>
   );
 };
