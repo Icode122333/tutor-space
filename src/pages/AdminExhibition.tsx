@@ -51,6 +51,12 @@ type ExhibitionProject = {
   is_featured: boolean;
   display_order: number;
   created_at: string;
+  // Capstone Framework Fields
+  problem_definition: string | null;
+  data_evidence: string | null;
+  tools_methods: string | null;
+  analysis: string | null;
+  recommendations: string | null;
 };
 
 const AdminExhibition = () => {
@@ -73,6 +79,12 @@ const AdminExhibition = () => {
     project_link: "",
     is_featured: false,
     display_order: 0,
+    // Capstone Framework Fields
+    problem_definition: "",
+    data_evidence: "",
+    tools_methods: "",
+    analysis: "",
+    recommendations: "",
   });
   const [newAchievement, setNewAchievement] = useState("");
   const [newTechnology, setNewTechnology] = useState("");
@@ -135,7 +147,7 @@ const AdminExhibition = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.student_name || !formData.project_title || !formData.course_name) {
       toast.error("Please fill in all required fields");
       return;
@@ -177,6 +189,11 @@ const AdminExhibition = () => {
             project_link: formData.project_link || null,
             is_featured: formData.is_featured,
             display_order: formData.display_order,
+            problem_definition: formData.problem_definition || null,
+            data_evidence: formData.data_evidence || null,
+            tools_methods: formData.tools_methods || null,
+            analysis: formData.analysis || null,
+            recommendations: formData.recommendations || null,
           });
 
         if (error) throw error;
@@ -240,6 +257,11 @@ const AdminExhibition = () => {
       project_link: "",
       is_featured: false,
       display_order: 0,
+      problem_definition: "",
+      data_evidence: "",
+      tools_methods: "",
+      analysis: "",
+      recommendations: "",
     });
     setSelectedProject(null);
     setNewAchievement("");
@@ -260,6 +282,11 @@ const AdminExhibition = () => {
       project_link: project.project_link || "",
       is_featured: project.is_featured,
       display_order: project.display_order,
+      problem_definition: project.problem_definition || "",
+      data_evidence: project.data_evidence || "",
+      tools_methods: project.tools_methods || "",
+      analysis: project.analysis || "",
+      recommendations: project.recommendations || "",
     });
     setDialogOpen(true);
   };
@@ -651,7 +678,68 @@ const AdminExhibition = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            {/* Capstone Framework Section */}
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Capstone Project Framework</h3>
+              <p className="text-sm text-gray-600">Structure the project using the 5-step framework methodology</p>
+
+              <div className="space-y-2">
+                <Label htmlFor="problem_definition">1. Problem Definition</Label>
+                <Textarea
+                  id="problem_definition"
+                  value={formData.problem_definition}
+                  onChange={(e) => setFormData({ ...formData, problem_definition: e.target.value })}
+                  placeholder="What problem does this project address?"
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="data_evidence">2. Data / Evidence</Label>
+                <Textarea
+                  id="data_evidence"
+                  value={formData.data_evidence}
+                  onChange={(e) => setFormData({ ...formData, data_evidence: e.target.value })}
+                  placeholder="What data was collected and how?"
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tools_methods">3. Tools & Methods</Label>
+                <Textarea
+                  id="tools_methods"
+                  value={formData.tools_methods}
+                  onChange={(e) => setFormData({ ...formData, tools_methods: e.target.value })}
+                  placeholder="What tools and methodologies were applied?"
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="analysis">4. Analysis</Label>
+                <Textarea
+                  id="analysis"
+                  value={formData.analysis}
+                  onChange={(e) => setFormData({ ...formData, analysis: e.target.value })}
+                  placeholder="What insights were discovered?"
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="recommendations">5. Recommendations</Label>
+                <Textarea
+                  id="recommendations"
+                  value={formData.recommendations}
+                  onChange={(e) => setFormData({ ...formData, recommendations: e.target.value })}
+                  placeholder="What actionable recommendations were made?"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between border-t pt-6">
               <div className="flex items-center gap-2">
                 <Switch
                   id="is_featured"
@@ -702,7 +790,7 @@ const AdminExhibition = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </SidebarProvider>
+    </SidebarProvider >
   );
 };
 

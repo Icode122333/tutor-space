@@ -33,6 +33,12 @@ type ExhibitionProject = {
   project_link: string | null;
   is_featured: boolean;
   display_order: number;
+  // Capstone Framework Fields
+  problem_definition: string | null;
+  data_evidence: string | null;
+  tools_methods: string | null;
+  analysis: string | null;
+  recommendations: string | null;
 };
 
 const Exhibition = () => {
@@ -286,6 +292,48 @@ const Exhibition = () => {
                               </div>
                             ))}
                           </div>
+                        </div>
+                      )}
+
+                      {/* Capstone Framework */}
+                      {(project.problem_definition || project.data_evidence || project.tools_methods || project.analysis || project.recommendations) && (
+                        <div className="mb-4 space-y-3 border-t pt-4">
+                          <p className="text-xs font-semibold text-gray-500 mb-3">CAPSTONE FRAMEWORK</p>
+
+                          {project.problem_definition && (
+                            <div>
+                              <p className="text-xs font-bold text-[#006d2c] mb-1">1. Problem Definition</p>
+                              <p className="text-sm text-gray-700">{project.problem_definition}</p>
+                            </div>
+                          )}
+
+                          {project.data_evidence && (
+                            <div>
+                              <p className="text-xs font-bold text-blue-600 mb-1">2. Data / Evidence</p>
+                              <p className="text-sm text-gray-700">{project.data_evidence}</p>
+                            </div>
+                          )}
+
+                          {project.tools_methods && (
+                            <div>
+                              <p className="text-xs font-bold text-purple-600 mb-1">3. Tools & Methods</p>
+                              <p className="text-sm text-gray-700">{project.tools_methods}</p>
+                            </div>
+                          )}
+
+                          {project.analysis && (
+                            <div>
+                              <p className="text-xs font-bold text-orange-600 mb-1">4. Analysis</p>
+                              <p className="text-sm text-gray-700">{project.analysis}</p>
+                            </div>
+                          )}
+
+                          {project.recommendations && (
+                            <div>
+                              <p className="text-xs font-bold text-green-700 mb-1">5. Recommendations</p>
+                              <p className="text-sm text-gray-700">{project.recommendations}</p>
+                            </div>
+                          )}
                         </div>
                       )}
 
