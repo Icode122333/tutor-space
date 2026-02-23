@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
-import { Search, BookOpen, Star, Check, X, Trash2, Eye, DollarSign } from "lucide-react";
+import { Search, BookOpen, Star, Check, X, Trash2, Eye, DollarSign, Lock, Unlock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { toast } from "sonner";
@@ -37,6 +37,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface Course {
   id: string;
@@ -67,6 +74,10 @@ const AdminCourses = () => {
   const [processing, setProcessing] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showChapterDialog, setShowChapterDialog] = useState(false);
+  const [selectedCourseForChapters, setSelectedCourseForChapters] = useState<Course | null>(null);
+  const [chaptersList, setChaptersList] = useState<Array<{ id: string; title: string; order_index: number; is_preview: boolean; lesson_count: number }>>([]);
+  const [chaptersLoading, setChaptersLoading] = useState(false);
 
   useEffect(() => {
     checkAdminAccess();
@@ -229,6 +240,50 @@ const AdminCourses = () => {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const openChapterPreviewDialog = async (course: Course) => {
+    setSelectedCourseForChapters(course);
+    setShowChapterDialog(true);
+    setChaptersLoading(true);
+
+    const { data, error } = await supabase
+      .from('course_chapters')
+      .select('id, title, order_index, is_preview, course_lessons(id)')
+      .eq('course_id', course.id)
+      .order('order_index');
+
+    if (error) {
+      toast.error('Failed to load chapters');
+      setChaptersLoading(false);
+      return;
+    }
+
+    setChaptersList((data || []).map(ch => ({
+      id: ch.id,
+      title: ch.title,
+      order_index: ch.order_index,
+      is_preview: ch.is_preview || false,
+      lesson_count: (ch.course_lessons || []).length,
+    })));
+    setChaptersLoading(false);
+  };
+
+  const toggleChapterPreview = async (chapterId: string, currentValue: boolean) => {
+    const { error } = await supabase
+      .from('course_chapters')
+      .update({ is_preview: !currentValue })
+      .eq('id', chapterId);
+
+    if (error) {
+      toast.error('Failed to update chapter');
+      return;
+    }
+
+    setChaptersList(prev => prev.map(ch =>
+      ch.id === chapterId ? { ...ch, is_preview: !currentValue } : ch
+    ));
+    toast.success(!currentValue ? 'Chapter set as free preview' : 'Chapter locked behind paywall');
   };
 
   if (loading) {
@@ -398,6 +453,17 @@ const AdminCourses = () => {
                                   Approve
                                 </Button>
                               )}
+                              {!course.is_free && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openChapterPreviewDialog(course)}
+                                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                                >
+                                  <Lock className="h-4 w-4 mr-1" />
+                                  Access
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -450,6 +516,54 @@ const AdminCourses = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Chapter Preview Dialog */}
+      <Dialog open={showChapterDialog} onOpenChange={setShowChapterDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Manage Chapter Access</DialogTitle>
+            <DialogDescription>
+              {selectedCourseForChapters?.title} — Toggle which chapters are free to preview
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            {chaptersLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto" />
+                <p className="text-sm text-gray-500 mt-2">Loading chapters...</p>
+              </div>
+            ) : chaptersList.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">No chapters found for this course</p>
+            ) : (
+              chaptersList.map((chapter, index) => (
+                <div key={chapter.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                  <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{chapter.title}</p>
+                    <p className="text-xs text-gray-500">{chapter.lesson_count} lesson{chapter.lesson_count !== 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {chapter.is_preview ? (
+                      <Badge className="bg-blue-100 text-blue-700 text-[10px] px-1.5"><Unlock className="h-3 w-3 mr-0.5" />Free</Badge>
+                    ) : (
+                      <Badge className="bg-gray-100 text-gray-500 text-[10px] px-1.5"><Lock className="h-3 w-3 mr-0.5" />Locked</Badge>
+                    )}
+                    <Switch
+                      checked={chapter.is_preview}
+                      onCheckedChange={() => toggleChapterPreview(chapter.id, chapter.is_preview)}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            Free preview chapters can be accessed by anyone. Locked chapters require purchase.
+          </p>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };

@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Clock, BookOpen, Globe, Award, FileText, ClipboardList, Play, Users, Star, CheckCircle2, GraduationCap, Target, Zap } from "lucide-react";
+import { ArrowLeft, Clock, BookOpen, Globe, Award, FileText, ClipboardList, Play, Users, Star, CheckCircle2, GraduationCap, Target, Zap, Lock, ShoppingCart } from "lucide-react";
 import { CourseCurriculum } from "@/components/CourseCurriculum";
 import { CourseContentPlayer } from "@/components/CourseContentPlayer";
 import { QuizTaker } from "@/components/QuizTaker";
 import { CapstoneSubmission } from "@/components/CapstoneSubmission";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { PurchaseDialog } from "@/components/PurchaseDialog";
 
 interface Teacher {
   full_name: string;
@@ -29,6 +30,9 @@ interface Course {
   level?: string;
   language?: string;
   requirements?: string;
+  price?: number;
+  is_free?: boolean;
+  currency?: string;
 }
 
 interface Lesson {
@@ -41,6 +45,7 @@ interface Lesson {
   duration?: number;
   order_index: number;
   is_completed?: boolean;
+  is_preview?: boolean;
 }
 
 interface Chapter {
@@ -49,6 +54,7 @@ interface Chapter {
   order_index: number;
   lessons: Lesson[];
   total_duration?: number;
+  is_preview?: boolean;
 }
 
 interface CapstoneProject {
@@ -77,6 +83,8 @@ export default function CourseDetail() {
   const [showCapstone, setShowCapstone] = useState(false);
   const [capstoneProject, setCapstoneProject] = useState<CapstoneProject | null>(null);
   const [isWelcomeSelected, setIsWelcomeSelected] = useState(false);
+  const [hasAccess, setHasAccess] = useState(true);
+  const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
 
   // Check if user is a student (not teacher/admin)
   const isStudent = userRole === 'student';
@@ -94,13 +102,49 @@ export default function CourseDetail() {
           .single();
         if (profile) setUserRole(profile.role);
       }
-      
+
       await Promise.all([
         fetchCourse(),
         fetchChapters(),
         fetchCapstone(),
       ]);
-      
+
+      // Check course access for paid courses
+      if (user && id) {
+        const { data: courseData } = await supabase
+          .from('courses')
+          .select('is_free')
+          .eq('id', id)
+          .single();
+
+        if (courseData && !courseData.is_free) {
+          // Check if user is enrolled (has access)
+          const { data: enrollment } = await supabase
+            .from('course_enrollments')
+            .select('id')
+            .eq('student_id', user.id)
+            .eq('course_id', id)
+            .maybeSingle();
+
+          // Also check if user is teacher or admin
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+          const { data: isCourseTeacher } = await supabase
+            .from('courses')
+            .select('id')
+            .eq('id', id)
+            .eq('teacher_id', user.id)
+            .maybeSingle();
+
+          const isAdminOrTeacher = profile?.role === 'admin' || !!isCourseTeacher;
+          setHasAccess(!!enrollment || isAdminOrTeacher);
+        }
+      }
+
       setLoading(false);
     };
     init();
@@ -143,6 +187,7 @@ export default function CourseDetail() {
         id,
         title,
         order_index,
+        is_preview,
         course_lessons (
           id,
           title,
@@ -151,7 +196,8 @@ export default function CourseDetail() {
           content_url,
           file_url,
           duration,
-          order_index
+          order_index,
+          is_preview
         )
       `)
       .eq("course_id", id)
@@ -163,7 +209,7 @@ export default function CourseDetail() {
     }
 
     // Get all lesson IDs for progress query
-    const allLessonIds = (chaptersData || []).flatMap(ch => 
+    const allLessonIds = (chaptersData || []).flatMap(ch =>
       (ch.course_lessons || []).map(l => l.id)
     );
 
@@ -196,6 +242,7 @@ export default function CourseDetail() {
         id: chapter.id,
         title: chapter.title,
         order_index: chapter.order_index,
+        is_preview: chapter.is_preview || false,
         lessons,
         total_duration: totalDuration,
       };
@@ -255,13 +302,34 @@ export default function CourseDetail() {
     if (data) setCapstoneProject(data);
   };
 
+  const isPaidCourse = course ? !(course.is_free ?? true) : false;
+
   const handleLessonClick = async (lessonId: string) => {
     setIsWelcomeSelected(false);
-    const lesson = chapters
-      .flatMap((ch) => ch.lessons)
-      .find((l) => l.id === lessonId);
+
+    // Find lesson and its parent chapter
+    let parentChapter: Chapter | undefined;
+    let lesson: Lesson | undefined;
+    for (const ch of chapters) {
+      const found = ch.lessons.find((l) => l.id === lessonId);
+      if (found) {
+        lesson = found;
+        parentChapter = ch;
+        break;
+      }
+    }
 
     if (!lesson) return;
+
+    // Check if lesson is locked
+    if (isPaidCourse && !hasAccess) {
+      const isPreviewContent = parentChapter?.is_preview || lesson.is_preview;
+      if (!isPreviewContent) {
+        toast({ title: "Content Locked", description: "Purchase this course to access this content", variant: "destructive" });
+        setShowPurchaseDialog(true);
+        return;
+      }
+    }
 
     if (lesson.content_type === "quiz") {
       // Teachers can view quiz but not take it
@@ -363,8 +431,8 @@ export default function CourseDetail() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           {/* Back Button */}
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => navigate(-1)}
             className="text-white/80 hover:text-white hover:bg-white/10 mb-4"
             size="sm"
@@ -501,10 +569,10 @@ export default function CourseDetail() {
                   }
                 }}>
                   {course.thumbnail_url ? (
-                    <img 
-                      src={course.thumbnail_url} 
-                      alt={course.title} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                    <img
+                      src={course.thumbnail_url}
+                      alt={course.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-[#0A400C] to-[#116315] flex items-center justify-center">
@@ -522,18 +590,38 @@ export default function CourseDetail() {
                 </div>
 
                 <CardContent className="p-4 space-y-3">
+                  {/* Price Display */}
+                  {isPaidCourse && (
+                    <div className="text-center">
+                      <span className="text-3xl font-bold text-gray-900">
+                        {course.currency === 'USD' ? '$' : ''}{course.price?.toLocaleString()}
+                      </span>
+                      <span className="text-gray-500 ml-1">{course.currency || 'RWF'}</span>
+                    </div>
+                  )}
+
                   {/* CTA Button */}
-                  <Button 
-                    className="w-full h-11 bg-[#0A400C] hover:bg-[#0d5210] text-white font-semibold text-sm shadow-md rounded-xl transition-all hover:shadow-lg"
-                    onClick={() => {
-                      if (chapters.length > 0 && chapters[0].lessons.length > 0) {
-                        handleLessonClick(chapters[0].lessons[0].id);
-                      }
-                    }}
-                  >
-                    <Zap className="h-4 w-4 mr-2" />
-                    {progressPercent > 0 ? 'Continue Learning' : 'Start Learning'}
-                  </Button>
+                  {isPaidCourse && !hasAccess ? (
+                    <Button
+                      className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm shadow-md rounded-xl transition-all hover:shadow-lg"
+                      onClick={() => setShowPurchaseDialog(true)}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Buy This Course
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full h-11 bg-[#0A400C] hover:bg-[#0d5210] text-white font-semibold text-sm shadow-md rounded-xl transition-all hover:shadow-lg"
+                      onClick={() => {
+                        if (chapters.length > 0 && chapters[0].lessons.length > 0) {
+                          handleLessonClick(chapters[0].lessons[0].id);
+                        }
+                      }}
+                    >
+                      <Zap className="h-4 w-4 mr-2" />
+                      {progressPercent > 0 ? 'Continue Learning' : 'Start Learning'}
+                    </Button>
+                  )}
 
                   {/* Quick Info */}
                   <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
@@ -713,6 +801,8 @@ export default function CourseDetail() {
                 setIsWelcomeSelected(true);
               }}
               isWelcomeSelected={isWelcomeSelected}
+              isPaidCourse={isPaidCourse}
+              hasAccess={hasAccess}
             />
 
             {/* Capstone Project Card - Only for students */}
@@ -766,6 +856,26 @@ export default function CourseDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Purchase Dialog */}
+      {course && showPurchaseDialog && (
+        <PurchaseDialog
+          open={showPurchaseDialog}
+          onOpenChange={(val) => { if (!val) setShowPurchaseDialog(false); }}
+          type="course"
+          item={{
+            id: course.id,
+            title: course.title,
+            price: course.price || 0,
+            currency: course.currency || 'RWF',
+          }}
+          onSuccess={() => {
+            setHasAccess(true);
+            setShowPurchaseDialog(false);
+            toast({ title: "Purchase Successful!", description: "You now have full access to this course" });
+          }}
+        />
       )}
     </div>
   );
