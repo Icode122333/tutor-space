@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Home, Calendar, MessageSquare, BookOpen, GraduationCap, Users, FileText, Award, Settings, Megaphone, UsersRound } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { Home, Calendar, MessageSquare, BookOpen, GraduationCap, Users, FileText, Award, Settings, Megaphone, UsersRound, Pencil } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -32,6 +32,7 @@ export function TeacherSidebar() {
   const { state } = useSidebar();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const collapsed = state === "collapsed";
   const [courses, setCourses] = useState<any[]>([]);
 
@@ -101,19 +102,28 @@ export function TeacherSidebar() {
                   <SidebarMenu className="space-y-1">
                     {courses.map((course) => (
                       <SidebarMenuItem key={course.id}>
-                        <SidebarMenuButton asChild>
-                          <NavLink
-                            to={`/course/${course.id}`}
-                            className={({ isActive }) =>
-                              isActive
-                                ? "bg-[#006d2c] text-white font-medium rounded-xl px-3 py-2 flex items-center gap-3"
-                                : "text-gray-300 hover:bg-white/10 hover:text-white rounded-xl px-3 py-2 flex items-center gap-3"
-                            }
+                        <div className="flex items-center group/course">
+                          <SidebarMenuButton asChild className="flex-1 min-w-0">
+                            <NavLink
+                              to={`/course/${course.id}`}
+                              className={({ isActive }) =>
+                                isActive
+                                  ? "bg-[#006d2c] text-white font-medium rounded-xl px-3 py-2 flex items-center gap-3"
+                                  : "text-gray-300 hover:bg-white/10 hover:text-white rounded-xl px-3 py-2 flex items-center gap-3"
+                              }
+                            >
+                              <BookOpen className="h-4 w-4 flex-shrink-0" />
+                              <span className="truncate text-sm">{course.title}</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                          <button
+                            onClick={() => navigate(`/create-course?edit=${course.id}`)}
+                            className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 opacity-0 group-hover/course:opacity-100 transition-opacity flex-shrink-0"
+                            title="Edit course"
                           >
-                            <BookOpen className="h-4 w-4 flex-shrink-0" />
-                            <span className="truncate text-sm">{course.title}</span>
-                          </NavLink>
-                        </SidebarMenuButton>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </SidebarMenuItem>
                     ))}
                   </SidebarMenu>

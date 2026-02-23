@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Clock, Users, CheckCircle, Star } from "lucide-react";
+import { BookOpen, Clock, Users, CheckCircle, Star, Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface CourseCardProps {
@@ -24,9 +24,10 @@ interface CourseCardProps {
   isEnrolled?: boolean; // To show enrolled status
   showEnrollButton?: boolean; // To show enroll button
   onEnroll?: () => void; // Callback for enroll action
+  onEdit?: () => void; // Callback for edit action (teacher view)
 }
 
-export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purple-600", showTeacher = false, columnIndex = 0, isEnrolled = false, showEnrollButton = false, onEnroll }: CourseCardProps) => {
+export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purple-600", showTeacher = false, columnIndex = 0, isEnrolled = false, showEnrollButton = false, onEnroll, onEdit }: CourseCardProps) => {
   const { t } = useTranslation();
   const [showHoverCard, setShowHoverCard] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -98,6 +99,16 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
                   {course.level}
                 </Badge>
               </div>
+            )}
+            {/* Edit Button */}
+            {onEdit && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                className="absolute top-2 left-2 sm:top-3 sm:left-3 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 hover:bg-white shadow-md flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+                title="Edit course"
+              >
+                <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-700" />
+              </button>
             )}
           </div>
 
@@ -217,16 +228,31 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
                 </div>
               )}
 
-              {/* CTA Button */}
-              <Button 
-                className="w-full bg-[#006d2c] hover:bg-[#005523] text-white"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClick();
-                }}
-              >
-                {t('courseCard.viewCourseDetails')}
-              </Button>
+              {/* CTA Buttons */}
+              <div className="flex gap-2">
+                <Button 
+                  className="flex-1 bg-[#006d2c] hover:bg-[#005523] text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClick();
+                  }}
+                >
+                  {t('courseCard.viewCourseDetails')}
+                </Button>
+                {onEdit && (
+                  <Button
+                    variant="outline"
+                    className="border-[#006d2c] text-[#006d2c] hover:bg-[#006d2c]/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit();
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>

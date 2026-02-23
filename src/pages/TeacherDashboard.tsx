@@ -62,7 +62,7 @@ const TeacherDashboard = () => {
   const [courses, setCourses] = useState<any[]>([]);
   const [scheduledClasses, setScheduledClasses] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
-  
+
   useActivityTracker();
 
   useEffect(() => {
@@ -189,7 +189,7 @@ const TeacherDashboard = () => {
         <TeacherSidebar />
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          <TeacherHeader 
+          <TeacherHeader
             title={`${t('teacher.dashboard.welcomeBack')}, ${profile?.full_name?.split(' ')[0] || t('onboarding.teacher')}`}
             subtitle={t('teacher.dashboard.happeningToday')}
             loading={dataLoading}
@@ -266,7 +266,7 @@ const TeacherDashboard = () => {
                           <h3 className="font-semibold mb-1">{t('teacher.dashboard.readyToCreate')}</h3>
                           <p className="text-sm text-white/80">{t('teacher.dashboard.shareKnowledge')}</p>
                         </div>
-                        <Button 
+                        <Button
                           onClick={() => navigate("/create-course")}
                           className="bg-white text-[#006d2c] hover:bg-gray-100"
                         >
@@ -323,6 +323,7 @@ const TeacherDashboard = () => {
                                 key={course.id}
                                 course={course}
                                 onClick={() => navigate(`/course/${course.id}`)}
+                                onEdit={() => navigate(`/create-course?edit=${course.id}`)}
                                 gradient={gradients[index % gradients.length]}
                                 showTeacher={false}
                               />
