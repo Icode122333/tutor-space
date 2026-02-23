@@ -137,8 +137,8 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
             </h3>
 
             {course.description && (
-              <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-2 sm:mb-3 hidden sm:block">
-                {course.description}
+              <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-2 sm:mb-3 hidden sm:block overflow-hidden" style={{ maxHeight: '2.8em' }}>
+                {course.description.length > 100 ? course.description.substring(0, 100) + '...' : course.description}
               </p>
             )}
 
