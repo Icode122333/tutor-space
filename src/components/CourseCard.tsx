@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Clock, Users, CheckCircle, Star, Pencil } from "lucide-react";
+import { BookOpen, Clock, Users, CheckCircle, Star, Pencil, Lock, ShoppingCart } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { formatPrice } from "@/services/paymentService";
 
 interface CourseCardProps {
   course: {
@@ -13,6 +14,9 @@ interface CourseCardProps {
     summary?: string | null;
     thumbnail_url?: string | null;
     level?: string;
+    price?: number;
+    is_free?: boolean;
+    currency?: string;
     profiles?: {
       full_name: string;
     };
@@ -25,15 +29,16 @@ interface CourseCardProps {
   showEnrollButton?: boolean; // To show enroll button
   onEnroll?: () => void; // Callback for enroll action
   onEdit?: () => void; // Callback for edit action (teacher view)
+  onBuy?: () => void; // Callback for buy action (student view)
 }
 
-export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purple-600", showTeacher = false, columnIndex = 0, isEnrolled = false, showEnrollButton = false, onEnroll, onEdit }: CourseCardProps) => {
+export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purple-600", showTeacher = false, columnIndex = 0, isEnrolled = false, showEnrollButton = false, onEnroll, onEdit, onBuy }: CourseCardProps) => {
   const { t } = useTranslation();
   const [showHoverCard, setShowHoverCard] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  const summary = course.summary && course.summary.trim().length > 0 
-    ? course.summary 
+  const summary = course.summary && course.summary.trim().length > 0
+    ? course.summary
     : course.description || t('courseCard.exploreDescription');
 
   // Show popup on left for columns 3 and 4 (index 2 and 3)
@@ -61,7 +66,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
   ];
 
   return (
-    <div 
+    <div
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -88,13 +93,12 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
             {course.level && (
               <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
                 <Badge
-                  className={`text-xs sm:text-sm ${
-                    course.level === "beginner"
-                      ? "bg-green-500"
-                      : course.level === "intermediate"
+                  className={`text-xs sm:text-sm ${course.level === "beginner"
+                    ? "bg-green-500"
+                    : course.level === "intermediate"
                       ? "bg-yellow-500"
                       : "bg-red-500"
-                  } text-white`}
+                    } text-white`}
                 >
                   {course.level}
                 </Badge>
@@ -110,6 +114,20 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
                 <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-700" />
               </button>
             )}
+            {/* Price Badge */}
+            {course.is_free === false && course.price && course.price > 0 ? (
+              <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3">
+                <Badge className="bg-amber-500 text-white text-xs sm:text-sm font-bold shadow-md">
+                  {formatPrice(course.price, course.currency || 'RWF')}
+                </Badge>
+              </div>
+            ) : course.is_free !== undefined ? (
+              <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3">
+                <Badge className="bg-green-500 text-white text-xs sm:text-sm">
+                  Free
+                </Badge>
+              </div>
+            ) : null}
           </div>
 
           {/* Course Info */}
@@ -117,7 +135,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
             <h3 className="font-bold text-sm sm:text-lg mb-1 sm:mb-2 line-clamp-2 transition-colors">
               {course.title}
             </h3>
-            
+
             {course.description && (
               <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-2 sm:mb-3 hidden sm:block">
                 {course.description}
@@ -131,7 +149,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
                   <span className="truncate">{course.profiles.full_name}</span>
                 </div>
               )}
-              
+
               {isEnrolled ? (
                 <Button
                   disabled
@@ -159,11 +177,10 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
 
       {/* Udemy-style Hover Popup - Hidden on mobile */}
       {showHoverCard && (
-        <div className={`absolute top-0 w-96 z-50 animate-in fade-in duration-200 hidden lg:block ${
-          showPopupOnLeft 
-            ? 'right-full mr-2 slide-in-from-right-2' 
-            : 'left-full ml-2 slide-in-from-left-2'
-        }`}>
+        <div className={`absolute top-0 w-96 z-50 animate-in fade-in duration-200 hidden lg:block ${showPopupOnLeft
+          ? 'right-full mr-2 slide-in-from-right-2'
+          : 'left-full ml-2 slide-in-from-left-2'
+          }`}>
           <Card className="border border-black shadow-2xl">
             <CardContent className="p-6 space-y-4">
               {/* Title */}
@@ -230,7 +247,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
 
               {/* CTA Buttons */}
               <div className="flex gap-2">
-                <Button 
+                <Button
                   className="flex-1 bg-[#006d2c] hover:bg-[#005523] text-white"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -250,6 +267,18 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
                   >
                     <Pencil className="h-4 w-4 mr-1" />
                     Edit
+                  </Button>
+                )}
+                {onBuy && !isEnrolled && course.is_free === false && (
+                  <Button
+                    className="bg-amber-500 hover:bg-amber-600 text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onBuy();
+                    }}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-1" />
+                    Buy
                   </Button>
                 )}
               </div>

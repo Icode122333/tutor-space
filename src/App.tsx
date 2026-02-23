@@ -51,7 +51,10 @@ import AdminAnnouncements from "./pages/AdminAnnouncements";
 import AdminExhibition from "./pages/AdminExhibition";
 import AdminTestimonials from "./pages/AdminTestimonials";
 import AdminPartners from "./pages/AdminPartners";
+import AdminPayments from "./pages/AdminPayments";
+import AdminBundles from "./pages/AdminBundles";
 import TeacherPendingApproval from "./pages/TeacherPendingApproval";
+import BrowseBundles from "./pages/BrowseBundles";
 
 const queryClient = new QueryClient();
 
@@ -111,6 +114,9 @@ const App = () => (
           <Route path="/admin/exhibition" element={<AdminExhibition />} />
           <Route path="/admin/testimonials" element={<AdminTestimonials />} />
           <Route path="/admin/partners" element={<AdminPartners />} />
+          <Route path="/admin/payments" element={<AdminPayments />} />
+          <Route path="/admin/bundles" element={<AdminBundles />} />
+          <Route path="/bundles" element={<BrowseBundles />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

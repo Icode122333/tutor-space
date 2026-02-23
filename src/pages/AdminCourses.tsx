@@ -7,9 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
-import { Search, BookOpen, Star, Check, X, Trash2, Eye } from "lucide-react";
+import { Search, BookOpen, Star, Check, X, Trash2, Eye, DollarSign } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { toast } from "sonner";
+import { formatPrice } from "@/services/paymentService";
 import {
   Select,
   SelectContent,
@@ -46,6 +48,9 @@ interface Course {
   is_featured: boolean;
   category: string | null;
   created_at: string;
+  price: number;
+  is_free: boolean;
+  currency: string;
   profiles: {
     full_name: string;
     email: string;
@@ -207,6 +212,25 @@ const AdminCourses = () => {
     }
   };
 
+  const updatePricing = async (courseId: string, updates: { price?: number; is_free?: boolean; currency?: string }) => {
+    setProcessing(true);
+    try {
+      const { error } = await supabase
+        .from("courses")
+        .update(updates)
+        .eq("id", courseId);
+
+      if (error) throw error;
+      toast.success("Pricing updated");
+      fetchCourses();
+    } catch (error: any) {
+      console.error("Error:", error);
+      toast.error("Failed to update pricing");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -272,6 +296,7 @@ const AdminCourses = () => {
                       <TableRow>
                         <TableHead>Course</TableHead>
                         <TableHead>Teacher</TableHead>
+                        <TableHead>Price</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Featured</TableHead>
                         <TableHead>Created</TableHead>
@@ -296,13 +321,49 @@ const AdminCourses = () => {
                             </div>
                           </TableCell>
                           <TableCell>
+                            <div className="space-y-1.5 min-w-[140px]">
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={!course.is_free}
+                                  onCheckedChange={(checked) => updatePricing(course.id, { is_free: !checked })}
+                                  disabled={processing}
+                                />
+                                <span className="text-xs text-gray-500">
+                                  {course.is_free ? "Free" : "Paid"}
+                                </span>
+                              </div>
+                              {!course.is_free && (
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    type="number"
+                                    className="h-7 w-20 text-xs"
+                                    defaultValue={course.price || 0}
+                                    onBlur={(e) => updatePricing(course.id, { price: Number(e.target.value) })}
+                                  />
+                                  <Select
+                                    defaultValue={course.currency || "RWF"}
+                                    onValueChange={(val) => updatePricing(course.id, { currency: val })}
+                                  >
+                                    <SelectTrigger className="h-7 w-16 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="RWF">RWF</SelectItem>
+                                      <SelectItem value="USD">USD</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
                             <Badge
                               className={
                                 course.approval_status === "approved"
                                   ? "bg-green-100 text-green-800"
                                   : course.approval_status === "pending"
-                                  ? "bg-orange-100 text-orange-800"
-                                  : "bg-red-100 text-red-800"
+                                    ? "bg-orange-100 text-orange-800"
+                                    : "bg-red-100 text-red-800"
                               }
                             >
                               {course.approval_status}
@@ -316,9 +377,8 @@ const AdminCourses = () => {
                               disabled={processing}
                             >
                               <Star
-                                className={`h-4 w-4 ${
-                                  course.is_featured ? "fill-current" : ""
-                                }`}
+                                className={`h-4 w-4 ${course.is_featured ? "fill-current" : ""
+                                  }`}
                               />
                             </Button>
                           </TableCell>

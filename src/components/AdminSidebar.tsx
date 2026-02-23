@@ -23,7 +23,9 @@ import {
   Award,
   Trophy,
   MessageSquare,
-  Handshake
+  Handshake,
+  DollarSign,
+  Package
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,8 +37,8 @@ interface AdminSidebarProps {
   pendingCertificates?: number;
 }
 
-export function AdminSidebar({ 
-  pendingTeachers = 0, 
+export function AdminSidebar({
+  pendingTeachers = 0,
   pendingCourses = 0,
   pendingCertificates = 0
 }: AdminSidebarProps) {
@@ -72,6 +74,11 @@ export function AdminSidebar({
 
   const courseItems = [
     { title: "All Courses", url: "/admin/courses", icon: BookOpen, badge: pendingCourses },
+  ];
+
+  const paymentItems = [
+    { title: "Payments", url: "/admin/payments", icon: DollarSign },
+    { title: "Bundles", url: "/admin/bundles", icon: Package },
   ];
 
   const systemItems = [
@@ -196,8 +203,8 @@ export function AdminSidebar({
                           <>
                             <span className="text-sm flex-1">{item.title}</span>
                             {item.badge && item.badge > 0 && (
-                              <Badge 
-                                variant="destructive" 
+                              <Badge
+                                variant="destructive"
                                 className="h-5 w-5 flex items-center justify-center p-0 text-xs"
                               >
                                 {item.badge}
@@ -295,8 +302,8 @@ export function AdminSidebar({
                           <>
                             <span className="text-sm flex-1">{item.title}</span>
                             {item.badge && item.badge > 0 && (
-                              <Badge 
-                                variant="destructive" 
+                              <Badge
+                                variant="destructive"
                                 className="h-5 w-5 flex items-center justify-center p-0 text-xs"
                               >
                                 {item.badge}
@@ -304,6 +311,35 @@ export function AdminSidebar({
                             )}
                           </>
                         )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {/* Payments & Bundles */}
+          <SidebarGroup className="mt-4 space-y-1">
+            <SidebarGroupLabel className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              COMMERCE
+            </SidebarGroupLabel>
+            <SidebarGroupContent className="px-2">
+              <SidebarMenu className="space-y-1">
+                {paymentItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end
+                        className={({ isActive }) =>
+                          isActive
+                            ? "bg-[#006d2c] text-white font-medium rounded-xl px-3 py-2.5 flex items-center gap-3"
+                            : "text-gray-300 hover:bg-white/10 hover:text-white rounded-xl px-3 py-2.5 flex items-center gap-3"
+                        }
+                      >
+                        <item.icon className="h-5 w-5 flex-shrink-0" />
+                        {!collapsed && <span className="text-sm">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
