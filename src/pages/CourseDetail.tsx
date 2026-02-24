@@ -120,8 +120,12 @@ export default function CourseDetail() {
     const checkAccess = async () => {
       if (!course) return;
 
+      // Debug: log course access state
+      console.log('[Access Check] course.is_free:', course.is_free, '| course.price:', course.price);
+
       // Free courses = everyone has access
       if (course.is_free !== false) {
+        console.log('[Access Check] Course is free → granting access');
         setHasAccess(true);
         return;
       }
@@ -130,7 +134,7 @@ export default function CourseDetail() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        // Not logged in = no access to paid content
+        console.log('[Access Check] No user → denying access');
         setHasAccess(false);
         return;
       }
@@ -144,6 +148,7 @@ export default function CourseDetail() {
         .maybeSingle();
 
       if (enrollment) {
+        console.log('[Access Check] User is enrolled → granting access');
         setHasAccess(true);
         return;
       }
@@ -155,17 +160,22 @@ export default function CourseDetail() {
         .eq('id', user.id)
         .single();
 
+      console.log('[Access Check] User role:', profile?.role, '| teacher_id:', course.teacher_id, '| user.id:', user.id);
+
       if (profile?.role === 'admin') {
+        console.log('[Access Check] User is admin → granting access');
         setHasAccess(true);
         return;
       }
 
       if (course.teacher_id === user.id) {
+        console.log('[Access Check] User is course teacher → granting access');
         setHasAccess(true);
         return;
       }
 
       // No access
+      console.log('[Access Check] No access → denying');
       setHasAccess(false);
     };
 
@@ -325,6 +335,24 @@ export default function CourseDetail() {
   };
 
   const isPaidCourse = course ? !(course.is_free ?? true) : false;
+
+  // Debug logging
+  console.log('[CourseDetail] isPaidCourse:', isPaidCourse, '| hasAccess:', hasAccess, '| course.is_free:', course?.is_free);
+
+  // Helper: check if a specific lesson is locked
+  const isLessonLocked = (lessonId: string): boolean => {
+    if (!isPaidCourse || hasAccess) return false;
+    for (const ch of chapters) {
+      const lesson = ch.lessons.find(l => l.id === lessonId);
+      if (lesson) {
+        return !(ch.is_preview || lesson.is_preview);
+      }
+    }
+    return true; // not found = locked by default
+  };
+
+  // Check if the currently selected lesson is locked
+  const currentLessonLocked = currentLessonId ? isLessonLocked(currentLessonId) : false;
 
   const handleLessonClick = async (lessonId: string) => {
     setIsWelcomeSelected(false);
@@ -743,7 +771,32 @@ export default function CourseDetail() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Side - Content Player */}
           <div className="lg:col-span-2">
-            {isWelcomeSelected && course.welcome_video_url ? (
+            {/* PAYWALL OVERLAY: shown when current lesson is locked */}
+            {currentLessonLocked ? (
+              <Card className="border-2 border-orange-200">
+                <CardContent className="p-8 text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center mx-auto">
+                    <Lock className="h-8 w-8 text-orange-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900">Content Locked</h3>
+                  <p className="text-gray-600 max-w-md mx-auto">
+                    This lesson is part of the paid content. Purchase this course to unlock all chapters and lessons.
+                  </p>
+                  {course && (
+                    <div className="text-2xl font-bold text-gray-900">
+                      {course.currency === 'USD' ? '$' : ''}{course.price?.toLocaleString()} {course.currency || 'RWF'}
+                    </div>
+                  )}
+                  <Button
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 text-lg"
+                    onClick={() => setShowPurchaseDialog(true)}
+                  >
+                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    Buy This Course
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : isWelcomeSelected && course.welcome_video_url ? (
               <Card>
                 <CardContent className="p-4">
                   <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
