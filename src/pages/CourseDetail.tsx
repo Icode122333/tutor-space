@@ -83,7 +83,7 @@ export default function CourseDetail() {
   const [showCapstone, setShowCapstone] = useState(false);
   const [capstoneProject, setCapstoneProject] = useState<CapstoneProject | null>(null);
   const [isWelcomeSelected, setIsWelcomeSelected] = useState(false);
-  const [hasAccess, setHasAccess] = useState(true);
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null); // null = not yet checked
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
 
   // Check if user is a student (not teacher/admin)
@@ -109,46 +109,68 @@ export default function CourseDetail() {
         fetchCapstone(),
       ]);
 
-      // Check course access for paid courses
-      if (user && id) {
-        const { data: courseData } = await supabase
-          .from('courses')
-          .select('is_free')
-          .eq('id', id)
-          .single();
-
-        if (courseData && !courseData.is_free) {
-          // Check if user is enrolled (has access)
-          const { data: enrollment } = await supabase
-            .from('course_enrollments')
-            .select('id')
-            .eq('student_id', user.id)
-            .eq('course_id', id)
-            .maybeSingle();
-
-          // Also check if user is teacher or admin
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-
-          const { data: isCourseTeacher } = await supabase
-            .from('courses')
-            .select('id')
-            .eq('id', id)
-            .eq('teacher_id', user.id)
-            .maybeSingle();
-
-          const isAdminOrTeacher = profile?.role === 'admin' || !!isCourseTeacher;
-          setHasAccess(!!enrollment || isAdminOrTeacher);
-        }
-      }
-
       setLoading(false);
     };
+
     init();
   }, [id]);
+
+  // Separate effect: check access whenever course data changes
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (!course) return;
+
+      // Free courses = everyone has access
+      if (course.is_free !== false) {
+        setHasAccess(true);
+        return;
+      }
+
+      // Paid course — check if user is logged in
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        // Not logged in = no access to paid content
+        setHasAccess(false);
+        return;
+      }
+
+      // Check enrollment
+      const { data: enrollment } = await supabase
+        .from('course_enrollments')
+        .select('id')
+        .eq('student_id', user.id)
+        .eq('course_id', course.id)
+        .maybeSingle();
+
+      if (enrollment) {
+        setHasAccess(true);
+        return;
+      }
+
+      // Check if admin or course teacher
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.role === 'admin') {
+        setHasAccess(true);
+        return;
+      }
+
+      if (course.teacher_id === user.id) {
+        setHasAccess(true);
+        return;
+      }
+
+      // No access
+      setHasAccess(false);
+    };
+
+    checkAccess();
+  }, [course?.id, course?.is_free]);
 
   const fetchCourse = async () => {
     if (!id) return;
@@ -802,7 +824,7 @@ export default function CourseDetail() {
               }}
               isWelcomeSelected={isWelcomeSelected}
               isPaidCourse={isPaidCourse}
-              hasAccess={hasAccess}
+              hasAccess={hasAccess ?? false}
             />
 
             {/* Capstone Project Card - Only for students */}

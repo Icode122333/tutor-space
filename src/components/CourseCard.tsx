@@ -152,6 +152,31 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
                 >
                   {t('courseCard.enrolled')}
                 </Button>
+              ) : course.is_free === false && course.price && course.price > 0 ? (
+                <div className="flex gap-1.5">
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClick();
+                    }}
+                    variant="outline"
+                    className="flex-1 border-[#006d2c] text-[#006d2c] hover:bg-[#006d2c]/10 text-xs sm:text-sm"
+                    size="sm"
+                  >
+                    Preview
+                  </Button>
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onBuy) onBuy();
+                    }}
+                    className="flex-1 bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm"
+                    size="sm"
+                  >
+                    <ShoppingCart className="h-3 w-3 mr-1" />
+                    Buy
+                  </Button>
+                </div>
               ) : showEnrollButton && onEnroll ? (
                 <Button
                   onClick={(e) => {

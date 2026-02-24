@@ -7,6 +7,7 @@ import { Users, BookOpen, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CourseCard } from "@/components/CourseCard";
+import { PurchaseDialog } from "@/components/PurchaseDialog";
 import { useTranslation } from "react-i18next";
 
 type Course = {
@@ -16,6 +17,8 @@ type Course = {
   thumbnail_url: string | null;
   teacher_id: string;
   price: number | null;
+  is_free: boolean | null;
+  currency: string | null;
   requirements: string | null;
   created_at: string;
 };
@@ -35,6 +38,8 @@ const BrowseCourses = () => {
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [enrollingCourseId, setEnrollingCourseId] = useState<string | null>(null);
+  const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
+  const [purchaseCourse, setPurchaseCourse] = useState<Course | null>(null);
 
   useEffect(() => {
     fetchCourses();
@@ -239,8 +244,16 @@ const BrowseCourses = () => {
                   showTeacher={false}
                   columnIndex={columnIndex}
                   isEnrolled={isEnrolled}
-                  showEnrollButton={userId && !isEnrolled}
+                  showEnrollButton={!!(userId && !isEnrolled && (course.is_free !== false))}
                   onEnroll={() => handleEnroll(course.id)}
+                  onBuy={() => {
+                    if (!userId) {
+                      navigate("/signup");
+                      return;
+                    }
+                    setPurchaseCourse(course);
+                    setShowPurchaseDialog(true);
+                  }}
                 />
               );
             })}
@@ -268,6 +281,21 @@ const BrowseCourses = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Purchase Dialog for Paid Courses */}
+      {purchaseCourse && (
+        <PurchaseDialog
+          open={showPurchaseDialog}
+          onOpenChange={setShowPurchaseDialog}
+          type="course"
+          item={{
+            id: purchaseCourse.id,
+            title: purchaseCourse.title,
+            price: purchaseCourse.price || 0,
+            currency: purchaseCourse.currency || 'RWF',
+          }}
+        />
+      )}
     </div>
   );
 };

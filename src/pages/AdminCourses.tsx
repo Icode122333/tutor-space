@@ -226,12 +226,17 @@ const AdminCourses = () => {
   const updatePricing = async (courseId: string, updates: { price?: number; is_free?: boolean; currency?: string }) => {
     setProcessing(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("courses")
         .update(updates)
-        .eq("id", courseId);
+        .eq("id", courseId)
+        .select("id");
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error("Update blocked — check admin permissions (RLS policy may be missing)");
+        return;
+      }
       toast.success("Pricing updated");
       fetchCourses();
     } catch (error: any) {
@@ -270,13 +275,19 @@ const AdminCourses = () => {
   };
 
   const toggleChapterPreview = async (chapterId: string, currentValue: boolean) => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('course_chapters')
       .update({ is_preview: !currentValue })
-      .eq('id', chapterId);
+      .eq('id', chapterId)
+      .select('id');
 
     if (error) {
       toast.error('Failed to update chapter');
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      toast.error('Update blocked — run the admin RLS fix migration in Supabase SQL Editor');
       return;
     }
 
