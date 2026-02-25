@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
     const payload = req.method === 'GET' ? req.query : req.body;
-    const isCardRedirect = req.method === 'GET' && payload.pesapal_merchant_reference;
+    const isBrowserRedirect = req.method === 'GET';
 
     console.log('[payment-callback] Received:', req.method, JSON.stringify(payload));
 
@@ -64,8 +64,8 @@ export default async function handler(req, res) {
             }
         }
 
-        // For card: redirect user's browser to the success page
-        if (isCardRedirect) {
+        // GET request = user's browser → redirect to success page
+        if (isBrowserRedirect) {
             return res.redirect(302, `/payment/success?ref=${encodeURIComponent(referenceId)}`);
         }
 

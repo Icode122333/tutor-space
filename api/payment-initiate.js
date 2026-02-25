@@ -136,7 +136,7 @@ export default async function handler(req, res) {
             lmbBody.payer_phone = formatPhone(phone);
         } else if (paymentMethod === 'card') {
             lmbBody.payment_method = 'card';
-            lmbBody.card_redirect_url = `${siteUrl}/api/payment-callback`;
+            lmbBody.card_redirect_url = 'https://pay.lmbtech.rw/pay/pesapal/iframe.php';
         }
 
         console.log('[payment-initiate] Calling LMBTech API:', JSON.stringify(lmbBody));
