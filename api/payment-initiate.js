@@ -7,9 +7,9 @@
  * 3. Returns reference ID and redirect URL
  */
 
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
@@ -69,14 +69,14 @@ export default async function handler(req, res) {
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
         if (!appKey || !secretKey) {
-            console.error('LMBTECH credentials not configured');
+            console.error('[payment-initiate] LMBTECH credentials not configured');
             return res.status(500).json({ success: false, error: 'Payment system not configured' });
         }
 
-        // Build auth header
+        // Build auth header (Base64 of appKey:secretKey)
         const credentials = Buffer.from(`${appKey}:${secretKey}`).toString('base64');
 
-        // Generate reference ID
+        // Generate unique reference ID
         const date = new Date();
         const dateStr = date.getFullYear()
             + String(date.getMonth() + 1).padStart(2, '0')
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
 
         // ============================================================
         // STEP 1: Create payment record in Supabase FIRST
-        // This is critical — the callback handler looks up by reference_id
+        // The callback handler looks up by reference_id to auto-enroll
         // ============================================================
         if (supabaseUrl && supabaseServiceKey) {
             const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -111,12 +111,12 @@ export default async function handler(req, res) {
                 console.error('[payment-initiate] Failed to create payment record:', createError);
                 return res.status(500).json({
                     success: false,
-                    error: 'Failed to create payment record'
+                    error: 'Failed to create payment record: ' + createError.message
                 });
             }
             console.log('[payment-initiate] Payment record created:', paymentId, 'ref:', referenceId);
         } else {
-            console.warn('[payment-initiate] Supabase not configured, skipping payment record creation');
+            console.warn('[payment-initiate] Supabase not configured, skipping payment record');
         }
 
         // ============================================================
@@ -127,8 +127,8 @@ export default async function handler(req, res) {
             email,
             name,
             amount: Number(amount),
-            'service-paid': servicePaid || `course_${courseId || bundleId}`,
             service_paid: servicePaid || `course_${courseId || bundleId}`,
+            'service-paid': servicePaid || `course_${courseId || bundleId}`,
             reference_id: referenceId,
             callback_url: callbackUrl,
         };
@@ -138,17 +138,11 @@ export default async function handler(req, res) {
             lmbBody.payer_phone = formatPhone(phone);
         } else if (paymentMethod === 'card') {
             lmbBody.payment_method = 'card';
-            lmbBody.cardredirect_url = `${siteUrl}/payment/success?ref=${referenceId}`;
-            lmbBody.card_redirect_url = lmbBody.cardredirect_url;
+            lmbBody.card_redirect_url = `${siteUrl}/api/payment-callback`;
+            lmbBody.cardredirect_url = lmbBody.card_redirect_url;
         }
 
-        console.log('[payment-initiate] Calling LMBTech API:', {
-            method: paymentMethod,
-            amount,
-            referenceId,
-            studentId,
-            courseId,
-        });
+        console.log('[payment-initiate] Calling LMBTech API:', JSON.stringify(lmbBody));
 
         const response = await fetch('https://pay.lmbtech.rw/pay/config/api.php', {
             method: 'POST',
@@ -181,7 +175,7 @@ export default async function handler(req, res) {
             error: error.message || 'Internal server error'
         });
     }
-}
+};
 
 /**
  * Format phone number to +250 format

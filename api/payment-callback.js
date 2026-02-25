@@ -7,11 +7,11 @@
  * For Card: GET with query params (user browser redirect from Pesapal) → redirects to /payment/success
  */
 
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
-export default async function handler(req, res) {
-    // For GET requests, data comes in query params (card redirect from Pesapal)
-    // For POST requests, data comes in body (MoMo server callback)
+module.exports = async function handler(req, res) {
+    // For GET: data in query params (card redirect from Pesapal)
+    // For POST: data in body (MoMo server callback)
     const payload = req.method === 'GET' ? req.query : req.body;
     const isCardRedirect = req.method === 'GET' && payload.pesapal_merchant_reference;
 
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     try {
         let referenceId, transactionId, status;
 
-        // Card callback (Pesapal form/query data)
+        // Card callback (Pesapal query/form data)
         if (payload.pesapal_merchant_reference) {
             referenceId = payload.pesapal_merchant_reference;
             transactionId = payload.pesapal_transaction_tracking_id || '';
@@ -37,13 +37,13 @@ export default async function handler(req, res) {
         }
         else {
             console.error('[payment-callback] Unknown callback format:', payload);
-            if (isCardRedirect) {
+            if (req.method === 'GET') {
                 return res.redirect(302, '/payment/success?error=invalid_callback');
             }
             return res.status(400).json({ success: false, error: 'Invalid callback format' });
         }
 
-        // Update Supabase
+        // Update Supabase payment record + auto-enroll student
         const supabaseUrl = process.env.SUPABASE_URL;
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
                 if (rpcError) {
                     console.error('[payment-callback] Supabase RPC error:', rpcError);
                 } else {
-                    console.log('[payment-callback] Supabase updated:', rpcResult);
+                    console.log('[payment-callback] Supabase updated:', JSON.stringify(rpcResult));
                 }
             } catch (dbError) {
                 console.error('[payment-callback] DB error:', dbError);
@@ -82,12 +82,12 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[payment-callback] Error:', error);
-        if (isCardRedirect) {
+        if (req.method === 'GET') {
             return res.redirect(302, '/payment/success?error=processing_error');
         }
         return res.status(500).json({ success: false, error: error.message });
     }
-}
+};
 
 function normalizeStatus(status) {
     if (typeof status === 'string') {

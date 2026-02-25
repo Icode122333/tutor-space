@@ -5,7 +5,7 @@
  * Checks payment status from LMBTech API.
  */
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
 
         const credentials = Buffer.from(`${appKey}:${secretKey}`).toString('base64');
 
-        // LMBTech status check is a GET with reference_id as query param
+        // LMBTech status check: GET with reference_id as query param
         const url = `https://pay.lmbtech.rw/pay/config/api.php?reference_id=${encodeURIComponent(referenceId)}`;
 
         const response = await fetch(url, {
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
             error: error.message
         });
     }
-}
+};
 
 function normalizeStatus(status) {
     if (typeof status === 'string') {
