@@ -1,24 +1,26 @@
 /**
  * Vercel Serverless Function: Payment Callback
- * POST /api/payment-callback
  * 
  * Receives callbacks from LMBTech after payment completes.
- * Handles both MoMo (JSON) and Card (form data) callbacks.
- * Updates Supabase payment record and auto-enrolls students.
+ * 
+ * For MoMo: POST with JSON body (server-to-server) → returns JSON
+ * For Card: GET with query params (user browser redirect from Pesapal) → redirects to /payment/success
  */
 
 import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
-    // Accept both GET (card redirects) and POST (callbacks)
+    // For GET requests, data comes in query params (card redirect from Pesapal)
+    // For POST requests, data comes in body (MoMo server callback)
     const payload = req.method === 'GET' ? req.query : req.body;
+    const isCardRedirect = req.method === 'GET' && payload.pesapal_merchant_reference;
 
     console.log('[payment-callback] Received:', req.method, JSON.stringify(payload));
 
     try {
         let referenceId, transactionId, status;
 
-        // Card callback (Pesapal form data)
+        // Card callback (Pesapal form/query data)
         if (payload.pesapal_merchant_reference) {
             referenceId = payload.pesapal_merchant_reference;
             transactionId = payload.pesapal_transaction_tracking_id || '';
@@ -26,15 +28,18 @@ export default async function handler(req, res) {
             status = responseData.toUpperCase() === 'COMPLETED' ? 'success' : 'failed';
             console.log('[payment-callback] Card callback:', { referenceId, transactionId, status });
         }
-        // MoMo callback (JSON)
-        else if (payload.reference_id && payload.transaction_id) {
+        // MoMo callback (JSON body)
+        else if (payload.reference_id) {
             referenceId = payload.reference_id;
-            transactionId = payload.transaction_id;
+            transactionId = payload.transaction_id || '';
             status = normalizeStatus(payload.status);
             console.log('[payment-callback] MoMo callback:', { referenceId, transactionId, status });
         }
         else {
             console.error('[payment-callback] Unknown callback format:', payload);
+            if (isCardRedirect) {
+                return res.redirect(302, '/payment/success?error=invalid_callback');
+            }
             return res.status(400).json({ success: false, error: 'Invalid callback format' });
         }
 
@@ -57,18 +62,18 @@ export default async function handler(req, res) {
                     console.error('[payment-callback] Supabase RPC error:', rpcError);
                 } else {
                     console.log('[payment-callback] Supabase updated:', rpcResult);
-                    if (status === 'success') {
-                        console.log('[payment-callback] Student auto-enrolled!');
-                    }
                 }
             } catch (dbError) {
                 console.error('[payment-callback] DB error:', dbError);
             }
-        } else {
-            console.warn('[payment-callback] Supabase not configured, skipping DB update');
         }
 
-        // Return success acknowledgment to LMBTech
+        // For card payments: redirect user's browser to the success page
+        if (isCardRedirect) {
+            return res.redirect(302, `/payment/success?ref=${encodeURIComponent(referenceId)}`);
+        }
+
+        // For MoMo: return JSON acknowledgment to LMBTech
         return res.status(200).json({
             success: true,
             message: 'Callback processed',
@@ -77,10 +82,10 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[payment-callback] Error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        if (isCardRedirect) {
+            return res.redirect(302, '/payment/success?error=processing_error');
+        }
+        return res.status(500).json({ success: false, error: error.message });
     }
 }
 

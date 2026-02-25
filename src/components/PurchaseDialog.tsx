@@ -105,11 +105,13 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
         if (result.success && result.referenceId) {
             setReferenceId(result.referenceId);
 
-            // For card payments, redirect to the payment URL
+            // For card payments, redirect to the Pesapal checkout page
             if (paymentMethod === "card") {
                 const redirectUrl = result.redirectUrl || result.data?.redirectUrl || result.data?.data?.redirect_url;
                 if (redirectUrl) {
-                    window.open(redirectUrl, "_blank");
+                    // Use location.href (not window.open) to avoid popup blockers
+                    window.location.href = redirectUrl;
+                    return; // page is navigating away
                 }
             }
         } else {

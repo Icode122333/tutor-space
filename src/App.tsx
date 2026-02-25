@@ -55,6 +55,7 @@ import AdminPayments from "./pages/AdminPayments";
 import AdminBundles from "./pages/AdminBundles";
 import TeacherPendingApproval from "./pages/TeacherPendingApproval";
 import BrowseBundles from "./pages/BrowseBundles";
+import PaymentSuccess from "./pages/PaymentSuccess";
 
 const queryClient = new QueryClient();
 
@@ -117,6 +118,7 @@ const App = () => (
           <Route path="/admin/payments" element={<AdminPayments />} />
           <Route path="/admin/bundles" element={<AdminBundles />} />
           <Route path="/bundles" element={<BrowseBundles />} />
+          <Route path="/payment/success" element={<PaymentSuccess />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
