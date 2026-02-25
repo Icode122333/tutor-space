@@ -43,6 +43,9 @@ type Testimonial = {
   testimonial_text: string;
   rating: number;
   course_name: string | null;
+  profession: string | null;
+  programs_participated: string | null;
+  career_impact: string | null;
   is_featured: boolean;
   display_order: number;
   created_at: string;
@@ -61,6 +64,9 @@ const AdminTestimonials = () => {
     testimonial_text: "",
     rating: 5,
     course_name: "",
+    profession: "",
+    programs_participated: "",
+    career_impact: "",
     is_featured: true,
     display_order: 0,
   });
@@ -123,7 +129,7 @@ const AdminTestimonials = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.student_name || !formData.testimonial_text) {
       toast.error("Please fill in all required fields");
       return;
@@ -139,6 +145,9 @@ const AdminTestimonials = () => {
             testimonial_text: formData.testimonial_text,
             rating: formData.rating,
             course_name: formData.course_name || null,
+            profession: formData.profession || null,
+            programs_participated: formData.programs_participated || null,
+            career_impact: formData.career_impact || null,
             is_featured: formData.is_featured,
             display_order: formData.display_order,
           })
@@ -155,6 +164,9 @@ const AdminTestimonials = () => {
             testimonial_text: formData.testimonial_text,
             rating: formData.rating,
             course_name: formData.course_name || null,
+            profession: formData.profession || null,
+            programs_participated: formData.programs_participated || null,
+            career_impact: formData.career_impact || null,
             is_featured: formData.is_featured,
             display_order: formData.display_order,
           });
@@ -214,6 +226,9 @@ const AdminTestimonials = () => {
       testimonial_text: "",
       rating: 5,
       course_name: "",
+      profession: "",
+      programs_participated: "",
+      career_impact: "",
       is_featured: true,
       display_order: 0,
     });
@@ -228,6 +243,9 @@ const AdminTestimonials = () => {
       testimonial_text: testimonial.testimonial_text,
       rating: testimonial.rating,
       course_name: testimonial.course_name || "",
+      profession: testimonial.profession || "",
+      programs_participated: testimonial.programs_participated || "",
+      career_impact: testimonial.career_impact || "",
       is_featured: testimonial.is_featured,
       display_order: testimonial.display_order,
     });
@@ -335,7 +353,8 @@ const AdminTestimonials = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Student</TableHead>
-                        <TableHead>Testimonial</TableHead>
+                        <TableHead>Profession</TableHead>
+                        <TableHead>Programs</TableHead>
                         <TableHead>Rating</TableHead>
                         <TableHead>Featured</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -366,8 +385,13 @@ const AdminTestimonials = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <p className="text-sm text-gray-600 truncate max-w-xs">
-                              "{testimonial.testimonial_text}"
+                            <p className="text-sm text-gray-600 truncate max-w-[150px]">
+                              {testimonial.profession || "—"}
+                            </p>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm text-gray-600 truncate max-w-[150px]">
+                              {testimonial.programs_participated || "—"}
                             </p>
                           </TableCell>
                           <TableCell>
@@ -495,13 +519,44 @@ const AdminTestimonials = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="testimonial_text">Testimonial *</Label>
+              <Label htmlFor="profession">Profession & Position</Label>
+              <Input
+                id="profession"
+                value={formData.profession}
+                onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
+                placeholder="e.g., Data Analyst at Bank of Kigali"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="programs_participated">Programs Participated In</Label>
+              <Input
+                id="programs_participated"
+                value={formData.programs_participated}
+                onChange={(e) => setFormData({ ...formData, programs_participated: e.target.value })}
+                placeholder="e.g., Data Analytics Cohort 3, AI Bootcamp"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="career_impact">Career Impact *</Label>
+              <Textarea
+                id="career_impact"
+                value={formData.career_impact}
+                onChange={(e) => setFormData({ ...formData, career_impact: e.target.value })}
+                placeholder="How did the program impact their career or profession?"
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="testimonial_text">Testimonial Quote *</Label>
               <Textarea
                 id="testimonial_text"
                 value={formData.testimonial_text}
                 onChange={(e) => setFormData({ ...formData, testimonial_text: e.target.value })}
                 placeholder="What did the student say about their experience?"
-                rows={4}
+                rows={3}
                 required
               />
             </div>
@@ -517,9 +572,8 @@ const AdminTestimonials = () => {
                     className="p-1"
                   >
                     <Star
-                      className={`w-6 h-6 transition-colors ${
-                        star <= formData.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300 hover:text-yellow-300'
-                      }`}
+                      className={`w-6 h-6 transition-colors ${star <= formData.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300 hover:text-yellow-300'
+                        }`}
                     />
                   </button>
                 ))}

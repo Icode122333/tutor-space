@@ -17,6 +17,7 @@ import { CoursesPreviewSection } from "@/components/landing/CoursesPreviewSectio
 import { LearningModelSection } from "@/components/landing/LearningModelSection";
 import { CapstoneFrameworkSection } from "@/components/landing/CapstoneFrameworkSection";
 import { TargetAudienceSection } from "@/components/landing/TargetAudienceSection";
+import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { B2BSection, FinalCTASection, Footer } from "@/components/landing/FooterInfo";
 
 const Index = () => {
@@ -72,36 +73,35 @@ const Index = () => {
     <div className="min-h-screen relative">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50">
-        <div className="bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
+        <div className="bg-black/20 backdrop-blur-xl border-b border-white/10">
           <div className="container mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
               <img
                 src="/images/dataplus_logggg-removebg-preview.png"
-                alt="DataPlus Logo"
-                className="w-10 h-10 object-contain"
+                alt="Logo"
+                className="w-10 h-10 object-contain brightness-200"
               />
-              <span className="text-xl font-bold text-gray-900 tracking-tight">DATA+</span>
             </div>
 
             <div className="hidden md:flex items-center gap-8">
-              <a href="#home" className="text-sm font-medium text-gray-600 hover:text-[#006d2c] transition-colors">Home</a>
-              <button onClick={() => navigate("/courses")} className="text-sm font-medium text-gray-600 hover:text-[#006d2c] transition-colors">Courses</button>
-              <button onClick={() => navigate("/about")} className="text-sm font-medium text-gray-600 hover:text-[#006d2c] transition-colors">About</button>
-              <button onClick={() => navigate("/contact")} className="text-sm font-medium text-gray-600 hover:text-[#006d2c] transition-colors">Contact</button>
-              <button onClick={() => navigate("/exhibition")} className="text-sm font-medium text-gray-600 hover:text-[#006d2c] transition-colors">Exhibition</button>
+              <a href="#home" className="text-sm font-medium text-white/80 hover:text-white transition-colors">Home</a>
+              <button onClick={() => navigate("/courses")} className="text-sm font-medium text-white/80 hover:text-white transition-colors">Courses</button>
+              <button onClick={() => navigate("/about")} className="text-sm font-medium text-white/80 hover:text-white transition-colors">About</button>
+              <button onClick={() => navigate("/contact")} className="text-sm font-medium text-white/80 hover:text-white transition-colors">Contact</button>
+              <button onClick={() => navigate("/exhibition")} className="text-sm font-medium text-white/80 hover:text-white transition-colors">Exhibition</button>
             </div>
 
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
                 onClick={() => navigate("/auth")}
-                className="hidden md:flex text-gray-700 hover:text-[#006d2c] hover:bg-green-50"
+                className="hidden md:flex text-white/80 hover:text-white hover:bg-white/10"
               >
                 Login
               </Button>
               <Button
                 onClick={() => navigate("/signup")}
-                className="bg-[#006d2c] hover:bg-[#005523] text-white font-medium rounded-full px-6 shadow-lg shadow-green-900/10"
+                className="bg-[#006d2c] hover:bg-[#005523] text-white font-medium rounded-full px-6 shadow-lg shadow-green-900/20"
               >
                 Get Started
               </Button>
@@ -141,6 +141,7 @@ const Index = () => {
       <LearningModelSection />
       <CapstoneFrameworkSection />
       <TargetAudienceSection />
+      <TestimonialsSection />
       <B2BSection />
       <FinalCTASection />
       <Footer />
