@@ -50,6 +50,11 @@ export async function initiatePayment(request: PaymentInitiateRequest): Promise<
                 amount: request.amount,
                 phone: request.phone,
                 servicePaid: `${request.type}_${request.itemId}`,
+                // These are critical for Supabase payment record + auto-enrollment
+                studentId: request.studentId,
+                courseId: request.type === 'course' ? request.itemId : undefined,
+                bundleId: request.type === 'bundle' ? request.itemId : undefined,
+                currency: request.currency,
             }),
         });
 
