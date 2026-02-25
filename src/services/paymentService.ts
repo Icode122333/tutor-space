@@ -1,8 +1,4 @@
-// Payment service utility for calling the LMBTech payment gateway
-// The deployed gateway (server.js on Vercel) uses /api/payment/momo and /api/payment/card
-const PAYMENT_GATEWAY_URL = (
-    import.meta.env.VITE_PAYMENT_GATEWAY_URL || 'https://paymentgateway-sigma.vercel.app'
-).replace(/\/$/, ''); // strip trailing slash
+// Payment service - calls local Vercel serverless functions (same domain, no CORS issues)
 
 export interface PaymentInitiateRequest {
     type: 'course' | 'bundle';
@@ -35,53 +31,43 @@ export interface PaymentStatus {
 }
 
 /**
- * Initiate a payment via the LMBTech payment gateway.
- * Routes to /api/payment/momo or /api/payment/card based on paymentMethod.
+ * Initiate a payment via the local Vercel serverless function.
+ * The function calls LMBTech API with server-side credentials.
  */
 export async function initiatePayment(request: PaymentInitiateRequest): Promise<PaymentResult> {
     try {
-        const endpoint = request.paymentMethod === 'momo'
-            ? '/api/payment/momo'
-            : '/api/payment/card';
+        console.log('[Payment] Initiating payment:', request.paymentMethod, request.amount);
 
-        // Build the request body matching server.js expected format
-        const body: Record<string, any> = {
-            email: request.email,
-            name: request.name,
-            amount: request.amount,
-            servicePaid: `${request.type}_${request.itemId}`,
-        };
-
-        if (request.paymentMethod === 'momo') {
-            body.payerPhone = request.phone;
-        }
-
-        console.log(`[Payment] Calling ${PAYMENT_GATEWAY_URL}${endpoint}`, body);
-
-        const response = await fetch(`${PAYMENT_GATEWAY_URL}${endpoint}`, {
+        const response = await fetch('/api/payment-initiate', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify({
+                paymentMethod: request.paymentMethod,
+                email: request.email,
+                name: request.name,
+                amount: request.amount,
+                phone: request.phone,
+                servicePaid: `${request.type}_${request.itemId}`,
+            }),
         });
 
         const data = await response.json();
         console.log('[Payment] Response:', data);
 
-        // server.js apiResponse format: { success, status, message, referenceId, redirectUrl, data }
         return {
             success: data.success,
-            referenceId: data.referenceId || data.data?.reference_id,
-            redirectUrl: data.redirectUrl || data.data?.redirect_url,
+            referenceId: data.referenceId,
+            redirectUrl: data.redirectUrl,
             data: data,
-            error: data.success ? undefined : (data.message || 'Payment initiation failed'),
+            error: data.success ? undefined : (data.error || data.message || 'Payment initiation failed'),
         };
     } catch (error: any) {
-        console.error('[Payment] Fetch error:', error);
+        console.error('[Payment] Error:', error);
         return {
             success: false,
-            error: error.message || 'Failed to fetch',
+            error: error.message || 'Failed to connect to payment service',
         };
     }
 }
@@ -91,20 +77,13 @@ export async function initiatePayment(request: PaymentInitiateRequest): Promise<
  */
 export async function checkPaymentStatus(referenceId: string): Promise<PaymentStatus> {
     try {
-        const response = await fetch(
-            `${PAYMENT_GATEWAY_URL}/api/payment/status/${referenceId}`
-        );
+        const response = await fetch(`/api/payment-status?ref=${encodeURIComponent(referenceId)}`);
         const data = await response.json();
-
-        // server.js status response: { success, status, message, referenceId, data, paymentOutcome, isSuccessful }
-        const paymentOutcome = data.paymentOutcome || data.data?.status || 'pending';
 
         return {
             success: data.success,
             data: {
-                status: paymentOutcome === 'success' ? 'success'
-                    : paymentOutcome === 'failed' ? 'failed'
-                        : 'pending',
+                status: data.status || 'pending',
                 reference_id: referenceId,
                 transaction_id: data.data?.transaction_id,
             },
