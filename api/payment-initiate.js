@@ -7,9 +7,9 @@
  * 3. Returns reference ID and redirect URL
  */
 
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
@@ -20,13 +20,12 @@ module.exports = async function handler(req, res) {
 
     try {
         const {
-            paymentMethod, // 'momo' or 'card'
+            paymentMethod,
             email,
             name,
             amount,
             phone,
             servicePaid,
-            // These are critical for enrollment
             studentId,
             courseId,
             bundleId,
@@ -84,7 +83,7 @@ module.exports = async function handler(req, res) {
         const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
         const referenceId = `COURSE-${dateStr}-${random}`;
 
-        // Callback URL (LMBTech sends payment result here)
+        // Callback URL
         const siteUrl = process.env.SITE_URL || 'https://dataplusacademy.com';
         const callbackUrl = `${siteUrl}/api/payment-callback`;
 
@@ -128,7 +127,6 @@ module.exports = async function handler(req, res) {
             name,
             amount: Number(amount),
             service_paid: servicePaid || `course_${courseId || bundleId}`,
-            'service-paid': servicePaid || `course_${courseId || bundleId}`,
             reference_id: referenceId,
             callback_url: callbackUrl,
         };
@@ -139,7 +137,6 @@ module.exports = async function handler(req, res) {
         } else if (paymentMethod === 'card') {
             lmbBody.payment_method = 'card';
             lmbBody.card_redirect_url = `${siteUrl}/api/payment-callback`;
-            lmbBody.cardredirect_url = lmbBody.card_redirect_url;
         }
 
         console.log('[payment-initiate] Calling LMBTech API:', JSON.stringify(lmbBody));
@@ -175,19 +172,14 @@ module.exports = async function handler(req, res) {
             error: error.message || 'Internal server error'
         });
     }
-};
+}
 
-/**
- * Format phone number to +250 format
- */
 function formatPhone(phone) {
     if (!phone) return phone;
     const clean = phone.replace(/[^\d+]/g, '');
-
     if (clean.startsWith('+250') && clean.length === 13) return clean;
     if (clean.startsWith('250') && clean.length === 12) return `+${clean}`;
     if (clean.startsWith('0') && clean.length === 10) return `+250${clean.slice(1)}`;
     if (/^\d{9}$/.test(clean) && clean.startsWith('7')) return `+250${clean}`;
-
     return clean;
 }

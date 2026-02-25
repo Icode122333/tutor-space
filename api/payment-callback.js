@@ -1,17 +1,13 @@
 /**
  * Vercel Serverless Function: Payment Callback
  * 
- * Receives callbacks from LMBTech after payment completes.
- * 
- * For MoMo: POST with JSON body (server-to-server) → returns JSON
- * For Card: GET with query params (user browser redirect from Pesapal) → redirects to /payment/success
+ * MoMo: POST with JSON body (server-to-server) → returns JSON
+ * Card: GET with query params (user browser redirect from Pesapal) → redirects to /payment/success
  */
 
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
-module.exports = async function handler(req, res) {
-    // For GET: data in query params (card redirect from Pesapal)
-    // For POST: data in body (MoMo server callback)
+export default async function handler(req, res) {
     const payload = req.method === 'GET' ? req.query : req.body;
     const isCardRedirect = req.method === 'GET' && payload.pesapal_merchant_reference;
 
@@ -36,7 +32,7 @@ module.exports = async function handler(req, res) {
             console.log('[payment-callback] MoMo callback:', { referenceId, transactionId, status });
         }
         else {
-            console.error('[payment-callback] Unknown callback format:', payload);
+            console.error('[payment-callback] Unknown format:', payload);
             if (req.method === 'GET') {
                 return res.redirect(302, '/payment/success?error=invalid_callback');
             }
@@ -68,12 +64,12 @@ module.exports = async function handler(req, res) {
             }
         }
 
-        // For card payments: redirect user's browser to the success page
+        // For card: redirect user's browser to the success page
         if (isCardRedirect) {
             return res.redirect(302, `/payment/success?ref=${encodeURIComponent(referenceId)}`);
         }
 
-        // For MoMo: return JSON acknowledgment to LMBTech
+        // For MoMo: return JSON acknowledgment
         return res.status(200).json({
             success: true,
             message: 'Callback processed',
@@ -87,7 +83,7 @@ module.exports = async function handler(req, res) {
         }
         return res.status(500).json({ success: false, error: error.message });
     }
-};
+}
 
 function normalizeStatus(status) {
     if (typeof status === 'string') {

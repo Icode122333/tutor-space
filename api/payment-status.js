@@ -1,11 +1,9 @@
 /**
  * Vercel Serverless Function: Payment Status
  * GET /api/payment-status?ref=REFERENCE_ID
- * 
- * Checks payment status from LMBTech API.
  */
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
@@ -24,15 +22,10 @@ module.exports = async function handler(req, res) {
         const secretKey = process.env.LMBTECH_SECRET_KEY;
 
         if (!appKey || !secretKey) {
-            return res.status(500).json({
-                success: false,
-                error: 'Payment system not configured'
-            });
+            return res.status(500).json({ success: false, error: 'Payment system not configured' });
         }
 
         const credentials = Buffer.from(`${appKey}:${secretKey}`).toString('base64');
-
-        // LMBTech status check: GET with reference_id as query param
         const url = `https://pay.lmbtech.rw/pay/config/api.php?reference_id=${encodeURIComponent(referenceId)}`;
 
         const response = await fetch(url, {
@@ -46,7 +39,6 @@ module.exports = async function handler(req, res) {
         const data = await response.json();
         console.log('[payment-status] LMBTech response:', JSON.stringify(data));
 
-        // Normalize status
         const paymentStatus = data.data?.status || data.status || 'pending';
         const normalizedStatus = normalizeStatus(paymentStatus);
 
@@ -66,7 +58,7 @@ module.exports = async function handler(req, res) {
             error: error.message
         });
     }
-};
+}
 
 function normalizeStatus(status) {
     if (typeof status === 'string') {
