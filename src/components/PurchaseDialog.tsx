@@ -106,8 +106,11 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
             setReferenceId(result.referenceId);
 
             // For card payments, redirect to the payment URL
-            if (paymentMethod === "card" && result.data?.data?.redirect_url) {
-                window.open(result.data.data.redirect_url, "_blank");
+            if (paymentMethod === "card") {
+                const redirectUrl = result.redirectUrl || result.data?.redirectUrl || result.data?.data?.redirect_url;
+                if (redirectUrl) {
+                    window.open(redirectUrl, "_blank");
+                }
             }
         } else {
             setStep("failed");
@@ -144,8 +147,8 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                             <button
                                 onClick={() => setPaymentMethod("momo")}
                                 className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${paymentMethod === "momo"
-                                        ? "border-green-500 bg-green-50"
-                                        : "border-gray-200 hover:border-gray-300"
+                                    ? "border-green-500 bg-green-50"
+                                    : "border-gray-200 hover:border-gray-300"
                                     }`}
                             >
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "momo" ? "bg-green-500 text-white" : "bg-gray-100 text-gray-500"
@@ -164,8 +167,8 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                             <button
                                 onClick={() => setPaymentMethod("card")}
                                 className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${paymentMethod === "card"
-                                        ? "border-blue-500 bg-blue-50"
-                                        : "border-gray-200 hover:border-gray-300"
+                                    ? "border-blue-500 bg-blue-50"
+                                    : "border-gray-200 hover:border-gray-300"
                                     }`}
                             >
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "card" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-500"
