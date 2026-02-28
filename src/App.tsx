@@ -35,6 +35,7 @@ import TeacherAssignments from "./pages/TeacherAssignments";
 import TeacherGrades from "./pages/TeacherGrades";
 import TeacherCohorts from "./pages/TeacherCohorts";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import TeacherStudents from "./pages/TeacherStudents";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./components/AuthCallback";
@@ -101,6 +102,7 @@ const App = () => (
           <Route path="/teacher/onboarding" element={<TeacherOnboarding />} />
           <Route path="/teacher/pending-approval" element={<TeacherPendingApproval />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/debug" element={<RoleDebugger />} />
           {/* Admin Routes */}
           <Route path="/admin/dashboard" element={<AdminDashboard />} />

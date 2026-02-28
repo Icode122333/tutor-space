@@ -104,8 +104,8 @@ export const CoursesPreviewSection = () => {
                             key={cat}
                             onClick={() => setActiveTab(cat)}
                             className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${activeTab === cat
-                                    ? "bg-[#006d2c] text-white shadow-lg shadow-green-900/20"
-                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                ? "bg-[#006d2c] text-white shadow-lg shadow-green-900/20"
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                                 }`}
                         >
                             {cat}

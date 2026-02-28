@@ -131,8 +131,8 @@ export const Footer = () => {
                 <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between gap-4">
                     <p>© 2026 DataPlus Labs. All rights reserved.</p>
                     <div className="flex gap-6">
-                        <a href="#" className="hover:text-white">Privacy Policy</a>
-                        <a href="#" className="hover:text-white">Terms of Service</a>
+                        <a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a>
+                        <a href="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</a>
                     </div>
                 </div>
             </div>

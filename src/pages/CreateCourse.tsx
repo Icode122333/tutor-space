@@ -8,9 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Plus, Trash2, ChevronDown, ChevronRight, ArrowLeft, 
-  BookOpen, Layers, Award, Save, Video, FileText, 
+import {
+  Plus, Trash2, ChevronDown, ChevronRight, ArrowLeft,
+  BookOpen, Layers, Award, Save, Video, FileText,
   Link2, HelpCircle, ClipboardList, GripVertical, Check,
   Eye, X, Play, Clock, Globe, Users, Target
 } from "lucide-react";
@@ -66,7 +66,7 @@ export default function CreateCourse() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [courseId, setCourseId] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState(0);
-  
+
   const [courseData, setCourseData] = useState({
     title: "",
     description: "",
@@ -76,7 +76,7 @@ export default function CreateCourse() {
     level: "beginner",
     language: "",
   });
-  
+
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [openChapters, setOpenChapters] = useState<Set<number>>(new Set([0]));
   const [capstoneProject, setCapstoneProject] = useState({
@@ -107,7 +107,7 @@ export default function CreateCourse() {
   const fetchCourseData = async (id: string) => {
     try {
       setInitialLoading(true);
-      
+
       const { data: course, error: courseError } = await supabase
         .from("courses")
         .select("*")
@@ -518,17 +518,15 @@ export default function CreateCourse() {
                 <button
                   key={step.title}
                   onClick={() => setActiveStep(index)}
-                  className={`flex items-center gap-2 px-6 py-4 border-b-2 transition-colors ${
-                    isActive 
-                      ? "border-[#006d2c] text-[#006d2c]" 
-                      : isCompleted 
-                        ? "border-transparent text-gray-600 hover:text-gray-900" 
+                  className={`flex items-center gap-2 px-6 py-4 border-b-2 transition-colors ${isActive
+                      ? "border-[#006d2c] text-[#006d2c]"
+                      : isCompleted
+                        ? "border-transparent text-gray-600 hover:text-gray-900"
                         : "border-transparent text-gray-400"
-                  }`}
+                    }`}
                 >
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                    isActive ? "bg-[#006d2c] text-white" : isCompleted ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"
-                  }`}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${isActive ? "bg-[#006d2c] text-white" : isCompleted ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"
+                    }`}>
                     {isCompleted ? <Check className="h-3 w-3" /> : index + 1}
                   </div>
                   <Icon className="h-4 w-4" />
@@ -1208,9 +1206,9 @@ export default function CreateCourse() {
                   <Card>
                     <CardContent className="p-0">
                       {courseData.thumbnail_url ? (
-                        <img 
-                          src={courseData.thumbnail_url} 
-                          alt="Course thumbnail" 
+                        <img
+                          src={courseData.thumbnail_url}
+                          alt="Course thumbnail"
                           className="w-full aspect-video object-cover rounded-t-lg"
                         />
                       ) : (
