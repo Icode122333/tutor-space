@@ -12,7 +12,7 @@ import {
   Plus, Trash2, ChevronDown, ChevronRight, ArrowLeft,
   BookOpen, Layers, Award, Save, Video, FileText,
   Link2, HelpCircle, ClipboardList, GripVertical, Check,
-  Eye, X, Play, Clock, Globe, Users, Target
+  Eye, X, Play, Clock, Globe, Users, Target, Upload, ImageIcon, Loader2
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -66,6 +66,7 @@ export default function CreateCourse() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [courseId, setCourseId] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState(0);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
 
   const [courseData, setCourseData] = useState({
     title: "",
@@ -78,6 +79,53 @@ export default function CreateCourse() {
   });
 
   const [chapters, setChapters] = useState<Chapter[]>([]);
+
+  // Thumbnail upload handler
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please upload an image file (JPG, PNG, WebP).", variant: "destructive" });
+      return;
+    }
+
+    const MAX_SIZE = 1 * 1024 * 1024; // 1MB
+    if (file.size > MAX_SIZE) {
+      toast({
+        title: "File too large",
+        description: "Image must be under 1MB. Please compress your image using a tool like TinyPNG (tinypng.com) or Squoosh (squoosh.app) before uploading.",
+        variant: "destructive",
+      });
+      e.currentTarget.value = "";
+      return;
+    }
+
+    setUploadingThumbnail(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `thumbnails/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("course-thumbnails")
+        .upload(filePath, file, { cacheControl: "3600", upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("course-thumbnails")
+        .getPublicUrl(filePath);
+
+      setCourseData({ ...courseData, thumbnail_url: publicUrl });
+      toast({ title: "Thumbnail uploaded", description: "Course thumbnail has been uploaded successfully." });
+    } catch (error) {
+      console.error("Thumbnail upload error:", error);
+      toast({ title: "Upload failed", description: "Failed to upload thumbnail. Please try again.", variant: "destructive" });
+    } finally {
+      setUploadingThumbnail(false);
+    }
+  };
   const [openChapters, setOpenChapters] = useState<Set<number>>(new Set([0]));
   const [capstoneProject, setCapstoneProject] = useState({
     title: "",
@@ -519,10 +567,10 @@ export default function CreateCourse() {
                   key={step.title}
                   onClick={() => setActiveStep(index)}
                   className={`flex items-center gap-2 px-6 py-4 border-b-2 transition-colors ${isActive
-                      ? "border-[#006d2c] text-[#006d2c]"
-                      : isCompleted
-                        ? "border-transparent text-gray-600 hover:text-gray-900"
-                        : "border-transparent text-gray-400"
+                    ? "border-[#006d2c] text-[#006d2c]"
+                    : isCompleted
+                      ? "border-transparent text-gray-600 hover:text-gray-900"
+                      : "border-transparent text-gray-400"
                     }`}
                 >
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${isActive ? "bg-[#006d2c] text-white" : isCompleted ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"
@@ -604,13 +652,47 @@ export default function CreateCourse() {
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium text-gray-700">Thumbnail URL</Label>
-                    <Input
-                      value={courseData.thumbnail_url}
-                      onChange={(e) => setCourseData({ ...courseData, thumbnail_url: e.target.value })}
-                      placeholder="https://example.com/image.jpg"
-                      className="mt-1.5"
-                    />
+                    <Label className="text-sm font-medium text-gray-700">Course Thumbnail</Label>
+                    <div className="mt-1.5">
+                      {courseData.thumbnail_url ? (
+                        <div className="relative group">
+                          <img
+                            src={courseData.thumbnail_url}
+                            alt="Thumbnail preview"
+                            className="w-full aspect-video object-cover rounded-lg border border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setCourseData({ ...courseData, thumbnail_url: "" })}
+                            className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center w-full aspect-video border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                          <div className="flex flex-col items-center justify-center py-4">
+                            {uploadingThumbnail ? (
+                              <Loader2 className="w-8 h-8 text-gray-400 animate-spin mb-2" />
+                            ) : (
+                              <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                            )}
+                            <p className="text-sm font-medium text-gray-600">
+                              {uploadingThumbnail ? "Uploading..." : "Click to upload thumbnail"}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">JPG, PNG or WebP — Max 1MB</p>
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleThumbnailUpload}
+                            disabled={uploadingThumbnail}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                      <p className="text-xs text-amber-600 mt-1.5">⚠️ Max file size: 1MB. Use <a href="https://tinypng.com" target="_blank" rel="noopener noreferrer" className="underline font-medium">TinyPNG</a> or <a href="https://squoosh.app" target="_blank" rel="noopener noreferrer" className="underline font-medium">Squoosh</a> to compress your image.</p>
+                    </div>
                   </div>
 
                   <div>
