@@ -691,19 +691,19 @@ export default function CourseDetail() {
         </div>
       </div>
 
-      {/* Course Overview Section */}
+      {/* Course Overview Section — Compact */}
       <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="grid lg:grid-cols-3 gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="grid lg:grid-cols-3 gap-5">
             {/* What You'll Learn */}
             <div className="lg:col-span-2">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-[#0A400C]/10 flex items-center justify-center">
-                  <CheckCircle2 className="h-5 w-5 text-[#0A400C]" />
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-lg bg-[#0A400C]/10 flex items-center justify-center">
+                  <CheckCircle2 className="h-4 w-4 text-[#0A400C]" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">What You'll Learn</h2>
+                <h2 className="text-lg font-bold text-gray-900">What You'll Learn</h2>
               </div>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-2 gap-2">
                 {[
                   "Master core concepts and fundamentals",
                   "Build real-world projects and applications",
@@ -712,9 +712,9 @@ export default function CourseDetail() {
                   "Prepare for professional certification",
                   "Access lifetime course materials"
                 ].map((item, index) => (
-                  <div key={index} className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100">
-                    <CheckCircle2 className="h-5 w-5 text-[#0A400C] flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">{item}</span>
+                  <div key={index} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 border border-gray-100">
+                    <CheckCircle2 className="h-4 w-4 text-[#0A400C] flex-shrink-0" />
+                    <span className="text-gray-700 text-sm">{item}</span>
                   </div>
                 ))}
               </div>
@@ -722,41 +722,41 @@ export default function CourseDetail() {
 
             {/* Requirements */}
             <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
-                  <Target className="h-5 w-5 text-orange-600" />
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center">
+                  <Target className="h-4 w-4 text-orange-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">Requirements</h2>
+                <h2 className="text-lg font-bold text-gray-900">Requirements</h2>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-1.5">
                 {course.requirements ? (
                   course.requirements.split('\n').filter(r => r.trim()).map((req, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-orange-50 border border-orange-100">
-                      <div className="w-6 h-6 rounded-full bg-orange-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span className="text-xs font-semibold text-orange-700">{index + 1}</span>
+                    <div key={index} className="flex items-start gap-2 p-2 rounded-lg bg-orange-50 border border-orange-100">
+                      <div className="w-5 h-5 rounded-full bg-orange-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-[10px] font-semibold text-orange-700">{index + 1}</span>
                       </div>
-                      <span className="text-gray-700 text-sm">{req}</span>
+                      <span className="text-gray-700 text-xs">{req}</span>
                     </div>
                   ))
                 ) : (
                   <>
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-50 border border-orange-100">
-                      <div className="w-6 h-6 rounded-full bg-orange-200 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-semibold text-orange-700">1</span>
+                    <div className="flex items-start gap-2 p-2 rounded-lg bg-orange-50 border border-orange-100">
+                      <div className="w-5 h-5 rounded-full bg-orange-200 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[10px] font-semibold text-orange-700">1</span>
                       </div>
-                      <span className="text-gray-700 text-sm">Basic computer skills</span>
+                      <span className="text-gray-700 text-xs">Basic computer skills</span>
                     </div>
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-50 border border-orange-100">
-                      <div className="w-6 h-6 rounded-full bg-orange-200 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-semibold text-orange-700">2</span>
+                    <div className="flex items-start gap-2 p-2 rounded-lg bg-orange-50 border border-orange-100">
+                      <div className="w-5 h-5 rounded-full bg-orange-200 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[10px] font-semibold text-orange-700">2</span>
                       </div>
-                      <span className="text-gray-700 text-sm">Willingness to learn</span>
+                      <span className="text-gray-700 text-xs">Willingness to learn</span>
                     </div>
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-50 border border-orange-100">
-                      <div className="w-6 h-6 rounded-full bg-orange-200 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-semibold text-orange-700">3</span>
+                    <div className="flex items-start gap-2 p-2 rounded-lg bg-orange-50 border border-orange-100">
+                      <div className="w-5 h-5 rounded-full bg-orange-200 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[10px] font-semibold text-orange-700">3</span>
                       </div>
-                      <span className="text-gray-700 text-sm">Internet connection</span>
+                      <span className="text-gray-700 text-xs">Internet connection</span>
                     </div>
                   </>
                 )}
