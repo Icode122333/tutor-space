@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, FileText, Play, CheckCircle2, Clock, BookOpen, Target, ChevronRight, Sparkles } from "lucide-react";
+import { ExternalLink, FileText, Play, CheckCircle2, Clock, BookOpen, Target, ChevronRight, Sparkles, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import PdfJsInlineViewer from "@/components/PdfJsInlineViewer";
@@ -23,6 +23,99 @@ interface CourseContentPlayerProps {
   onComplete?: () => void;
   progressPercent?: number;
   isPreviewMode?: boolean; // For teachers to view content without tracking progress
+}
+
+// Sub-component: Displays an attached PDF for video lessons
+function LessonPdfCard({ fileUrl }: { fileUrl: string }) {
+  const [pdfResolvedUrl, setPdfResolvedUrl] = useState<string | null>(null);
+  const [pdfError, setPdfError] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const resolve = async () => {
+      setLoading(true);
+      setPdfError(false);
+      if (/^https?:\/\//i.test(fileUrl)) {
+        setPdfResolvedUrl(fileUrl);
+        setLoading(false);
+        return;
+      }
+      try {
+        const cleaned = fileUrl.replace(/^\/+/, "");
+        const path = cleaned.replace(/^lesson-files\//, "");
+        const { data: signed, error } = await supabase.storage.from("lesson-files").createSignedUrl(path, 3600);
+        if (!error && signed?.signedUrl) {
+          setPdfResolvedUrl(signed.signedUrl);
+        } else {
+          const { data: pub } = supabase.storage.from("lesson-files").getPublicUrl(path);
+          setPdfResolvedUrl(pub?.publicUrl || fileUrl);
+        }
+      } catch {
+        setPdfResolvedUrl(fileUrl);
+      } finally {
+        setLoading(false);
+      }
+    };
+    resolve();
+  }, [fileUrl]);
+
+  if (loading) {
+    return (
+      <Card className="border-0 shadow-lg rounded-2xl">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+              <FileText className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900">Lesson PDF</h3>
+              <p className="text-sm text-gray-500">Loading document...</p>
+            </div>
+          </div>
+          <div className="mt-4 h-[50vh] flex items-center justify-center bg-gray-50 rounded-xl">
+            <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!pdfResolvedUrl) return null;
+
+  return (
+    <Card className="border-0 shadow-lg rounded-2xl">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+              <FileText className="h-5 w-5 text-blue-600" />
+            </div>
+            <h3 className="font-bold text-gray-900">Lesson PDF</h3>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+            onClick={() => window.open(pdfResolvedUrl, "_blank")}
+          >
+            <Download className="h-4 w-4 mr-1.5" />
+            Download
+          </Button>
+        </div>
+        <div className="rounded-xl overflow-hidden border border-gray-200" style={{ minHeight: "50vh" }}>
+          {!pdfError ? (
+            <PdfJsInlineViewer src={pdfResolvedUrl} onError={() => setPdfError(true)} />
+          ) : (
+            <iframe
+              src={`${pdfResolvedUrl}#toolbar=1&navpanes=1&scrollbar=1`}
+              title="Lesson PDF"
+              className="w-full h-[50vh]"
+            />
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function CourseContentPlayer({ lesson, studentId, onComplete, progressPercent = 0, isPreviewMode = false }: CourseContentPlayerProps) {
@@ -381,6 +474,11 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
             <p className="text-white/60 text-xs mt-2">Keep going! You're making great progress.</p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Accompanying PDF Card - Only for video lessons with an attached PDF */}
+      {lesson.content_type === "video" && lesson.file_url && (
+        <LessonPdfCard fileUrl={lesson.file_url} />
       )}
 
       {/* Description Card */}

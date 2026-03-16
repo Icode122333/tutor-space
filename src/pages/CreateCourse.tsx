@@ -897,6 +897,27 @@ export default function CreateCourse() {
                                           </>
                                         )}
 
+                                        {/* Optional PDF upload for video lessons */}
+                                        {lesson.content_type === "video" && (
+                                          <div className="space-y-1.5">
+                                            <Label className="text-xs text-gray-500 flex items-center gap-1.5">
+                                              <FileText className="h-3.5 w-3.5" />
+                                              Accompanying PDF (Optional)
+                                            </Label>
+                                            <FileUploadField
+                                              label=""
+                                              value={lesson.file_url || ""}
+                                              onChange={(url, isUpload) => {
+                                                updateLesson(chapterIndex, lessonIndex, "file_url", url);
+                                              }}
+                                              accept=".pdf"
+                                              placeholder="Upload or paste PDF URL"
+                                              courseId={courseId || undefined}
+                                              lessonId={`temp-${chapterIndex}-${lessonIndex}`}
+                                            />
+                                          </div>
+                                        )}
+
                                         <Textarea
                                           value={lesson.description}
                                           onChange={(e) => updateLesson(chapterIndex, lessonIndex, "description", e.target.value)}
