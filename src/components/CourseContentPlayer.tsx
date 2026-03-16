@@ -302,7 +302,7 @@ export function CourseContentPlayer({ lesson, studentId, onComplete, progressPer
                     </Badge>
                   )}
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 truncate">{lesson.title}</h2>
+                <h2 className="text-xl font-bold text-gray-900">{lesson.title}</h2>
               </div>
 
               {/* Right: Mark Complete Button - Only for students */}

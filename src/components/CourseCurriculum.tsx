@@ -201,7 +201,7 @@ export function CourseCurriculum({ chapters, currentLessonId, onLessonClick, wel
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className={cn(
-                        "font-semibold truncate",
+                        "font-semibold",
                         chapterLocked ? "text-gray-400" : "text-gray-900"
                       )}>
                         {chapter.title}
@@ -325,7 +325,7 @@ export function CourseCurriculum({ chapters, currentLessonId, onLessonClick, wel
                           {/* Lesson Info */}
                           <div className="flex-1 min-w-0">
                             <div className={cn(
-                              "text-sm font-medium truncate transition-colors",
+                              "text-sm font-medium transition-colors",
                               locked ? "text-gray-400" : isActive ? "text-[#0A400C]" : lesson.is_completed ? "text-gray-700" : "text-gray-600"
                             )}>
                               {lesson.title}

@@ -174,7 +174,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
                     size="sm"
                   >
                     <ShoppingCart className="h-3 w-3 mr-1" />
-                    Buy
+                    Enroll
                   </Button>
                 </div>
               ) : showEnrollButton && onEnroll ? (
@@ -297,7 +297,7 @@ export const CourseCard = ({ course, onClick, gradient = "from-blue-500 to-purpl
                     }}
                   >
                     <ShoppingCart className="h-4 w-4 mr-1" />
-                    Buy
+                    Enroll
                   </Button>
                 )}
               </div>
