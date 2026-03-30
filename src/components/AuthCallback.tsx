@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const PENDING_VERIFICATION_EMAIL_KEY = "pendingVerificationEmail";
+
 const AuthCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -98,12 +100,14 @@ const AuthCallback = () => {
           }
 
           console.log("Profile created successfully with role:", role);
+          sessionStorage.removeItem(PENDING_VERIFICATION_EMAIL_KEY);
           
           // After email verification, redirect to login page
           toast.success("Email verified successfully! Please log in to continue.");
           navigate("/auth");
         } else {
           console.log("Existing user found with role:", existingProfile.role);
+          sessionStorage.removeItem(PENDING_VERIFICATION_EMAIL_KEY);
           
           // Check if role from URL/metadata doesn't match profile role (fix for trigger defaulting to student)
           const intendedRole = searchParams.get("role") || user.user_metadata?.role;

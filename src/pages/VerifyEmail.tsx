@@ -1,12 +1,65 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react";
+import { Mail, ArrowLeft, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
+
+const PENDING_VERIFICATION_EMAIL_KEY = "pendingVerificationEmail";
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    const storedEmail = sessionStorage.getItem(PENDING_VERIFICATION_EMAIL_KEY) || "";
+    setEmail(storedEmail);
+  }, []);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+
+    const timer = window.setTimeout(() => {
+      setCooldown((current) => current - 1);
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [cooldown]);
+
+  const handleResend = async () => {
+    if (!email) {
+      toast.error("We couldn't find the email address to resend to. Please try signing up or signing in again.");
+      return;
+    }
+
+    setResending(true);
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setCooldown(30);
+      toast.success(`Verification email sent again to ${email}.`);
+    } catch (error: any) {
+      console.error("Verification resend error:", error);
+      toast.error(error.message || "Failed to resend verification email.");
+    } finally {
+      setResending(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4">
@@ -24,7 +77,9 @@ const VerifyEmail = () => {
           <Alert className="bg-blue-50 border-blue-200">
             <CheckCircle2 className="h-4 w-4 text-blue-600" />
             <AlertDescription className="text-sm text-blue-900">
-              We've sent a verification email to your inbox. Click the link in the email to verify your account.
+              {email
+                ? `We've sent a verification email to ${email}. Click the link in the email to verify your account.`
+                : "We've sent a verification email to your inbox. Click the link in the email to verify your account."}
             </AlertDescription>
           </Alert>
 
@@ -67,13 +122,29 @@ const VerifyEmail = () => {
           <Alert className="bg-amber-50 border-amber-200">
             <AlertCircle className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-xs text-amber-900">
-              <strong>Didn't receive the email?</strong> Check your spam or junk folder. If you still can't find it, contact support.
+              <strong>Didn't receive the email?</strong> Check your spam or junk folder first. If it's still missing, use resend below.
             </AlertDescription>
           </Alert>
 
-          <div className="pt-2">
-            <Button 
-              variant="outline" 
+          <div className="space-y-3 pt-2">
+            <Button
+              className="w-full"
+              onClick={handleResend}
+              disabled={resending || cooldown > 0}
+            >
+              {resending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Resending...
+                </>
+              ) : cooldown > 0 ? (
+                `Resend available in ${cooldown}s`
+              ) : (
+                "Resend verification email"
+              )}
+            </Button>
+            <Button
+              variant="outline"
               className="w-full"
               onClick={() => navigate("/auth")}
             >

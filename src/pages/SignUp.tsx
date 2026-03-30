@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 type UserRole = "student" | "teacher";
 
 const AUTH_METHOD_KEY = "lastAuthMethod";
+const PENDING_VERIFICATION_EMAIL_KEY = "pendingVerificationEmail";
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -122,9 +123,9 @@ const SignUp = () => {
       }
 
       if (data.user) {
-        // Check if email confirmation is required
-        if (data.user.identities && data.user.identities.length === 0) {
-          // Email needs to be verified
+        // Supabase returns no session when email confirmation is still required.
+        if (!data.session) {
+          sessionStorage.setItem(PENDING_VERIFICATION_EMAIL_KEY, email.toLowerCase());
           toast.success(
             "🎉 Account created successfully! Please check your email to verify your account before logging in.",
             {
@@ -143,6 +144,7 @@ const SignUp = () => {
         // Email confirmation not required (instant signup enabled)
         // This happens when email confirmation is disabled in Supabase
         // Wait a moment for the trigger to create the profile
+        sessionStorage.removeItem(PENDING_VERIFICATION_EMAIL_KEY);
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Verify and update the profile role if needed
