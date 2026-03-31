@@ -39,7 +39,6 @@ export default function BrowseBundles() {
     const fetchBundles = async () => {
         setLoading(true);
         try {
-            // Fetch active bundles
             const { data: bundlesData, error: bundlesError } = await supabase
                 .from("course_bundles")
                 .select("*")
@@ -48,19 +47,31 @@ export default function BrowseBundles() {
 
             if (bundlesError) throw bundlesError;
 
-            // Fetch courses for each bundle
-            const bundlesWithCourses: Bundle[] = [];
-            for (const bundle of bundlesData || []) {
-                const { data: bundleCourses } = await supabase
-                    .from("bundle_courses")
-                    .select("course_id, courses:course_id(id, title, thumbnail_url)")
-                    .eq("bundle_id", bundle.id);
+            const bundleIds = (bundlesData || []).map((bundle) => bundle.id);
+            let coursesByBundle = new Map<string, Bundle["courses"]>();
 
-                bundlesWithCourses.push({
-                    ...bundle,
-                    courses: (bundleCourses || []).map((bc: any) => bc.courses).filter(Boolean),
-                });
+            if (bundleIds.length > 0) {
+                const { data: bundleCourses, error: bundleCoursesError } = await supabase
+                    .from("bundle_courses")
+                    .select("bundle_id, courses:course_id(id, title, thumbnail_url)")
+                    .in("bundle_id", bundleIds);
+
+                if (bundleCoursesError) throw bundleCoursesError;
+
+                coursesByBundle = (bundleCourses || []).reduce((map, bundleCourse: any) => {
+                    const existingCourses = map.get(bundleCourse.bundle_id) || [];
+                    if (bundleCourse.courses) {
+                        existingCourses.push(bundleCourse.courses);
+                    }
+                    map.set(bundleCourse.bundle_id, existingCourses);
+                    return map;
+                }, new Map<string, Bundle["courses"]>());
             }
+
+            const bundlesWithCourses: Bundle[] = (bundlesData || []).map((bundle) => ({
+                ...bundle,
+                courses: coursesByBundle.get(bundle.id) || [],
+            }));
 
             setBundles(bundlesWithCourses);
         } catch (error) {

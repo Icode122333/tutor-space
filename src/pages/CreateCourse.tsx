@@ -30,6 +30,7 @@ interface QuizQuestion {
 }
 
 interface Lesson {
+  id?: string;
   title: string;
   description: string;
   content_type: "video" | "pdf" | "document" | "url" | "quiz" | "assignment";
@@ -42,9 +43,19 @@ interface Lesson {
 }
 
 interface Chapter {
+  id?: string;
   title: string;
   order_index: number;
   lessons: Lesson[];
+}
+
+interface CapstoneProjectForm {
+  id?: string;
+  title: string;
+  description: string;
+  instructions: string;
+  requirements: string[];
+  due_date: string;
 }
 
 const contentTypeIcons: Record<string, any> = {
@@ -127,7 +138,7 @@ export default function CreateCourse() {
     }
   };
   const [openChapters, setOpenChapters] = useState<Set<number>>(new Set([0]));
-  const [capstoneProject, setCapstoneProject] = useState({
+  const [capstoneProject, setCapstoneProject] = useState<CapstoneProjectForm>({
     title: "",
     description: "",
     instructions: "",
@@ -203,6 +214,7 @@ export default function CreateCourse() {
 
                 if (questionsData) {
                   return {
+                    id: lesson.id,
                     title: lesson.title,
                     description: lesson.description,
                     content_type: lesson.content_type,
@@ -222,6 +234,7 @@ export default function CreateCourse() {
                 }
               }
               return {
+                id: lesson.id,
                 title: lesson.title,
                 description: lesson.description,
                 content_type: lesson.content_type,
@@ -234,8 +247,7 @@ export default function CreateCourse() {
               };
             })
           );
-
-          return { title: chapter.title, order_index: chapter.order_index, lessons: lessonsWithQuiz };
+          return { id: chapter.id, title: chapter.title, order_index: chapter.order_index, lessons: lessonsWithQuiz };
         })
       );
 
@@ -251,6 +263,7 @@ export default function CreateCourse() {
       if (capstoneData) {
         setIncludeCapstone(true);
         setCapstoneProject({
+          id: capstoneData.id,
           title: capstoneData.title || "",
           description: capstoneData.description || "",
           instructions: capstoneData.instructions || "",
@@ -266,15 +279,25 @@ export default function CreateCourse() {
     }
   };
 
+  const normalizeChapterOrder = (chapterList: Chapter[]) =>
+    chapterList.map((chapter, chapterIndex) => ({
+      ...chapter,
+      order_index: chapterIndex,
+      lessons: chapter.lessons.map((lesson, lessonIndex) => ({
+        ...lesson,
+        order_index: lessonIndex,
+      })),
+    }));
+
 
   // Chapter & Lesson handlers
   const addChapter = () => {
-    setChapters([...chapters, { title: "", order_index: chapters.length, lessons: [] }]);
+    setChapters(normalizeChapterOrder([...chapters, { title: "", order_index: chapters.length, lessons: [] }]));
     setOpenChapters(new Set([...openChapters, chapters.length]));
   };
 
   const removeChapter = (chapterIndex: number) => {
-    setChapters(chapters.filter((_, i) => i !== chapterIndex));
+    setChapters(normalizeChapterOrder(chapters.filter((_, i) => i !== chapterIndex)));
   };
 
   const addLesson = (chapterIndex: number) => {
@@ -289,13 +312,13 @@ export default function CreateCourse() {
       is_mandatory: false,
       quiz_questions: [],
     });
-    setChapters(newChapters);
+    setChapters(normalizeChapterOrder(newChapters));
   };
 
   const removeLesson = (chapterIndex: number, lessonIndex: number) => {
     const newChapters = [...chapters];
     newChapters[chapterIndex].lessons = newChapters[chapterIndex].lessons.filter((_, i) => i !== lessonIndex);
-    setChapters(newChapters);
+    setChapters(normalizeChapterOrder(newChapters));
   };
 
   const updateChapter = (chapterIndex: number, field: string, value: string) => {
@@ -369,6 +392,211 @@ export default function CreateCourse() {
     setCapstoneProject({ ...capstoneProject, requirements: capstoneProject.requirements.filter((_, i) => i !== index) });
   };
 
+  const syncCourseStructure = async (targetCourseId: string) => {
+    const { data: existingChapters, error: existingChaptersError } = await supabase
+      .from("course_chapters")
+      .select("id, course_lessons(id, content_type, lesson_quiz_questions(id))")
+      .eq("course_id", targetCourseId);
+
+    if (existingChaptersError) {
+      throw existingChaptersError;
+    }
+
+    const existingChapterIds = new Set((existingChapters || []).map((chapter) => chapter.id));
+    const existingLessonIds = new Set(
+      (existingChapters || []).flatMap((chapter: any) => (chapter.course_lessons || []).map((lesson: any) => lesson.id))
+    );
+    const existingQuizQuestionIds = new Set(
+      (existingChapters || []).flatMap((chapter: any) =>
+        (chapter.course_lessons || []).flatMap((lesson: any) =>
+          (lesson.lesson_quiz_questions || []).map((question: any) => question.id)
+        )
+      )
+    );
+
+    const retainedChapterIds = new Set<string>();
+    const retainedLessonIds = new Set<string>();
+    const retainedQuizQuestionIds = new Set<string>();
+
+    for (const chapter of normalizeChapterOrder(chapters)) {
+      let chapterRecordId = chapter.id;
+
+      if (chapterRecordId) {
+        const { error } = await supabase
+          .from("course_chapters")
+          .update({
+            title: chapter.title,
+            order_index: chapter.order_index,
+          })
+          .eq("id", chapterRecordId);
+
+        if (error) throw error;
+      } else {
+        const { data: insertedChapter, error } = await supabase
+          .from("course_chapters")
+          .insert({
+            course_id: targetCourseId,
+            title: chapter.title,
+            order_index: chapter.order_index,
+          })
+          .select("id")
+          .single();
+
+        if (error) throw error;
+        chapterRecordId = insertedChapter.id;
+      }
+
+      retainedChapterIds.add(chapterRecordId);
+
+      for (const lesson of chapter.lessons) {
+        let lessonRecordId = lesson.id;
+        const lessonPayload = {
+          chapter_id: chapterRecordId,
+          title: lesson.title,
+          description: lesson.description,
+          content_type: lesson.content_type,
+          content_url: lesson.content_type === "quiz" ? "" : lesson.content_url,
+          file_url: lesson.file_url || null,
+          duration: lesson.duration,
+          order_index: lesson.order_index,
+          is_mandatory: lesson.is_mandatory || false,
+        };
+
+        if (lessonRecordId) {
+          const { error } = await supabase
+            .from("course_lessons")
+            .update(lessonPayload)
+            .eq("id", lessonRecordId);
+
+          if (error) throw error;
+        } else {
+          const { data: insertedLesson, error } = await supabase
+            .from("course_lessons")
+            .insert(lessonPayload)
+            .select("id")
+            .single();
+
+          if (error) throw error;
+          lessonRecordId = insertedLesson.id;
+        }
+
+        retainedLessonIds.add(lessonRecordId);
+
+        if (lesson.content_type === "quiz" && lesson.quiz_questions?.length) {
+          for (const [questionIndex, question] of lesson.quiz_questions.entries()) {
+            const questionPayload = {
+              lesson_id: lessonRecordId,
+              question_text: question.question_text,
+              options: question.options,
+              correct_answer: question.correct_answer,
+              explanation: question.explanation,
+              order_index: questionIndex,
+              points: question.points,
+            };
+
+            if (existingQuizQuestionIds.has(question.id)) {
+              const { error } = await supabase
+                .from("lesson_quiz_questions")
+                .update(questionPayload)
+                .eq("id", question.id);
+
+              if (error) throw error;
+            } else {
+              const { error } = await supabase
+                .from("lesson_quiz_questions")
+                .insert({
+                  id: question.id,
+                  ...questionPayload,
+                });
+
+              if (error) throw error;
+            }
+
+            retainedQuizQuestionIds.add(question.id);
+          }
+        } else if (existingLessonIds.has(lessonRecordId)) {
+          const { error } = await supabase
+            .from("lesson_quiz_questions")
+            .delete()
+            .eq("lesson_id", lessonRecordId);
+
+          if (error) throw error;
+        }
+      }
+    }
+
+    const chapterIdsToDelete = [...existingChapterIds].filter((id) => !retainedChapterIds.has(id));
+    const lessonIdsToDelete = [...existingLessonIds].filter((id) => !retainedLessonIds.has(id));
+    const quizQuestionIdsToDelete = [...existingQuizQuestionIds].filter((id) => !retainedQuizQuestionIds.has(id));
+
+    if (quizQuestionIdsToDelete.length > 0) {
+      const { error } = await supabase
+        .from("lesson_quiz_questions")
+        .delete()
+        .in("id", quizQuestionIdsToDelete);
+
+      if (error) throw error;
+    }
+
+    if (lessonIdsToDelete.length > 0) {
+      const { error } = await supabase
+        .from("course_lessons")
+        .delete()
+        .in("id", lessonIdsToDelete);
+
+      if (error) throw error;
+    }
+
+    if (chapterIdsToDelete.length > 0) {
+      const { error } = await supabase
+        .from("course_chapters")
+        .delete()
+        .in("id", chapterIdsToDelete);
+
+      if (error) throw error;
+    }
+  };
+
+  const syncCapstoneProject = async (targetCourseId: string) => {
+    if (!includeCapstone || !capstoneProject.title.trim()) {
+      const { error } = await supabase
+        .from("capstone_projects")
+        .delete()
+        .eq("course_id", targetCourseId);
+
+      if (error) throw error;
+      return;
+    }
+
+    const capstonePayload = {
+      course_id: targetCourseId,
+      title: capstoneProject.title,
+      description: capstoneProject.description,
+      instructions: capstoneProject.instructions,
+      requirements: capstoneProject.requirements.filter((requirement) => requirement.trim()),
+      due_date: capstoneProject.due_date || null,
+    };
+
+    if (capstoneProject.id) {
+      const { error } = await supabase
+        .from("capstone_projects")
+        .update(capstonePayload)
+        .eq("id", capstoneProject.id);
+
+      if (error) throw error;
+      return;
+    }
+
+    const { data: insertedCapstone, error } = await supabase
+      .from("capstone_projects")
+      .insert(capstonePayload)
+      .select("id")
+      .single();
+
+    if (error) throw error;
+    setCapstoneProject((current) => ({ ...current, id: insertedCapstone.id }));
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -398,19 +626,6 @@ export default function CreateCourse() {
 
         if (courseError) throw courseError;
         course = updatedCourse;
-
-        const { data: existingChapters } = await supabase
-          .from("course_chapters")
-          .select("id")
-          .eq("course_id", courseId);
-
-        if (existingChapters) {
-          for (const chapter of existingChapters) {
-            await supabase.from("course_lessons").delete().eq("chapter_id", chapter.id);
-          }
-          await supabase.from("course_chapters").delete().eq("course_id", courseId);
-        }
-        await supabase.from("capstone_projects").delete().eq("course_id", courseId);
       } else {
         const { data: newCourse, error: courseError } = await supabase
           .from("courses")
@@ -431,60 +646,8 @@ export default function CreateCourse() {
         course = newCourse;
       }
 
-      // Create chapters and lessons
-      for (const chapter of chapters) {
-        const { data: chapterData, error: chapterError } = await supabase
-          .from("course_chapters")
-          .insert({ course_id: course.id, title: chapter.title, order_index: chapter.order_index })
-          .select()
-          .single();
-
-        if (chapterError) throw chapterError;
-
-        for (const lesson of chapter.lessons) {
-          const { data: lessonData, error: lessonError } = await supabase
-            .from("course_lessons")
-            .insert({
-              chapter_id: chapterData.id,
-              title: lesson.title,
-              description: lesson.description,
-              content_type: lesson.content_type,
-              content_url: lesson.content_type === "quiz" ? "" : lesson.content_url,
-              file_url: lesson.file_url || null,
-              duration: lesson.duration,
-              order_index: lesson.order_index,
-              is_mandatory: lesson.is_mandatory || false,
-            })
-            .select()
-            .single();
-
-          if (lessonError) throw lessonError;
-
-          if (lesson.content_type === "quiz" && lesson.quiz_questions?.length) {
-            const questionsToInsert = lesson.quiz_questions.map((q, idx) => ({
-              lesson_id: lessonData.id,
-              question_text: q.question_text,
-              options: q.options,
-              correct_answer: q.correct_answer,
-              explanation: q.explanation,
-              order_index: idx,
-              points: q.points,
-            }));
-            await supabase.from("lesson_quiz_questions").insert(questionsToInsert);
-          }
-        }
-      }
-
-      if (includeCapstone && capstoneProject.title.trim()) {
-        await supabase.from("capstone_projects").insert({
-          course_id: course.id,
-          title: capstoneProject.title,
-          description: capstoneProject.description,
-          instructions: capstoneProject.instructions,
-          requirements: capstoneProject.requirements.filter(r => r.trim()),
-          due_date: capstoneProject.due_date || null,
-        });
-      }
+      await syncCourseStructure(course.id);
+      await syncCapstoneProject(course.id);
 
       toast({ title: "Success!", description: isEditMode ? "Course updated" : "Course created" });
       navigate("/teacher/dashboard");

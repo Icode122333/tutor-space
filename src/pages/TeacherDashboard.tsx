@@ -115,42 +115,32 @@ const TeacherDashboard = () => {
 
     const { data, error } = await supabase
       .from("courses")
-      .select(`*, course_enrollments(count)`)
+      .select(`
+        *,
+        course_enrollments(count),
+        course_chapters(
+          id,
+          course_lessons(id)
+        )
+      `)
       .eq("teacher_id", user.id)
       .order("created_at", { ascending: false });
 
     if (!error) {
-      const coursesWithDetails = await Promise.all(
-        (data || []).map(async (course) => {
-          const { count: chapterCount } = await supabase
-            .from("course_chapters")
-            .select("*", { count: 'exact', head: true })
-            .eq("course_id", course.id);
+      const coursesWithDetails = (data || []).map((course: any) => {
+        const chapterCount = course.course_chapters?.length || 0;
+        const lessonCount = (course.course_chapters || []).reduce(
+          (total: number, chapter: any) => total + (chapter.course_lessons?.length || 0),
+          0
+        );
 
-          const { data: chapters } = await supabase
-            .from("course_chapters")
-            .select("id")
-            .eq("course_id", course.id);
-
-          let lessonCount = 0;
-          if (chapters) {
-            for (const chapter of chapters) {
-              const { count } = await supabase
-                .from("course_lessons")
-                .select("*", { count: 'exact', head: true })
-                .eq("chapter_id", chapter.id);
-              lessonCount += count || 0;
-            }
-          }
-
-          return {
-            ...course,
-            enrolled_count: course.course_enrollments?.[0]?.count || 0,
-            chapter_count: chapterCount || 0,
-            lesson_count: lessonCount,
-          };
-        })
-      );
+        return {
+          ...course,
+          enrolled_count: course.course_enrollments?.[0]?.count || 0,
+          chapter_count: chapterCount,
+          lesson_count: lessonCount,
+        };
+      });
       setCourses(coursesWithDetails);
     }
     setDataLoading(false);

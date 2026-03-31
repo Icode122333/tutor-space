@@ -1,62 +1,65 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import './i18n/config';
+import "./i18n/config";
 import { SuspensionDialog } from "@/components/SuspensionDialog";
-import Index from "./pages/Index";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Auth from "./pages/Auth";
-import SignUp from "./pages/SignUp";
-import VerifyEmail from "./pages/VerifyEmail";
-import StudentDashboard from "./pages/StudentDashboard";
-import TeacherDashboard from "./pages/TeacherDashboard";
-import TeacherSchedule from "./pages/TeacherSchedule";
-import CourseDetail from "./pages/CourseDetail";
-import CreateCourse from "./pages/CreateCourse";
-import Exhibition from "./pages/Exhibition";
-import StudentOnboarding from "./pages/StudentOnboarding";
-import TeacherOnboarding from "./pages/TeacherOnboarding";
-import TeacherChat from "./pages/TeacherChat";
-import StudentChat from "./pages/StudentChat";
-import StudentSchedule from "./pages/StudentSchedule";
-import StudentCertificates from "./pages/StudentCertificates";
-import BrowseCourses from "./pages/BrowseCourses";
-import MyCourses from "./pages/MyCourses";
-import StudentSettings from "./pages/StudentSettings";
-import StudentAssignments from "./pages/StudentAssignments";
-import StudentScores from "./pages/StudentScores";
-import StudentSubscription from "./pages/StudentSubscription";
-import TeacherSettings from "./pages/TeacherSettings";
-import TeacherAnnouncements from "./pages/TeacherAnnouncements";
-import TeacherAssignments from "./pages/TeacherAssignments";
-import TeacherGrades from "./pages/TeacherGrades";
-import TeacherCohorts from "./pages/TeacherCohorts";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
-import TeacherStudents from "./pages/TeacherStudents";
-import NotFound from "./pages/NotFound";
-import AuthCallback from "./components/AuthCallback";
-import RoleDebugger from "./components/RoleDebugger";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminTeacherApprovals from "./pages/AdminTeacherApprovals";
-import AdminUsers from "./pages/AdminUsers";
-import AdminLogs from "./pages/AdminLogs";
-import AdminCourses from "./pages/AdminCourses";
-import AdminSettings from "./pages/AdminSettings";
-import AdminStudentProgress from "./pages/AdminStudentProgress";
-import AdminCertificates from "./pages/AdminCertificates";
-import AdminAnnouncements from "./pages/AdminAnnouncements";
-import AdminExhibition from "./pages/AdminExhibition";
-import AdminTestimonials from "./pages/AdminTestimonials";
-import AdminPartners from "./pages/AdminPartners";
-import AdminPayments from "./pages/AdminPayments";
-import AdminBundles from "./pages/AdminBundles";
-import TeacherPendingApproval from "./pages/TeacherPendingApproval";
-import BrowseBundles from "./pages/BrowseBundles";
-import PaymentSuccess from "./pages/PaymentSuccess";
+import LoadingSpinner from "@/components/LoadingSpinner";
+
+const Index = lazy(() => import("./pages/Index"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Auth = lazy(() => import("./pages/Auth"));
+const SignUp = lazy(() => import("./pages/SignUp"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
+const TeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
+const TeacherSchedule = lazy(() => import("./pages/TeacherSchedule"));
+const CourseDetail = lazy(() => import("./pages/CourseDetail"));
+const CreateCourse = lazy(() => import("./pages/CreateCourse"));
+const Exhibition = lazy(() => import("./pages/Exhibition"));
+const StudentOnboarding = lazy(() => import("./pages/StudentOnboarding"));
+const TeacherOnboarding = lazy(() => import("./pages/TeacherOnboarding"));
+const TeacherChat = lazy(() => import("./pages/TeacherChat"));
+const StudentChat = lazy(() => import("./pages/StudentChat"));
+const StudentSchedule = lazy(() => import("./pages/StudentSchedule"));
+const StudentCertificates = lazy(() => import("./pages/StudentCertificates"));
+const BrowseCourses = lazy(() => import("./pages/BrowseCourses"));
+const MyCourses = lazy(() => import("./pages/MyCourses"));
+const StudentSettings = lazy(() => import("./pages/StudentSettings"));
+const StudentAssignments = lazy(() => import("./pages/StudentAssignments"));
+const StudentScores = lazy(() => import("./pages/StudentScores"));
+const StudentSubscription = lazy(() => import("./pages/StudentSubscription"));
+const TeacherSettings = lazy(() => import("./pages/TeacherSettings"));
+const TeacherAnnouncements = lazy(() => import("./pages/TeacherAnnouncements"));
+const TeacherAssignments = lazy(() => import("./pages/TeacherAssignments"));
+const TeacherGrades = lazy(() => import("./pages/TeacherGrades"));
+const TeacherCohorts = lazy(() => import("./pages/TeacherCohorts"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const TeacherStudents = lazy(() => import("./pages/TeacherStudents"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const AuthCallback = lazy(() => import("./components/AuthCallback"));
+const RoleDebugger = lazy(() => import("./components/RoleDebugger"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminTeacherApprovals = lazy(() => import("./pages/AdminTeacherApprovals"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminLogs = lazy(() => import("./pages/AdminLogs"));
+const AdminCourses = lazy(() => import("./pages/AdminCourses"));
+const AdminSettings = lazy(() => import("./pages/AdminSettings"));
+const AdminStudentProgress = lazy(() => import("./pages/AdminStudentProgress"));
+const AdminCertificates = lazy(() => import("./pages/AdminCertificates"));
+const AdminAnnouncements = lazy(() => import("./pages/AdminAnnouncements"));
+const AdminExhibition = lazy(() => import("./pages/AdminExhibition"));
+const AdminTestimonials = lazy(() => import("./pages/AdminTestimonials"));
+const AdminPartners = lazy(() => import("./pages/AdminPartners"));
+const AdminPayments = lazy(() => import("./pages/AdminPayments"));
+const AdminBundles = lazy(() => import("./pages/AdminBundles"));
+const TeacherPendingApproval = lazy(() => import("./pages/TeacherPendingApproval"));
+const BrowseBundles = lazy(() => import("./pages/BrowseBundles"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 
 const queryClient = new QueryClient();
 
@@ -67,63 +70,63 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <SuspensionDialog />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/student/dashboard" element={<StudentDashboard />} />
-          <Route path="/student/chat" element={<StudentChat />} />
-          <Route path="/student/schedule" element={<StudentSchedule />} />
-          <Route path="/student/certificates" element={<StudentCertificates />} />
-          <Route path="/student/my-courses" element={<MyCourses />} />
-          <Route path="/student/assignments" element={<StudentAssignments />} />
-          <Route path="/student/scores" element={<StudentScores />} />
-          <Route path="/student/settings" element={<StudentSettings />} />
-          <Route path="/student/subscription" element={<StudentSubscription />} />
-          <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-          <Route path="/teacher/schedule" element={<TeacherSchedule />} />
-          <Route path="/teacher/chat" element={<TeacherChat />} />
-          <Route path="/teacher/students" element={<TeacherStudents />} />
-          <Route path="/teacher/assignments" element={<TeacherAssignments />} />
-          <Route path="/teacher/grades" element={<TeacherGrades />} />
-          <Route path="/teacher/settings" element={<TeacherSettings />} />
-          <Route path="/teacher/announcements" element={<TeacherAnnouncements />} />
-          <Route path="/teacher/cohorts" element={<TeacherCohorts />} />
-          <Route path="/course/:id" element={<CourseDetail />} />
-          <Route path="/create-course" element={<CreateCourse />} />
-          <Route path="/courses" element={<BrowseCourses />} />
-          <Route path="/exhibition" element={<Exhibition />} />
-          <Route path="/onboarding" element={<StudentOnboarding />} />
-          <Route path="/student/onboarding" element={<StudentOnboarding />} />
-          <Route path="/teacher/onboarding" element={<TeacherOnboarding />} />
-          <Route path="/teacher/pending-approval" element={<TeacherPendingApproval />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms-of-service" element={<TermsOfService />} />
-          <Route path="/debug" element={<RoleDebugger />} />
-          {/* Admin Routes */}
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/teacher-approvals" element={<AdminTeacherApprovals />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/logs" element={<AdminLogs />} />
-          <Route path="/admin/courses" element={<AdminCourses />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
-          <Route path="/admin/student-progress" element={<AdminStudentProgress />} />
-          <Route path="/admin/certificates" element={<AdminCertificates />} />
-          <Route path="/admin/announcements" element={<AdminAnnouncements />} />
-          <Route path="/admin/exhibition" element={<AdminExhibition />} />
-          <Route path="/admin/testimonials" element={<AdminTestimonials />} />
-          <Route path="/admin/partners" element={<AdminPartners />} />
-          <Route path="/admin/payments" element={<AdminPayments />} />
-          <Route path="/admin/bundles" element={<AdminBundles />} />
-          <Route path="/bundles" element={<BrowseBundles />} />
-          <Route path="/payment/success" element={<PaymentSuccess />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/chat" element={<StudentChat />} />
+            <Route path="/student/schedule" element={<StudentSchedule />} />
+            <Route path="/student/certificates" element={<StudentCertificates />} />
+            <Route path="/student/my-courses" element={<MyCourses />} />
+            <Route path="/student/assignments" element={<StudentAssignments />} />
+            <Route path="/student/scores" element={<StudentScores />} />
+            <Route path="/student/settings" element={<StudentSettings />} />
+            <Route path="/student/subscription" element={<StudentSubscription />} />
+            <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+            <Route path="/teacher/schedule" element={<TeacherSchedule />} />
+            <Route path="/teacher/chat" element={<TeacherChat />} />
+            <Route path="/teacher/students" element={<TeacherStudents />} />
+            <Route path="/teacher/assignments" element={<TeacherAssignments />} />
+            <Route path="/teacher/grades" element={<TeacherGrades />} />
+            <Route path="/teacher/settings" element={<TeacherSettings />} />
+            <Route path="/teacher/announcements" element={<TeacherAnnouncements />} />
+            <Route path="/teacher/cohorts" element={<TeacherCohorts />} />
+            <Route path="/course/:id" element={<CourseDetail />} />
+            <Route path="/create-course" element={<CreateCourse />} />
+            <Route path="/courses" element={<BrowseCourses />} />
+            <Route path="/exhibition" element={<Exhibition />} />
+            <Route path="/onboarding" element={<StudentOnboarding />} />
+            <Route path="/student/onboarding" element={<StudentOnboarding />} />
+            <Route path="/teacher/onboarding" element={<TeacherOnboarding />} />
+            <Route path="/teacher/pending-approval" element={<TeacherPendingApproval />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/debug" element={<RoleDebugger />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/teacher-approvals" element={<AdminTeacherApprovals />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/logs" element={<AdminLogs />} />
+            <Route path="/admin/courses" element={<AdminCourses />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/student-progress" element={<AdminStudentProgress />} />
+            <Route path="/admin/certificates" element={<AdminCertificates />} />
+            <Route path="/admin/announcements" element={<AdminAnnouncements />} />
+            <Route path="/admin/exhibition" element={<AdminExhibition />} />
+            <Route path="/admin/testimonials" element={<AdminTestimonials />} />
+            <Route path="/admin/partners" element={<AdminPartners />} />
+            <Route path="/admin/payments" element={<AdminPayments />} />
+            <Route path="/admin/bundles" element={<AdminBundles />} />
+            <Route path="/bundles" element={<BrowseBundles />} />
+            <Route path="/payment/success" element={<PaymentSuccess />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
