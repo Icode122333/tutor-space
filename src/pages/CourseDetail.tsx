@@ -70,6 +70,7 @@ export default function CourseDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const capstoneSectionId = "course-capstone";
 
   const [course, setCourse] = useState<Course | null>(null);
   const [teacher, setTeacher] = useState<Teacher | null>(null);
@@ -80,7 +81,6 @@ export default function CourseDetail() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
-  const [showCapstone, setShowCapstone] = useState(false);
   const [capstoneProject, setCapstoneProject] = useState<CapstoneProject | null>(null);
   const [isWelcomeSelected, setIsWelcomeSelected] = useState(false);
   const [hasAccess, setHasAccess] = useState<boolean | null>(null); // null = not yet checked
@@ -335,6 +335,8 @@ export default function CourseDetail() {
   };
 
   const isPaidCourse = course ? !(course.is_free ?? true) : false;
+  const canManageCapstone = Boolean(capstoneProject && userId && isStudent);
+  const capstoneLocked = Boolean(capstoneProject && isPaidCourse && hasAccess === false);
 
   // Debug logging
   console.log('[CourseDetail] isPaidCourse:', isPaidCourse, '| hasAccess:', hasAccess, '| course.is_free:', course?.is_free);
@@ -353,6 +355,12 @@ export default function CourseDetail() {
 
   // Check if the currently selected lesson is locked
   const currentLessonLocked = currentLessonId ? isLessonLocked(currentLessonId) : false;
+
+  const scrollToCapstone = () => {
+    const section = document.getElementById(capstoneSectionId);
+    if (!section) return;
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const handleLessonClick = async (lessonId: string) => {
     setIsWelcomeSelected(false);
@@ -512,6 +520,12 @@ export default function CourseDetail() {
                   <Star className="h-3 w-3 mr-1.5 fill-current" />
                   Bestseller
                 </Badge>
+                {capstoneProject && (
+                  <Badge className="bg-purple-500/90 text-white border-0 px-3 py-1">
+                    <Award className="h-3 w-3 mr-1.5" />
+                    Capstone Included
+                  </Badge>
+                )}
               </div>
 
               {/* Title */}
@@ -881,57 +895,134 @@ export default function CourseDetail() {
             />
 
             {/* Capstone Project Card - Only for students */}
-            {capstoneProject && userId && isStudent && (
-              <Card>
+            {canManageCapstone && (
+              <Card className="border-2 border-purple-200 bg-gradient-to-br from-white via-purple-50/60 to-fuchsia-50/60">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="bg-purple-100 rounded-full p-3">
                       <Award className="h-6 w-6 text-purple-600" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold">Capstone Project</h3>
-                      <p className="text-xs text-muted-foreground">Final project</p>
+                      <h3 className="font-semibold text-purple-950">Capstone Project</h3>
+                      <p className="text-xs text-purple-700">
+                        Final project with submission workspace
+                      </p>
                     </div>
                   </div>
+                  <div className="space-y-2 mb-4">
+                    <p className="text-sm font-medium text-purple-900 line-clamp-2">
+                      {capstoneProject.title}
+                    </p>
+                    {capstoneProject.due_date && (
+                      <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-purple-800 border border-purple-200">
+                        <Clock className="h-3.5 w-3.5" />
+                        Due {new Date(capstoneProject.due_date).toLocaleDateString()}
+                      </div>
+                    )}
+                    <p className="text-xs text-purple-700">
+                      {capstoneProject.requirements.length} requirement{capstoneProject.requirements.length !== 1 ? "s" : ""} to complete
+                    </p>
+                  </div>
                   <Button
-                    onClick={() => setShowCapstone(true)}
+                    onClick={() => {
+                      if (capstoneLocked) {
+                        setShowPurchaseDialog(true);
+                        return;
+                      }
+                      scrollToCapstone();
+                    }}
                     className="w-full"
-                    variant="outline"
+                    variant={capstoneLocked ? "default" : "outline"}
                   >
-                    View Project
+                    {capstoneLocked ? "Unlock Capstone" : "Open Capstone Workspace"}
                   </Button>
                 </CardContent>
               </Card>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Capstone Modal */}
-      {showCapstone && capstoneProject && userId && (
-        <div className="fixed inset-0 z-50 bg-black/80 overflow-y-auto">
-          <div className="min-h-screen p-4">
-            <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-xl my-8">
-              <div className="p-4 border-b flex items-center justify-between">
-                <h2 className="text-xl font-bold">Capstone Project</h2>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowCapstone(false)}
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
+        {canManageCapstone && capstoneProject && (
+          <section id={capstoneSectionId} className="mt-8 scroll-mt-24">
+            <div className="rounded-[2rem] bg-gradient-to-br from-[#140726] via-[#2e1065] to-[#4c1d95] p-6 text-white shadow-2xl sm:p-8">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-3xl space-y-4">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium backdrop-blur-sm">
+                    <Award className="h-4 w-4" />
+                    Final Capstone
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-3xl font-bold tracking-tight">{capstoneProject.title}</h2>
+                    <p className="max-w-2xl text-sm leading-6 text-white/80 sm:text-base">
+                      Review the final project brief, prepare everything your teacher requested, and submit your work directly from this page.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    <div className="rounded-full bg-white/10 px-4 py-2 text-white/90 backdrop-blur-sm">
+                      {capstoneProject.requirements.length} requirement{capstoneProject.requirements.length !== 1 ? "s" : ""}
+                    </div>
+                    {capstoneProject.due_date && (
+                      <div className="rounded-full bg-white/10 px-4 py-2 text-white/90 backdrop-blur-sm">
+                        Due {new Date(capstoneProject.due_date).toLocaleDateString()}
+                      </div>
+                    )}
+                    <div className="rounded-full bg-white/10 px-4 py-2 text-white/90 backdrop-blur-sm">
+                      Submit links and project notes
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm lg:max-w-sm">
+                  <h3 className="font-semibold text-white">Before you submit</h3>
+                  <div className="mt-4 space-y-3 text-sm text-white/80">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-300" />
+                      <p>Double-check that each repository, demo, or document link opens publicly.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-300" />
+                      <p>Add a short summary describing what you built and the main outcomes.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-300" />
+                      <p>You can come back later and update your submission before final review.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="p-6">
+            </div>
+
+            <div className="mt-6">
+              {capstoneLocked ? (
+                <Card className="border-2 border-purple-200">
+                  <CardContent className="p-8 text-center space-y-4">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-purple-100">
+                      <Lock className="h-8 w-8 text-purple-600" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-bold text-gray-900">Unlock the Capstone Workspace</h3>
+                      <p className="mx-auto max-w-2xl text-gray-600">
+                        Purchase this course to view the complete capstone instructions and submit the links and notes required by your teacher.
+                      </p>
+                    </div>
+                    <Button
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-8"
+                      onClick={() => setShowPurchaseDialog(true)}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Buy This Course
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
                 <CapstoneSubmission
                   capstoneProject={capstoneProject}
                   studentId={userId}
                 />
-              </div>
+              )}
             </div>
-          </div>
-        </div>
-      )}
+          </section>
+        )}
+      </div>
 
       {/* Purchase Dialog */}
       {course && showPurchaseDialog && (
