@@ -106,7 +106,7 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700"></div>
       </div>
     );
   }
@@ -114,14 +114,14 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
   return (
     <div className="space-y-6">
       {/* Project Details */}
-      <Card className="border-purple-200 bg-purple-50">
+      <Card className="border-green-200 bg-green-50">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <Award className="h-8 w-8 text-purple-600" />
+            <Award className="h-8 w-8 text-green-700" />
             <div>
-              <CardTitle className="text-2xl text-purple-900">{capstoneProject.title}</CardTitle>
+              <CardTitle className="text-2xl text-green-900">{capstoneProject.title}</CardTitle>
               {capstoneProject.due_date && (
-                <p className="text-sm text-purple-700 flex items-center gap-2 mt-1">
+                <p className="text-sm text-green-700 flex items-center gap-2 mt-1">
                   <Clock className="h-4 w-4" />
                   Due: {new Date(capstoneProject.due_date).toLocaleDateString()}
                 </p>
@@ -131,21 +131,21 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h3 className="font-semibold text-purple-900 mb-2">Description</h3>
-            <p className="text-purple-800">{capstoneProject.description}</p>
+            <h3 className="font-semibold text-green-900 mb-2">Description</h3>
+            <p className="text-green-800">{capstoneProject.description}</p>
           </div>
 
           <div>
-            <h3 className="font-semibold text-purple-900 mb-2">Instructions</h3>
-            <p className="text-purple-800 whitespace-pre-wrap">{capstoneProject.instructions}</p>
+            <h3 className="font-semibold text-green-900 mb-2">Instructions</h3>
+            <p className="text-green-800 whitespace-pre-wrap">{capstoneProject.instructions}</p>
           </div>
 
           {capstoneProject.requirements.length > 0 && (
             <div>
-              <h3 className="font-semibold text-purple-900 mb-2">Requirements</h3>
+              <h3 className="font-semibold text-green-900 mb-2">Requirements</h3>
               <ul className="list-disc list-inside space-y-1">
                 {capstoneProject.requirements.map((req, i) => (
-                  <li key={i} className="text-purple-800">{req}</li>
+                  <li key={i} className="text-green-800">{req}</li>
                 ))}
               </ul>
             </div>
@@ -240,7 +240,7 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="w-full bg-purple-600 hover:bg-purple-700"
+            className="w-full bg-[#0A400C] hover:bg-[#0d5210]"
           >
             {isSubmitting ? "Submitting..." : submission ? "Update Submission" : "Submit Project"}
           </Button>
@@ -257,7 +257,7 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
             <div className="space-y-2">
               {submission.project_links.map((link: string, index: number) => (
                 <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                  <span className="text-sm font-medium text-purple-600">Link {index + 1}:</span>
+                  <span className="text-sm font-medium text-green-700">Link {index + 1}:</span>
                   <a
                     href={link}
                     target="_blank"
