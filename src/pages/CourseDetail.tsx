@@ -64,6 +64,7 @@ interface CapstoneProject {
   instructions: string;
   requirements: string[];
   due_date: string | null;
+  file_url?: string | null;
 }
 
 export default function CourseDetail() {

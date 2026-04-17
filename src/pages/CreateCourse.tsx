@@ -56,6 +56,7 @@ interface CapstoneProjectForm {
   instructions: string;
   requirements: string[];
   due_date: string;
+  file_url?: string;
 }
 
 const contentTypeIcons: Record<string, any> = {
@@ -144,6 +145,7 @@ export default function CreateCourse() {
     instructions: "",
     requirements: [""],
     due_date: "",
+    file_url: "",
   });
   const [includeCapstone, setIncludeCapstone] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -269,6 +271,7 @@ export default function CreateCourse() {
           instructions: capstoneData.instructions || "",
           requirements: capstoneData.requirements || [""],
           due_date: capstoneData.due_date || "",
+          file_url: capstoneData.file_url || "",
         });
       }
     } catch (error) {
@@ -575,6 +578,7 @@ export default function CreateCourse() {
       instructions: capstoneProject.instructions,
       requirements: capstoneProject.requirements.filter((requirement) => requirement.trim()),
       due_date: capstoneProject.due_date || null,
+      file_url: capstoneProject.file_url || null,
     };
 
     if (capstoneProject.id) {
@@ -1310,6 +1314,21 @@ export default function CreateCourse() {
                           value={capstoneProject.due_date}
                           onChange={(e) => setCapstoneProject({ ...capstoneProject, due_date: e.target.value })}
                           className="mt-1 w-48"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-sm text-gray-600">Upload Capstone Brief PDF (Optional)</Label>
+                        <FileUploadField
+                          label=""
+                          value={capstoneProject.file_url || ""}
+                          onChange={(url) => {
+                            setCapstoneProject({ ...capstoneProject, file_url: url });
+                          }}
+                          accept=".pdf"
+                          placeholder="Upload or paste PDF URL"
+                          courseId={courseId || undefined}
+                          lessonId={`capstone-${capstoneProject.id || 'new'}`}
                         />
                       </div>
                     </div>

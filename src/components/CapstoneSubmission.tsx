@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Award, Plus, Trash2, CheckCircle, Clock } from "lucide-react";
+import { Award, Plus, Trash2, CheckCircle, Clock, FileText, Download, Upload } from "lucide-react";
+import PdfJsInlineViewer from "@/components/PdfJsInlineViewer";
 
 interface CapstoneProject {
   id: string;
@@ -15,6 +16,7 @@ interface CapstoneProject {
   instructions: string;
   requirements: string[];
   due_date: string | null;
+  file_url?: string | null;
 }
 
 interface CapstoneSubmissionProps {
@@ -28,10 +30,43 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submission, setSubmission] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [pdfResolvedUrl, setPdfResolvedUrl] = useState<string | null>(null);
+  const [pdfError, setPdfError] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [submissionFileUrl, setSubmissionFileUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSubmission();
   }, [capstoneProject.id, studentId]);
+
+  // Resolve teacher PDF URL
+  useEffect(() => {
+    if (!capstoneProject.file_url) {
+      setPdfResolvedUrl(null);
+      return;
+    }
+    const resolve = async () => {
+      const url = capstoneProject.file_url!;
+      if (/^https?:\/\//i.test(url)) {
+        setPdfResolvedUrl(url);
+        return;
+      }
+      try {
+        const cleaned = url.replace(/^\/+/, "");
+        const path = cleaned.replace(/^lesson-files\//, "");
+        const { data: signed, error } = await supabase.storage.from("lesson-files").createSignedUrl(path, 3600);
+        if (!error && signed?.signedUrl) {
+          setPdfResolvedUrl(signed.signedUrl);
+        } else {
+          const { data: pub } = supabase.storage.from("lesson-files").getPublicUrl(path);
+          setPdfResolvedUrl(pub?.publicUrl || url);
+        }
+      } catch {
+        setPdfResolvedUrl(url);
+      }
+    };
+    resolve();
+  }, [capstoneProject.file_url]);
 
   const fetchSubmission = async () => {
     setLoading(true);
@@ -47,6 +82,7 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
         setSubmission(data);
         setProjectLinks(data.project_links || [""]);
         setDescription(data.description || "");
+        setSubmissionFileUrl(data.file_url || null);
       }
     } catch (error) {
       // No submission yet
@@ -69,11 +105,37 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
     setProjectLinks(projectLinks.filter((_, i) => i !== index));
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingDoc(true);
+    try {
+      const fileExt = file.name.split(".").pop()?.toLowerCase();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `capstone-submissions/${studentId}/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from("lesson-files")
+        .upload(filePath, file, { cacheControl: "3600", upsert: false });
+
+      if (error) throw error;
+
+      setSubmissionFileUrl(data.path);
+      toast.success(`File "${file.name}" uploaded successfully`);
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload file");
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
   const handleSubmit = async () => {
     const validLinks = projectLinks.filter(link => link.trim() !== "");
     
-    if (validLinks.length === 0) {
-      toast.error("Please add at least one project link");
+    if (validLinks.length === 0 && !submissionFileUrl) {
+      toast.error("Please add at least one project link or upload a document");
       return;
     }
 
@@ -86,6 +148,7 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
           student_id: studentId,
           project_links: validLinks,
           description: description,
+          file_url: submissionFileUrl || null,
           submitted_at: new Date().toISOString(),
         }, {
           onConflict: "capstone_project_id,student_id",
@@ -106,7 +169,7 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-700"></div>
       </div>
     );
   }
@@ -114,14 +177,14 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
   return (
     <div className="space-y-6">
       {/* Project Details */}
-      <Card className="border-green-200 bg-green-50">
+      <Card className="border-gray-200 bg-gray-50">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <Award className="h-8 w-8 text-green-700" />
+            <Award className="h-8 w-8 text-gray-700" />
             <div>
-              <CardTitle className="text-2xl text-green-900">{capstoneProject.title}</CardTitle>
+              <CardTitle className="text-2xl text-gray-900">{capstoneProject.title}</CardTitle>
               {capstoneProject.due_date && (
-                <p className="text-sm text-green-700 flex items-center gap-2 mt-1">
+                <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
                   <Clock className="h-4 w-4" />
                   Due: {new Date(capstoneProject.due_date).toLocaleDateString()}
                 </p>
@@ -131,23 +194,55 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h3 className="font-semibold text-green-900 mb-2">Description</h3>
-            <p className="text-green-800">{capstoneProject.description}</p>
+            <h3 className="font-semibold text-gray-900 mb-2">Description</h3>
+            <p className="text-gray-700">{capstoneProject.description}</p>
           </div>
 
           <div>
-            <h3 className="font-semibold text-green-900 mb-2">Instructions</h3>
-            <p className="text-green-800 whitespace-pre-wrap">{capstoneProject.instructions}</p>
+            <h3 className="font-semibold text-gray-900 mb-2">Instructions</h3>
+            <p className="text-gray-700 whitespace-pre-wrap">{capstoneProject.instructions}</p>
           </div>
 
           {capstoneProject.requirements.length > 0 && (
             <div>
-              <h3 className="font-semibold text-green-900 mb-2">Requirements</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">Requirements</h3>
               <ul className="list-disc list-inside space-y-1">
                 {capstoneProject.requirements.map((req, i) => (
-                  <li key={i} className="text-green-800">{req}</li>
+                  <li key={i} className="text-gray-700">{req}</li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {/* Teacher's uploaded PDF - shown inline */}
+          {pdfResolvedUrl && (
+            <div className="pt-2">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  <h3 className="font-semibold text-gray-900">Capstone Brief (PDF)</h3>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                  onClick={() => window.open(pdfResolvedUrl, "_blank")}
+                >
+                  <Download className="h-4 w-4 mr-1.5" />
+                  Download
+                </Button>
+              </div>
+              <div className="rounded-xl overflow-hidden border border-gray-200" style={{ minHeight: "50vh" }}>
+                {!pdfError ? (
+                  <PdfJsInlineViewer src={pdfResolvedUrl} onError={() => setPdfError(true)} />
+                ) : (
+                  <iframe
+                    src={`${pdfResolvedUrl}#toolbar=1&navpanes=1&scrollbar=1`}
+                    title="Capstone Brief PDF"
+                    className="w-full h-[50vh]"
+                  />
+                )}
+              </div>
             </div>
           )}
         </CardContent>
@@ -155,26 +250,26 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
 
       {/* Submission Status */}
       {submission && (
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-gray-200 bg-gray-50">
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
               <CheckCircle className="h-8 w-8 text-green-600" />
               <div>
-                <h3 className="font-semibold text-green-900">Project Submitted</h3>
-                <p className="text-sm text-green-700">
+                <h3 className="font-semibold text-gray-900">Project Submitted</h3>
+                <p className="text-sm text-gray-600">
                   Submitted on {new Date(submission.submitted_at).toLocaleDateString()}
                 </p>
                 {submission.grade !== null && (
-                  <p className="text-sm text-green-700 font-semibold mt-1">
+                  <p className="text-sm text-gray-700 font-semibold mt-1">
                     Grade: {submission.grade}/100
                   </p>
                 )}
               </div>
             </div>
             {submission.feedback && (
-              <div className="mt-4 p-3 bg-white rounded-lg border border-green-200">
-                <p className="text-sm font-semibold text-green-900 mb-1">Teacher Feedback:</p>
-                <p className="text-sm text-green-800">{submission.feedback}</p>
+              <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200">
+                <p className="text-sm font-semibold text-gray-900 mb-1">Teacher Feedback:</p>
+                <p className="text-sm text-gray-700">{submission.feedback}</p>
               </div>
             )}
           </CardContent>
@@ -189,7 +284,7 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
         <CardContent className="space-y-4">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <Label>Project Links *</Label>
+              <Label>Project Links</Label>
               <Button
                 type="button"
                 size="sm"
@@ -226,6 +321,44 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
             </p>
           </div>
 
+          {/* Document Upload */}
+          <div>
+            <Label>Upload Document (Optional)</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Upload a .pdf, .doc, .docx, .ppt, .pptx, or .zip file
+            </p>
+            <div className="flex gap-2 items-center">
+              <Input
+                type="file"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.zip"
+                onChange={handleFileUpload}
+                disabled={uploadingDoc}
+                className="flex-1"
+              />
+              {uploadingDoc && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-gray-600" />
+                  Uploading...
+                </div>
+              )}
+            </div>
+            {submissionFileUrl && !uploadingDoc && (
+              <div className="flex items-center gap-2 text-sm text-green-600 mt-1">
+                <CheckCircle className="h-4 w-4" />
+                <span>Document attached</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs text-red-500 hover:text-red-700"
+                  onClick={() => setSubmissionFileUrl(null)}
+                >
+                  Remove
+                </Button>
+              </div>
+            )}
+          </div>
+
           <div>
             <Label htmlFor="description">Project Description</Label>
             <Textarea
@@ -257,7 +390,7 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
             <div className="space-y-2">
               {submission.project_links.map((link: string, index: number) => (
                 <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                  <span className="text-sm font-medium text-green-700">Link {index + 1}:</span>
+                  <span className="text-sm font-medium text-gray-700">Link {index + 1}:</span>
                   <a
                     href={link}
                     target="_blank"
@@ -268,6 +401,12 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
                   </a>
                 </div>
               ))}
+              {submission.file_url && (
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                  <span className="text-sm font-medium text-gray-700">Document:</span>
+                  <span className="text-sm text-blue-600">Attached file</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
