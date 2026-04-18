@@ -15,7 +15,10 @@ import {
   Clock, 
   Users, 
   Eye,
-  AlertCircle
+  AlertCircle,
+  Download,
+  ExternalLink,
+  Paperclip
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -31,6 +34,13 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { Input } from "@/components/ui/input";
 
@@ -58,6 +68,7 @@ interface Submission {
   feedback: string | null;
   project_links: string[];
   description: string;
+  file_url?: string | null;
   profiles: {
     full_name: string;
     email: string;
@@ -84,6 +95,8 @@ const TeacherAssignments = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([]);
   const [editGrades, setEditGrades] = useState<Record<string, string>>({});
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [viewingSubmission, setViewingSubmission] = useState<Submission | null>(null);
 
   useEffect(() => {
     fetchTeacherCourses();
@@ -272,24 +285,33 @@ const TeacherAssignments = () => {
   const handleViewSubmission = (submissionId: string) => {
     const s = submissions.find((x) => x.id === submissionId);
     if (!s) return;
-    
-    // Check if it's a capstone submission (has capstone_project_id) or assignment (has lesson_id)
-    const isCapstone = 'capstone_project_id' in s;
-    
-    if (s.project_links && s.project_links.length > 0) {
-      // For capstone, project_links are usually external URLs (GitHub, etc.)
-      // For assignments, they might be storage paths
-      const firstLink = s.project_links[0];
-      
-      if (isCapstone && firstLink.startsWith('http')) {
-        // External link - open directly
-        window.open(firstLink, "_blank");
-      } else {
-        // Storage path - use Google viewer
-        openInGoogleViewer(firstLink);
-      }
+    setViewingSubmission(s);
+    setShowViewDialog(true);
+  };
+
+  const handleOpenLink = (link: string) => {
+    if (link.startsWith('http')) {
+      window.open(link, "_blank");
     } else {
-      toast.error("No submission files found");
+      openInGoogleViewer(link);
+    }
+  };
+
+  const handleDownloadFile = async (fileUrl: string) => {
+    try {
+      if (/^https?:\/\//i.test(fileUrl)) {
+        window.open(fileUrl, "_blank");
+        return;
+      }
+      const cleaned = fileUrl.replace(/^\/+/, "");
+      const { data, error } = await supabase.storage
+        .from("lesson-files")
+        .createSignedUrl(cleaned, 3600);
+      if (error) throw error;
+      window.open(data?.signedUrl, "_blank");
+    } catch (e) {
+      console.error("Failed to download file", e);
+      toast.error("Failed to download file");
     }
   };
 
@@ -817,6 +839,146 @@ const TeacherAssignments = () => {
           </main>
         </div>
       </div>
+
+      {/* View Submission Dialog */}
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Submission Details</DialogTitle>
+            <DialogDescription>
+              {viewingSubmission?.profiles.full_name}'s submission
+              {' • '}
+              {'capstone_project_id' in (viewingSubmission || {}) ? 'Capstone Project' : 'Assignment'}
+            </DialogDescription>
+          </DialogHeader>
+          {viewingSubmission && (
+            <div className="space-y-6 py-4">
+              {/* Student Info */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <Avatar className="h-10 w-10">
+                  {viewingSubmission.profiles.avatar_url ? (
+                    <img src={viewingSubmission.profiles.avatar_url} alt={viewingSubmission.profiles.full_name} />
+                  ) : (
+                    <AvatarFallback className="bg-[#006d2c] text-white">
+                      {viewingSubmission.profiles.full_name.charAt(0)}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <div>
+                  <p className="font-semibold">{viewingSubmission.profiles.full_name}</p>
+                  <p className="text-sm text-muted-foreground">{viewingSubmission.profiles.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Submitted: {new Date(viewingSubmission.submitted_at).toLocaleString()}
+                  </p>
+                </div>
+                {viewingSubmission.grade !== null ? (
+                  <Badge className="ml-auto bg-green-500">Grade: {viewingSubmission.grade}/100</Badge>
+                ) : (
+                  <Badge variant="outline" className="ml-auto text-orange-500 border-orange-500">Not Graded</Badge>
+                )}
+              </div>
+
+              {/* Project Links */}
+              {viewingSubmission.project_links && viewingSubmission.project_links.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4" />
+                    Project Links
+                  </h4>
+                  <div className="space-y-2">
+                    {viewingSubmission.project_links.map((link: string, idx: number) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-100">
+                        <span className="text-xs font-medium text-gray-500 w-14">Link {idx + 1}:</span>
+                        <a
+                          href={link.startsWith('http') ? link : '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => {
+                            if (!link.startsWith('http')) {
+                              e.preventDefault();
+                              handleOpenLink(link);
+                            }
+                          }}
+                          className="text-sm text-blue-600 hover:underline truncate flex-1"
+                        >
+                          {link}
+                        </a>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2"
+                          onClick={() => handleOpenLink(link)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Uploaded Document */}
+              {viewingSubmission.file_url && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <Paperclip className="h-4 w-4" />
+                    Uploaded Document
+                  </h4>
+                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                    <FileText className="h-8 w-8 text-purple-600 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">
+                        {viewingSubmission.file_url.split('/').pop() || 'Attached document'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Student uploaded file</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDownloadFile(viewingSubmission.file_url!)}
+                        className="hover:bg-purple-100"
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Download
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openInGoogleViewer(viewingSubmission.file_url!)}
+                        className="hover:bg-blue-50"
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Preview
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Student Description */}
+              {viewingSubmission.description && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Student Description</h4>
+                  <div className="p-3 bg-gray-50 rounded-lg border">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewingSubmission.description}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Feedback */}
+              {viewingSubmission.feedback && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Your Feedback</h4>
+                  <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewingSubmission.feedback}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
