@@ -84,10 +84,11 @@ export const FinalCTASection = () => {
 
 export const Footer = () => {
     return (
-        <footer className="bg-gray-900 text-gray-300 py-16 text-sm">
+        <footer className="bg-gray-900 text-gray-300 py-6 text-sm">
             <div className="container mx-auto px-6">
-                <div className="grid md:grid-cols-4 gap-12 mb-12">
-                    <div>
+                <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-8 mb-6 items-center">
+                    {/* Brand */}
+                    <div className="lg:col-span-1">
                         <div className="flex items-center gap-2 mb-6">
                             <img src="/images/dataplus_logggg-removebg-preview.png" alt="Logo" className="w-8 h-8 opacity-90 grayscale brightness-200" />
                             <span className="text-white font-bold text-xl">DATA+</span>
@@ -97,26 +98,18 @@ export const Footer = () => {
                         </p>
                     </div>
 
+                    {/* Courses */}
                     <div>
                         <h4 className="text-white font-bold mb-4">Courses</h4>
                         <ul className="space-y-3">
                             <li><a href="#" className="hover:text-white transition-colors">Data Science</a></li>
-                            <li><a href="#" className="hover:text-white transition-colors">Monitoring & Evaluation</a></li>
+                            <li><a href="#" className="hover:text-white transition-colors">Monitoring &amp; Evaluation</a></li>
                             <li><a href="#" className="hover:text-white transition-colors">Project Management</a></li>
-                            <li><a href="#" className="hover:text-white transition-colors">AI & Digital Skills</a></li>
+                            <li><a href="#" className="hover:text-white transition-colors">AI &amp; Digital Skills</a></li>
                         </ul>
                     </div>
 
-                    <div>
-                        <h4 className="text-white font-bold mb-4">Company</h4>
-                        <ul className="space-y-3">
-                            <li><a href="/about" className="hover:text-white transition-colors">About Us</a></li>
-                            <li><a href="/contact" className="hover:text-white transition-colors">Contact</a></li>
-                            <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-                            <li><a href="#" className="hover:text-white transition-colors">Partners</a></li>
-                        </ul>
-                    </div>
-
+                    {/* Connect */}
                     <div>
                         <h4 className="text-white font-bold mb-4">Connect</h4>
                         <ul className="space-y-3">
@@ -126,9 +119,19 @@ export const Footer = () => {
                             <li><a href="mailto:info@dataplusrwanda.com" className="hover:text-white transition-colors">info@dataplusrwanda.com</a></li>
                         </ul>
                     </div>
+
+                    {/* Trust Seal — right column, zoomed with CSS scale */}
+                    <div className="flex items-center justify-center overflow-visible">
+                        <img
+                            src="/images/seal.png"
+                            alt="DBI Certified EdTech Trust Seal"
+                            style={{ transform: "scale(2.5)", transformOrigin: "center center" }}
+                            className="h-40 w-40 object-contain drop-shadow-[0_0_20px_rgba(255,200,50,0.35)]"
+                        />
+                    </div>
                 </div>
 
-                <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between gap-4">
+                <div className="border-t border-gray-800 pt-5 flex flex-col md:flex-row justify-between gap-4">
                     <p>© 2026 DataPlus Labs. All rights reserved.</p>
                     <div className="flex gap-6">
                         <a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a>
