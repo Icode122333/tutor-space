@@ -178,13 +178,35 @@ const SignUp = () => {
           }
         }
 
-        // For TEACHERS: keep email verification flow
+        // For TEACHERS: redirect to pending approval (admin must approve)
         if (selectedRole === "teacher" && !data.session) {
-          sessionStorage.setItem(PENDING_VERIFICATION_EMAIL_KEY, email.toLowerCase());
+          // Try to sign in so the profile gets created
+          const { data: signInData } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (signInData?.session) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", signInData.user.id)
+              .single();
+
+            if (profile && profile.role !== selectedRole) {
+              await supabase
+                .from("profiles")
+                .update({ role: selectedRole })
+                .eq("id", signInData.user.id);
+            }
+          }
+
+          localStorage.setItem(AUTH_METHOD_KEY, "email");
           toast.success(
-            "🎉 Account created successfully! Please check your email to verify your account before logging in.",
+            "🎉 Account created! Your teacher account is pending admin approval.",
             {
-              duration: 10000,
+              duration: 8000,
               style: {
                 background: '#006d2c',
                 color: 'white',
@@ -192,7 +214,7 @@ const SignUp = () => {
               },
             }
           );
-          navigate("/verify-email");
+          navigate("/teacher/pending-approval");
           return;
         }
 

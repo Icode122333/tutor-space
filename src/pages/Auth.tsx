@@ -11,7 +11,6 @@ import { useTranslation } from 'react-i18next';
 import { LanguageSelector } from "@/components/LanguageSelector";
 
 const AUTH_METHOD_KEY = "lastAuthMethod";
-const PENDING_VERIFICATION_EMAIL_KEY = "pendingVerificationEmail";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -68,9 +67,7 @@ const Auth = () => {
         if (error.message.includes("Invalid login credentials")) {
           toast.error(t('login.invalidCredentials'));
         } else if (error.message.includes("Email not confirmed")) {
-          sessionStorage.setItem(PENDING_VERIFICATION_EMAIL_KEY, email.toLowerCase());
-          toast.info(t('login.confirmEmail'));
-          navigate("/verify-email");
+          toast.error("Please check your email and confirm your account, or contact support.");
         } else {
           toast.error(error.message);
         }
