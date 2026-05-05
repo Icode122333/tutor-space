@@ -16,7 +16,8 @@ import {
   Award,
   TrendingUp,
   Filter,
-  Search
+  Search,
+  MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -554,8 +555,17 @@ const StudentAssignments = () => {
                               
                               {assignment.submission.feedback && (
                                 <div className="pt-3 border-t border-gray-200">
-                                  <p className="text-xs font-semibold text-gray-700 mb-1">{t('studentAssignments.feedback')}:</p>
-                                  <p className="text-sm text-gray-600">{assignment.submission.feedback}</p>
+                                  <div className="flex items-start gap-2.5">
+                                    <div className="p-1.5 rounded-full bg-green-100 flex-shrink-0 mt-0.5">
+                                      <MessageSquare className="h-3.5 w-3.5 text-green-700" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-bold text-green-800 mb-1">Teacher's Feedback</p>
+                                      <div className="p-2.5 bg-white/80 rounded-lg border border-green-100">
+                                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{assignment.submission.feedback}</p>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                             </div>

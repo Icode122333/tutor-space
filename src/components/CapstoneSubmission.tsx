@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Award, Plus, Trash2, CheckCircle, Clock, FileText, Download, Upload } from "lucide-react";
+import { Award, Plus, Trash2, CheckCircle, Clock, FileText, Download, Upload, Eye, ExternalLink, AlertTriangle, RotateCcw } from "lucide-react";
 import PdfJsInlineViewer from "@/components/PdfJsInlineViewer";
 
 interface CapstoneProject {
@@ -34,6 +34,8 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
   const [pdfError, setPdfError] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [submissionFileUrl, setSubmissionFileUrl] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     fetchSubmission();
@@ -166,6 +168,65 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
     }
   };
 
+  const handleDeleteSubmission = async () => {
+    if (!submission) return;
+    setDeleting(true);
+    try {
+      // Delete the file from storage if it exists
+      if (submission.file_url && !submission.file_url.startsWith('http')) {
+        const path = submission.file_url.replace(/^\/+/, '').replace(/^lesson-files\//, '');
+        await supabase.storage.from('lesson-files').remove([path]);
+      }
+
+      const { error } = await supabase
+        .from('capstone_submissions')
+        .delete()
+        .eq('id', submission.id);
+
+      if (error) throw error;
+
+      // Reset form state
+      setSubmission(null);
+      setProjectLinks([""]);
+      setDescription("");
+      setSubmissionFileUrl(null);
+      setConfirmDelete(false);
+      toast.success('Submission deleted. You can now submit a new project.');
+    } catch (error) {
+      console.error('Error deleting submission:', error);
+      toast.error('Failed to delete submission');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const resolveFileUrl = async (fileUrl: string): Promise<string> => {
+    if (/^https?:\/\//i.test(fileUrl)) return fileUrl;
+    try {
+      const cleaned = fileUrl.replace(/^\/+/, '');
+      const path = cleaned.replace(/^lesson-files\//, '');
+      const { data: signed, error } = await supabase.storage.from('lesson-files').createSignedUrl(path, 3600);
+      if (!error && signed?.signedUrl) return signed.signedUrl;
+      const { data: pub } = supabase.storage.from('lesson-files').getPublicUrl(path);
+      return pub?.publicUrl || fileUrl;
+    } catch {
+      return fileUrl;
+    }
+  };
+
+  const handleDownloadSubmittedFile = async () => {
+    if (!submission?.file_url) return;
+    const url = await resolveFileUrl(submission.file_url);
+    window.open(url, '_blank');
+  };
+
+  const handlePreviewSubmittedFile = async () => {
+    if (!submission?.file_url) return;
+    const url = await resolveFileUrl(submission.file_url);
+    const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+    window.open(googleViewerUrl, '_blank');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -248,30 +309,186 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
         </CardContent>
       </Card>
 
-      {/* Submission Status */}
+      {/* Submitted Project Details */}
       {submission && (
-        <Card className="border-gray-200 bg-gray-50">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-              <div>
-                <h3 className="font-semibold text-gray-900">Project Submitted</h3>
-                <p className="text-sm text-gray-600">
-                  Submitted on {new Date(submission.submitted_at).toLocaleDateString()}
-                </p>
-                {submission.grade !== null && (
-                  <p className="text-sm text-gray-700 font-semibold mt-1">
-                    Grade: {submission.grade}/100
+        <Card className="border-green-200 bg-gradient-to-br from-green-50/80 to-emerald-50/50">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-green-100">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg text-green-900">Project Submitted</CardTitle>
+                  <p className="text-sm text-green-700">
+                    Submitted on {new Date(submission.submitted_at).toLocaleDateString()} at {new Date(submission.submitted_at).toLocaleTimeString()}
                   </p>
-                )}
+                </div>
               </div>
+              {submission.grade !== null ? (
+                <div className="text-right">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-600 text-white text-sm font-bold">
+                    Grade: {submission.grade}/100
+                  </span>
+                </div>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-medium border border-orange-200">
+                  <Clock className="h-3 w-3" />
+                  Pending Review
+                </span>
+              )}
             </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Teacher Feedback */}
             {submission.feedback && (
-              <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200">
-                <p className="text-sm font-semibold text-gray-900 mb-1">Teacher Feedback:</p>
-                <p className="text-sm text-gray-700">{submission.feedback}</p>
+              <div className="p-4 bg-white rounded-xl border border-green-200 shadow-sm">
+                <p className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                  <Award className="h-4 w-4 text-green-600" />
+                  Teacher Feedback
+                </p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{submission.feedback}</p>
               </div>
             )}
+
+            {/* Submitted Links */}
+            {submission.project_links && submission.project_links.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4 text-blue-600" />
+                  Your Submitted Links
+                </h4>
+                <div className="space-y-2">
+                  {submission.project_links.map((link: string, index: number) => (
+                    <div key={index} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm hover:border-blue-200 transition-colors">
+                      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 text-blue-600 text-xs font-bold flex-shrink-0">
+                        {index + 1}
+                      </span>
+                      <a
+                        href={link.startsWith('http') ? link : `https://${link}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline truncate flex-1"
+                      >
+                        {link}
+                      </a>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-blue-600 hover:bg-blue-50 flex-shrink-0"
+                        onClick={() => window.open(link.startsWith('http') ? link : `https://${link}`, '_blank')}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Submitted Document */}
+            {submission.file_url && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-purple-600" />
+                  Your Uploaded Document
+                </h4>
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-purple-200 shadow-sm">
+                  <div className="p-2 rounded-lg bg-purple-50">
+                    <FileText className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      {submission.file_url.split('/').pop() || 'Uploaded document'}
+                    </p>
+                    <p className="text-xs text-gray-500">Attached to your submission</p>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs hover:bg-purple-50 border-purple-200"
+                      onClick={handleDownloadSubmittedFile}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      Download
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs hover:bg-blue-50 border-blue-200"
+                      onClick={handlePreviewSubmittedFile}
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      Preview
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Submitted Description */}
+            {submission.description && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800 mb-2">Your Description</h4>
+                <div className="p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{submission.description}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Delete / Undo Submission */}
+            <div className="pt-2 border-t border-green-200">
+              {!confirmDelete ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Delete Submission & Start Over
+                </Button>
+              ) : (
+                <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                  <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-red-800">Are you sure?</p>
+                    <p className="text-xs text-red-600">This will permanently delete your submission, uploaded files, and any grades/feedback.</p>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs"
+                      onClick={() => setConfirmDelete(false)}
+                      disabled={deleting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-8 text-xs"
+                      onClick={handleDeleteSubmission}
+                      disabled={deleting}
+                    >
+                      {deleting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent mr-1.5" />
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          Yes, Delete
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -280,6 +497,9 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
       <Card>
         <CardHeader>
           <CardTitle>{submission ? "Update Your Submission" : "Submit Your Project"}</CardTitle>
+          {submission && (
+            <p className="text-sm text-muted-foreground">You can update your links, document, or description below and resubmit.</p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -379,38 +599,6 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
           </Button>
         </CardContent>
       </Card>
-
-      {/* Previous Submission Details */}
-      {submission && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Submitted Links</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {submission.project_links.map((link: string, index: number) => (
-                <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                  <span className="text-sm font-medium text-gray-700">Link {index + 1}:</span>
-                  <a
-                    href={link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline truncate"
-                  >
-                    {link}
-                  </a>
-                </div>
-              ))}
-              {submission.file_url && (
-                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                  <span className="text-sm font-medium text-gray-700">Document:</span>
-                  <span className="text-sm text-blue-600">Attached file</span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

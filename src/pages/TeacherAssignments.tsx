@@ -43,6 +43,8 @@ import {
 } from "@/components/ui/dialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { MessageSquare, Send } from "lucide-react";
 
 interface Course {
   id: string;
@@ -95,6 +97,7 @@ const TeacherAssignments = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([]);
   const [editGrades, setEditGrades] = useState<Record<string, string>>({});
+  const [editFeedback, setEditFeedback] = useState<Record<string, string>>({});
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [viewingSubmission, setViewingSubmission] = useState<Submission | null>(null);
 
@@ -339,13 +342,25 @@ const TeacherAssignments = () => {
     setEditGrades((prev) => ({ ...prev, [submissionId]: value }));
   };
 
+  const handleFeedbackChange = (submissionId: string, value: string) => {
+    setEditFeedback((prev) => ({ ...prev, [submissionId]: value }));
+  };
+
   const handleSaveInlineGrade = async (submissionId: string) => {
     const raw = editGrades[submissionId];
-    const grade = parseInt(raw, 10);
-    if (isNaN(grade) || grade < 0 || grade > 100) {
+    const feedbackText = editFeedback[submissionId];
+    const grade = raw ? parseInt(raw, 10) : undefined;
+    
+    if (grade !== undefined && (isNaN(grade) || grade < 0 || grade > 100)) {
       toast.error(t('teacher.assignments.enterValidGrade'));
       return;
     }
+
+    if (grade === undefined && !feedbackText?.trim()) {
+      toast.error("Please enter a grade or feedback");
+      return;
+    }
+
     try {
       // Find the submission to determine which table to update
       const submission = submissions.find(s => s.id === submissionId);
@@ -358,17 +373,28 @@ const TeacherAssignments = () => {
       const isAssignment = 'lesson_id' in submission;
       const tableName = isAssignment ? "assignment_submissions" : "capstone_submissions";
 
-      console.log(`Updating grade in ${tableName} for submission ${submissionId}`);
+      console.log(`Updating grade/feedback in ${tableName} for submission ${submissionId}`);
+
+      const updatePayload: any = { graded_at: new Date().toISOString() };
+      if (grade !== undefined) updatePayload.grade = grade;
+      if (feedbackText?.trim()) updatePayload.feedback = feedbackText.trim();
 
       const { error } = await supabase
         .from(tableName)
-        .update({ grade, graded_at: new Date().toISOString() })
+        .update(updatePayload)
         .eq("id", submissionId);
       
       if (error) throw error;
       
-      setSubmissions((prev) => prev.map((s) => (s.id === submissionId ? { ...s, grade } : s)));
-      toast.success(t('teacher.grades.gradeSaved'));
+      setSubmissions((prev) => prev.map((s) => {
+        if (s.id !== submissionId) return s;
+        return {
+          ...s,
+          ...(grade !== undefined ? { grade } : {}),
+          ...(feedbackText?.trim() ? { feedback: feedbackText.trim() } : {}),
+        };
+      }));
+      toast.success("Grade & feedback saved!");
     } catch (e) {
       console.error(e);
       toast.error(t('teacher.grades.failedToSave'));
@@ -622,6 +648,7 @@ const TeacherAssignments = () => {
                                             onClick={() => handleSaveInlineGrade(submission.id)}
                                             className="bg-[#006d2c] hover:bg-[#005523] mt-5"
                                           >
+                                            <Send className="h-3.5 w-3.5 mr-1" />
                                             Save
                                           </Button>
                                         </div>
@@ -631,6 +658,29 @@ const TeacherAssignments = () => {
                                           <Badge variant="outline" className="text-orange-500 border-orange-500">Not Graded</Badge>
                                         )}
                                       </div>
+                                    </div>
+
+                                    {/* Teacher Feedback / Comment Section */}
+                                    <div className="mt-4 pt-4 border-t border-gray-100">
+                                      <div className="flex items-start gap-3">
+                                        <MessageSquare className="h-4 w-4 text-gray-400 mt-2 flex-shrink-0" />
+                                        <div className="flex-1">
+                                          <label className="text-xs font-semibold text-gray-600 block mb-1.5">Feedback / Comment for Student</label>
+                                          <Textarea
+                                            placeholder="Write your feedback here... (e.g. Great work on the UI! Consider improving error handling.)"
+                                            value={editFeedback[submission.id] ?? (submission.feedback || "")}
+                                            onChange={(e) => handleFeedbackChange(submission.id, e.target.value)}
+                                            rows={2}
+                                            className="text-sm resize-none"
+                                          />
+                                        </div>
+                                      </div>
+                                      {submission.feedback && !editFeedback[submission.id] && (
+                                        <div className="mt-2 ml-7 p-2.5 bg-green-50 rounded-lg border border-green-100">
+                                          <p className="text-xs font-semibold text-green-800 mb-0.5">Your previous feedback:</p>
+                                          <p className="text-sm text-green-700">{submission.feedback}</p>
+                                        </div>
+                                      )}
                                     </div>
                                   </CardContent>
                                 </Card>
@@ -776,6 +826,7 @@ const TeacherAssignments = () => {
                                             onClick={() => handleSaveInlineGrade(submission.id)}
                                             className="bg-[#006d2c] hover:bg-[#005523] mt-5"
                                           >
+                                            <Send className="h-3.5 w-3.5 mr-1" />
                                             Save
                                           </Button>
                                         </div>
@@ -785,6 +836,29 @@ const TeacherAssignments = () => {
                                           <Badge variant="outline" className="text-orange-500 border-orange-500">Not Graded</Badge>
                                         )}
                                       </div>
+                                    </div>
+
+                                    {/* Teacher Feedback / Comment Section */}
+                                    <div className="mt-4 pt-4 border-t border-gray-100">
+                                      <div className="flex items-start gap-3">
+                                        <MessageSquare className="h-4 w-4 text-gray-400 mt-2 flex-shrink-0" />
+                                        <div className="flex-1">
+                                          <label className="text-xs font-semibold text-gray-600 block mb-1.5">Feedback / Comment for Student</label>
+                                          <Textarea
+                                            placeholder="Write your feedback here... (e.g. Great work on the UI! Consider improving error handling.)"
+                                            value={editFeedback[submission.id] ?? (submission.feedback || "")}
+                                            onChange={(e) => handleFeedbackChange(submission.id, e.target.value)}
+                                            rows={2}
+                                            className="text-sm resize-none"
+                                          />
+                                        </div>
+                                      </div>
+                                      {submission.feedback && !editFeedback[submission.id] && (
+                                        <div className="mt-2 ml-7 p-2.5 bg-green-50 rounded-lg border border-green-100">
+                                          <p className="text-xs font-semibold text-green-800 mb-0.5">Your previous feedback:</p>
+                                          <p className="text-sm text-green-700">{submission.feedback}</p>
+                                        </div>
+                                      )}
                                     </div>
                                   </CardContent>
                                 </Card>
