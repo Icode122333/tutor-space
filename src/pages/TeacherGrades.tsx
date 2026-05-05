@@ -159,12 +159,13 @@ const TeacherGrades = () => {
 
       if (enrollError) throw enrollError;
 
-      // Get capstone project for this course
-      const { data: capstone } = await supabase
+      // Get ALL capstone projects for this course
+      const { data: capstones } = await supabase
         .from("capstone_projects")
-        .select("id")
-        .eq("course_id", selectedCourseId)
-        .single();
+        .select("id, title")
+        .eq("course_id", selectedCourseId);
+
+      const capstoneProjects = capstones || [];
 
       // Get all lessons for this course
       const { data: chapters } = await supabase
@@ -221,7 +222,6 @@ const TeacherGrades = () => {
               assignmentGrades.push(sub.grade);
             }
           });
-          // Use the most recent submission for feedback
           const latestAssignment = assignmentSubmissions[assignmentSubmissions.length - 1];
           if (latestAssignment.feedback) {
             assignmentFeedback = latestAssignment.feedback;
@@ -229,19 +229,20 @@ const TeacherGrades = () => {
           submissionId = latestAssignment.id;
         }
 
-        // 2. Get capstone submission
+        // 2. Get ALL capstone submissions
         let capstoneGrade = null;
-        if (capstone) {
+        let capstoneGrades: number[] = [];
+        for (const cp of capstoneProjects) {
           const { data: capstoneSubmission } = await supabase
             .from("capstone_submissions")
             .select("id, grade, feedback")
-            .eq("capstone_project_id", capstone.id)
+            .eq("capstone_project_id", cp.id)
             .eq("student_id", studentId)
-            .single();
+            .maybeSingle();
 
           if (capstoneSubmission) {
             if (capstoneSubmission.grade !== null) {
-              capstoneGrade = capstoneSubmission.grade;
+              capstoneGrades.push(capstoneSubmission.grade);
               assignmentGrades.push(capstoneSubmission.grade);
             }
             if (capstoneSubmission.feedback) {
@@ -249,6 +250,9 @@ const TeacherGrades = () => {
             }
             submissionId = capstoneSubmission.id;
           }
+        }
+        if (capstoneGrades.length > 0) {
+          capstoneGrade = capstoneGrades.reduce((a, b) => a + b, 0) / capstoneGrades.length;
         }
 
         // Calculate average assignment grade
@@ -543,13 +547,60 @@ const TeacherGrades = () => {
       XLSX.utils.book_append_sheet(wb, wsQuizDetails, "Quiz Attempts");
     }
 
+    // Sheet 3: Capstone Details — individual marks per capstone project
+    const { data: capstoneProjectsList } = await supabase
+      .from("capstone_projects")
+      .select("id, title")
+      .eq("course_id", selectedCourseId);
+
+    if (capstoneProjectsList && capstoneProjectsList.length > 0) {
+      const allCapstoneDetails: any[] = [];
+      let rowNum = 0;
+
+      for (const student of studentGrades) {
+        for (const cp of capstoneProjectsList) {
+          const { data: submission } = await supabase
+            .from("capstone_submissions")
+            .select("grade, feedback, submitted_at")
+            .eq("capstone_project_id", cp.id)
+            .eq("student_id", student.student_id)
+            .maybeSingle();
+
+          rowNum++;
+          allCapstoneDetails.push({
+            "No.": rowNum,
+            "Student Name": student.student_name,
+            "Email": student.student_email,
+            "Capstone Project": cp.title,
+            "Grade (%)": submission?.grade !== null && submission?.grade !== undefined ? submission.grade : "Not Graded",
+            "Feedback": submission?.feedback || "",
+            "Submitted": submission?.submitted_at ? new Date(submission.submitted_at).toLocaleString() : "Not Submitted",
+          });
+        }
+      }
+
+      if (allCapstoneDetails.length > 0) {
+        const wsCapstone = XLSX.utils.json_to_sheet(allCapstoneDetails);
+        wsCapstone["!cols"] = [
+          { wch: 5 },   // No.
+          { wch: 25 },  // Student Name
+          { wch: 30 },  // Email
+          { wch: 35 },  // Capstone Project
+          { wch: 12 },  // Grade
+          { wch: 40 },  // Feedback
+          { wch: 20 },  // Submitted
+        ];
+        XLSX.utils.book_append_sheet(wb, wsCapstone, "Capstone Details");
+      }
+    }
+
     // Generate filename with date
     const date = new Date().toISOString().split("T")[0];
     const filename = `${courseName.replace(/[^a-zA-Z0-9]/g, "_")}_Grades_${date}.xlsx`;
 
     // Download
     XLSX.writeFile(wb, filename);
-    toast.success("Grades exported with quiz details!");
+    toast.success("Grades exported with quiz & capstone details!");
   };
 
   if (loading) {
