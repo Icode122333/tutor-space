@@ -139,14 +139,26 @@ export default function CreateCourse() {
     }
   };
   const [openChapters, setOpenChapters] = useState<Set<number>>(new Set([0]));
-  const [capstoneProject, setCapstoneProject] = useState<CapstoneProjectForm>({
+  const [capstoneProjects, setCapstoneProjects] = useState<CapstoneProjectForm[]>([{
     title: "",
     description: "",
     instructions: "",
     requirements: [""],
     due_date: "",
     file_url: "",
-  });
+  }]);
+
+  const updateCapstoneProject = (index: number, updates: Partial<CapstoneProjectForm>) => {
+    setCapstoneProjects(prev => prev.map((cp, i) => i === index ? { ...cp, ...updates } : cp));
+  };
+
+  const addCapstoneProject = () => {
+    setCapstoneProjects(prev => [...prev, { title: "", description: "", instructions: "", requirements: [""], due_date: "", file_url: "" }]);
+  };
+
+  const removeCapstoneProject = (index: number) => {
+    setCapstoneProjects(prev => prev.filter((_, i) => i !== index));
+  };
   const [includeCapstone, setIncludeCapstone] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -259,20 +271,19 @@ export default function CreateCourse() {
       const { data: capstoneData } = await supabase
         .from("capstone_projects")
         .select("*")
-        .eq("course_id", id)
-        .single();
+        .eq("course_id", id);
 
-      if (capstoneData) {
+      if (capstoneData && capstoneData.length > 0) {
         setIncludeCapstone(true);
-        setCapstoneProject({
-          id: capstoneData.id,
-          title: capstoneData.title || "",
-          description: capstoneData.description || "",
-          instructions: capstoneData.instructions || "",
-          requirements: capstoneData.requirements || [""],
-          due_date: capstoneData.due_date || "",
-          file_url: capstoneData.file_url || "",
-        });
+        setCapstoneProjects(capstoneData.map((cp: any) => ({
+          id: cp.id,
+          title: cp.title || "",
+          description: cp.description || "",
+          instructions: cp.instructions || "",
+          requirements: cp.requirements || [""],
+          due_date: cp.due_date || "",
+          file_url: cp.file_url || "",
+        })));
       }
     } catch (error) {
       console.error("Error fetching course:", error);
@@ -381,18 +392,18 @@ export default function CreateCourse() {
   };
 
   // Capstone handlers
-  const addCapstoneRequirement = () => {
-    setCapstoneProject({ ...capstoneProject, requirements: [...capstoneProject.requirements, ""] });
+  const addCapstoneRequirement = (cpIndex: number) => {
+    updateCapstoneProject(cpIndex, { requirements: [...capstoneProjects[cpIndex].requirements, ""] });
   };
 
-  const updateCapstoneRequirement = (index: number, value: string) => {
-    const newReqs = [...capstoneProject.requirements];
-    newReqs[index] = value;
-    setCapstoneProject({ ...capstoneProject, requirements: newReqs });
+  const updateCapstoneRequirement = (cpIndex: number, reqIndex: number, value: string) => {
+    const newReqs = [...capstoneProjects[cpIndex].requirements];
+    newReqs[reqIndex] = value;
+    updateCapstoneProject(cpIndex, { requirements: newReqs });
   };
 
-  const removeCapstoneRequirement = (index: number) => {
-    setCapstoneProject({ ...capstoneProject, requirements: capstoneProject.requirements.filter((_, i) => i !== index) });
+  const removeCapstoneRequirement = (cpIndex: number, reqIndex: number) => {
+    updateCapstoneProject(cpIndex, { requirements: capstoneProjects[cpIndex].requirements.filter((_, i) => i !== reqIndex) });
   };
 
   const syncCourseStructure = async (targetCourseId: string) => {
@@ -561,44 +572,51 @@ export default function CreateCourse() {
   };
 
   const syncCapstoneProject = async (targetCourseId: string) => {
-    if (!includeCapstone || !capstoneProject.title.trim()) {
+    const validProjects = includeCapstone ? capstoneProjects.filter(cp => cp.title.trim()) : [];
+
+    if (validProjects.length === 0) {
       const { error } = await supabase
         .from("capstone_projects")
         .delete()
         .eq("course_id", targetCourseId);
-
       if (error) throw error;
       return;
     }
 
-    const capstonePayload = {
-      course_id: targetCourseId,
-      title: capstoneProject.title,
-      description: capstoneProject.description,
-      instructions: capstoneProject.instructions,
-      requirements: capstoneProject.requirements.filter((requirement) => requirement.trim()),
-      due_date: capstoneProject.due_date || null,
-      file_url: capstoneProject.file_url || null,
-    };
-
-    if (capstoneProject.id) {
-      const { error } = await supabase
-        .from("capstone_projects")
-        .update(capstonePayload)
-        .eq("id", capstoneProject.id);
-
-      if (error) throw error;
-      return;
-    }
-
-    const { data: insertedCapstone, error } = await supabase
+    // Get existing capstone IDs for this course
+    const { data: existingCapstones } = await supabase
       .from("capstone_projects")
-      .insert(capstonePayload)
       .select("id")
-      .single();
+      .eq("course_id", targetCourseId);
 
-    if (error) throw error;
-    setCapstoneProject((current) => ({ ...current, id: insertedCapstone.id }));
+    const existingIds = new Set((existingCapstones || []).map((c: any) => c.id));
+    const keepIds = new Set(validProjects.filter(cp => cp.id).map(cp => cp.id!));
+
+    // Delete removed capstones
+    for (const existingId of existingIds) {
+      if (!keepIds.has(existingId)) {
+        await supabase.from("capstone_projects").delete().eq("id", existingId);
+      }
+    }
+
+    // Upsert each capstone
+    for (const cp of validProjects) {
+      const payload = {
+        course_id: targetCourseId,
+        title: cp.title,
+        description: cp.description,
+        instructions: cp.instructions,
+        requirements: cp.requirements.filter(r => r.trim()),
+        due_date: cp.due_date || null,
+        file_url: cp.file_url || null,
+      };
+
+      if (cp.id) {
+        await supabase.from("capstone_projects").update(payload).eq("id", cp.id);
+      } else {
+        await supabase.from("capstone_projects").insert(payload);
+      }
+    }
   };
 
 
@@ -1242,95 +1260,113 @@ export default function CreateCourse() {
                   </div>
 
                   {includeCapstone ? (
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-sm text-gray-600">Project Title</Label>
-                        <Input
-                          value={capstoneProject.title}
-                          onChange={(e) => setCapstoneProject({ ...capstoneProject, title: e.target.value })}
-                          placeholder="e.g., Build a Full-Stack Application"
-                          className="mt-1"
-                        />
-                      </div>
-
-                      <div>
-                        <Label className="text-sm text-gray-600">Description</Label>
-                        <Textarea
-                          value={capstoneProject.description}
-                          onChange={(e) => setCapstoneProject({ ...capstoneProject, description: e.target.value })}
-                          placeholder="Overview of the project"
-                          rows={3}
-                          className="mt-1"
-                        />
-                      </div>
-
-                      <div>
-                        <Label className="text-sm text-gray-600">Instructions</Label>
-                        <Textarea
-                          value={capstoneProject.instructions}
-                          onChange={(e) => setCapstoneProject({ ...capstoneProject, instructions: e.target.value })}
-                          placeholder="Step-by-step instructions"
-                          rows={5}
-                          className="mt-1"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <Label className="text-sm text-gray-600">Requirements</Label>
-                          <Button type="button" size="sm" variant="outline" onClick={addCapstoneRequirement} className="h-7 text-xs">
-                            <Plus className="h-3 w-3 mr-1" />
-                            Add
-                          </Button>
-                        </div>
-                        <div className="space-y-2">
-                          {capstoneProject.requirements.map((req, index) => (
-                            <div key={index} className="flex gap-2">
-                              <Input
-                                value={req}
-                                onChange={(e) => updateCapstoneRequirement(index, e.target.value)}
-                                placeholder={`Requirement ${index + 1}`}
-                              />
-                              {capstoneProject.requirements.length > 1 && (
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => removeCapstoneRequirement(index)}
-                                  className="text-gray-400 hover:text-red-500"
-                                >
-                                  <Trash2 className="h-4 w-4" />
+                    <div className="space-y-6">
+                      {capstoneProjects.map((cp, cpIndex) => (
+                        <Card key={cpIndex} className="border-purple-100 bg-purple-50/30">
+                          <CardContent className="p-5 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-semibold text-gray-800">
+                                Capstone Project {capstoneProjects.length > 1 ? `#${cpIndex + 1}` : ""}
+                              </h3>
+                              {capstoneProjects.length > 1 && (
+                                <Button type="button" size="sm" variant="ghost" onClick={() => removeCapstoneProject(cpIndex)} className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8">
+                                  <Trash2 className="h-4 w-4 mr-1" /> Remove
                                 </Button>
                               )}
                             </div>
-                          ))}
-                        </div>
-                      </div>
 
-                      <div>
-                        <Label className="text-sm text-gray-600">Due Date (Optional)</Label>
-                        <Input
-                          type="date"
-                          value={capstoneProject.due_date}
-                          onChange={(e) => setCapstoneProject({ ...capstoneProject, due_date: e.target.value })}
-                          className="mt-1 w-48"
-                        />
-                      </div>
+                            <div>
+                              <Label className="text-sm text-gray-600">Project Title</Label>
+                              <Input
+                                value={cp.title}
+                                onChange={(e) => updateCapstoneProject(cpIndex, { title: e.target.value })}
+                                placeholder="e.g., Build a Full-Stack Application"
+                                className="mt-1"
+                              />
+                            </div>
 
-                      <div>
-                        <Label className="text-sm text-gray-600">Upload Capstone Brief PDF (Optional)</Label>
-                        <FileUploadField
-                          label=""
-                          value={capstoneProject.file_url || ""}
-                          onChange={(url) => {
-                            setCapstoneProject({ ...capstoneProject, file_url: url });
-                          }}
-                          accept=".pdf"
-                          placeholder="Upload or paste PDF URL"
-                          courseId={courseId || undefined}
-                          lessonId={`capstone-${capstoneProject.id || 'new'}`}
-                        />
-                      </div>
+                            <div>
+                              <Label className="text-sm text-gray-600">Description</Label>
+                              <Textarea
+                                value={cp.description}
+                                onChange={(e) => updateCapstoneProject(cpIndex, { description: e.target.value })}
+                                placeholder="Overview of the project"
+                                rows={3}
+                                className="mt-1"
+                              />
+                            </div>
+
+                            <div>
+                              <Label className="text-sm text-gray-600">Instructions</Label>
+                              <Textarea
+                                value={cp.instructions}
+                                onChange={(e) => updateCapstoneProject(cpIndex, { instructions: e.target.value })}
+                                placeholder="Step-by-step instructions"
+                                rows={5}
+                                className="mt-1"
+                              />
+                            </div>
+
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <Label className="text-sm text-gray-600">Requirements</Label>
+                                <Button type="button" size="sm" variant="outline" onClick={() => addCapstoneRequirement(cpIndex)} className="h-7 text-xs">
+                                  <Plus className="h-3 w-3 mr-1" /> Add
+                                </Button>
+                              </div>
+                              <div className="space-y-2">
+                                {cp.requirements.map((req, reqIndex) => (
+                                  <div key={reqIndex} className="flex gap-2">
+                                    <Input
+                                      value={req}
+                                      onChange={(e) => updateCapstoneRequirement(cpIndex, reqIndex, e.target.value)}
+                                      placeholder={`Requirement ${reqIndex + 1}`}
+                                    />
+                                    {cp.requirements.length > 1 && (
+                                      <Button type="button" size="icon" variant="ghost" onClick={() => removeCapstoneRequirement(cpIndex, reqIndex)} className="text-gray-400 hover:text-red-500">
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label className="text-sm text-gray-600">Due Date (Optional)</Label>
+                              <Input
+                                type="date"
+                                value={cp.due_date}
+                                onChange={(e) => updateCapstoneProject(cpIndex, { due_date: e.target.value })}
+                                className="mt-1 w-48"
+                              />
+                            </div>
+
+                            <div>
+                              <Label className="text-sm text-gray-600">Upload Capstone Brief PDF (Optional)</Label>
+                              <FileUploadField
+                                label=""
+                                value={cp.file_url || ""}
+                                onChange={(url) => updateCapstoneProject(cpIndex, { file_url: url })}
+                                accept=".pdf"
+                                placeholder="Upload or paste PDF URL"
+                                courseId={courseId || undefined}
+                                lessonId={`capstone-${cp.id || `new-${cpIndex}`}`}
+                              />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addCapstoneProject}
+                        className="w-full border-dashed border-2 border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400 h-12"
+                      >
+                        <Plus className="h-5 w-5 mr-2" />
+                        Add Another Capstone Project
+                      </Button>
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -1471,15 +1507,19 @@ export default function CreateCourse() {
                   </Card>
 
                   {/* Capstone Preview */}
-                  {includeCapstone && capstoneProject.title && (
+                  {includeCapstone && capstoneProjects.filter(cp => cp.title).length > 0 && (
                     <Card className="border-purple-200">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <Award className="h-5 w-5 text-purple-600" />
-                          <h3 className="font-semibold text-gray-900">Capstone Project</h3>
+                          <h3 className="font-semibold text-gray-900">Capstone Projects ({capstoneProjects.filter(cp => cp.title).length})</h3>
                         </div>
-                        <h4 className="font-medium text-gray-800 mb-2">{capstoneProject.title}</h4>
-                        <p className="text-sm text-gray-600">{capstoneProject.description}</p>
+                        {capstoneProjects.filter(cp => cp.title).map((cp, idx) => (
+                          <div key={idx} className={idx > 0 ? "mt-3 pt-3 border-t" : ""}>
+                            <h4 className="font-medium text-gray-800 mb-1">{cp.title}</h4>
+                            <p className="text-sm text-gray-600">{cp.description}</p>
+                          </div>
+                        ))}
                       </CardContent>
                     </Card>
                   )}
