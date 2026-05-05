@@ -47,40 +47,6 @@ const SignUp = () => {
 
       if (error) {
         toast.error(error.message);
-
-const SignUp = () => {
-  const navigate = useNavigate();
-  const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<UserRole>("student");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [lastAuthMethod, setLastAuthMethod] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Check localStorage for last used auth method
-    const savedMethod = localStorage.getItem(AUTH_METHOD_KEY);
-    setLastAuthMethod(savedMethod);
-  }, []);
-
-  const handleGoogleAuth = async () => {
-    try {
-      // Save auth method before redirect
-      localStorage.setItem(AUTH_METHOD_KEY, "google");
-      
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?role=${selectedRole}`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
-
-      if (error) {
-        toast.error(error.message);
       }
     } catch (error: any) {
       toast.error(error.message || "An error occurred with Google authentication");
@@ -159,8 +125,7 @@ const SignUp = () => {
       if (data.user) {
         // For STUDENTS: skip email verification — sign them in immediately
         if (selectedRole === "student" && !data.session) {
-          // Try to sign in directly (works when Supabase has "Confirm email" disabled,
-          // or when the user was auto-confirmed)
+          // Try to sign in directly
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email,
             password,
@@ -236,6 +201,55 @@ const SignUp = () => {
         // Wait a moment for the trigger to create the profile
         sessionStorage.removeItem(PENDING_VERIFICATION_EMAIL_KEY);
         await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Verify and update the profile role if needed
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profile && profile.role !== selectedRole) {
+          console.log(`Role mismatch detected. Expected: ${selectedRole}, Got: ${profile.role}. Updating...`);
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({ role: selectedRole })
+            .eq("id", data.user.id);
+
+          if (updateError) {
+            console.error("Error updating role:", updateError);
+          } else {
+            console.log("Role updated successfully to:", selectedRole);
+          }
+        }
+
+        // Save auth method on successful signup
+        localStorage.setItem(AUTH_METHOD_KEY, "email");
+        
+        toast.success(
+          "🎉 Account created successfully!",
+          {
+            duration: 5000,
+            style: {
+              background: '#006d2c',
+              color: 'white',
+              border: 'none',
+            },
+          }
+        );
+        navigate(selectedRole === "teacher" ? "/teacher/onboarding" : "/onboarding");
+      }
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      toast.error(error.message || "An error occurred during signup");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Left Side - Form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-md space-y-4">
           {/* Logo */}
