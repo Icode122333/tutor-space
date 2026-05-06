@@ -68,7 +68,7 @@ export default function AdminCertificates() {
     try {
       // Fetch ALL enrolled students with their course info
       const { data: enrollments, error: enrollError } = await supabase
-        .from("enrollments")
+        .from("course_enrollments")
         .select(`
           id,
           student_id,
