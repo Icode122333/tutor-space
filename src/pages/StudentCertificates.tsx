@@ -4,12 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Award, Download, Share2, Calendar, CheckCircle2 } from "lucide-react";
+import { Award, Download, Share2, Calendar, CheckCircle2, Eye, X, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTranslation } from "react-i18next";
 
 interface Certificate {
@@ -30,6 +31,8 @@ const StudentCertificates = () => {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [previewCert, setPreviewCert] = useState<Certificate | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
     checkUser();
@@ -121,14 +124,35 @@ const StudentCertificates = () => {
     }
   };
 
-  const handleDownload = (certificate: Certificate) => {
-    if (certificate.certificate_url) {
-      window.open(certificate.certificate_url, '_blank');
-      toast.success(t('certificates.openingCertificate'));
-    } else {
+  const handleDownload = async (certificate: Certificate) => {
+    if (!certificate.certificate_url) {
       toast.error(t('certificates.certificateUrlNotAvailable'));
+      return;
+    }
+    setDownloading(certificate.id);
+    try {
+      const response = await fetch(certificate.certificate_url);
+      const blob = await response.blob();
+      const ext = certificate.certificate_url.split('.').pop()?.split('?')[0] || 'pdf';
+      const safeTitle = certificate.course_title.replace(/[^a-z0-9]/gi, '_');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Certificate_${safeTitle}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Certificate downloaded");
+    } catch (error) {
+      console.error("Download failed:", error);
+      window.open(certificate.certificate_url, '_blank');
+    } finally {
+      setDownloading(null);
     }
   };
+
+  const isPdf = (url: string) => url.toLowerCase().includes('.pdf');
 
   const handleShare = (certificate: Certificate) => {
     if (certificate.certificate_url) {
@@ -216,7 +240,7 @@ const StudentCertificates = () => {
 
                 {certificates.length > 0 ? (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {certificates.map((cert, index) => {
+                    {certificates.map((cert) => {
                       const completionDate = new Date(cert.completion_date);
                       const formattedDate = completionDate.toLocaleDateString('en-US', {
                         year: 'numeric',
@@ -224,85 +248,94 @@ const StudentCertificates = () => {
                         day: 'numeric'
                       });
 
-                      const gradients = [
-                        'from-blue-500 to-purple-600',
-                        'from-green-500 to-teal-600',
-                        'from-orange-500 to-red-600',
-                        'from-pink-500 to-rose-600',
-                      ];
-                      const gradient = gradients[index % gradients.length];
-
                       return (
                         <Card
                           key={cert.id}
-                          className="group relative overflow-hidden border-2 border-gray-200 hover:border-[#006d2c] transition-all duration-300 hover:shadow-2xl"
+                          onClick={() => setPreviewCert(cert)}
+                          className="group relative overflow-hidden border border-gray-200 hover:border-[#006d2c] transition-all duration-300 hover:shadow-xl cursor-pointer bg-white"
                         >
-                          {/* Certificate Header with Gradient */}
-                          <div className={`relative h-32 bg-gradient-to-br ${gradient} p-6 flex items-center justify-center`}>
-                            <div className="absolute inset-0 bg-black/10" />
+                          {/* Certificate Preview Header — clean ivory + emerald accent */}
+                          <div className="relative h-40 bg-[#fdfcf7] border-b border-gray-200 flex items-center justify-center overflow-hidden">
+                            {/* subtle corner ornaments */}
+                            <div className="absolute top-3 left-3 w-10 h-10 border-t-2 border-l-2 border-[#006d2c]/40" />
+                            <div className="absolute top-3 right-3 w-10 h-10 border-t-2 border-r-2 border-[#006d2c]/40" />
+                            <div className="absolute bottom-3 left-3 w-10 h-10 border-b-2 border-l-2 border-[#006d2c]/40" />
+                            <div className="absolute bottom-3 right-3 w-10 h-10 border-b-2 border-r-2 border-[#006d2c]/40" />
+
                             <div className="relative text-center">
-                              <Award className="h-16 w-16 text-white mx-auto mb-2 drop-shadow-lg" />
-                              <Badge className="bg-white/20 text-white border-white/30">
-                                {t('certificates.certificateOfCompletion')}
-                              </Badge>
+                              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#006d2c]/10 mb-2">
+                                <Award className="h-8 w-8 text-[#006d2c]" />
+                              </div>
+                              <p className="text-xs uppercase tracking-[0.2em] text-gray-500 font-semibold">
+                                Certificate of Completion
+                              </p>
                             </div>
-                            {/* Decorative elements */}
-                            <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-white/30" />
-                            <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-white/30" />
-                            <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-white/30" />
-                            <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-white/30" />
+
+                            {/* hover preview hint */}
+                            <div className="absolute inset-0 bg-[#006d2c]/0 group-hover:bg-[#006d2c]/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                              <div className="bg-white px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5 text-sm font-medium text-[#006d2c]">
+                                <Eye className="h-4 w-4" />
+                                Click to preview
+                              </div>
+                            </div>
                           </div>
 
                           {/* Certificate Content */}
                           <CardContent className="p-6">
                             <div className="mb-4">
-                              <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
+                              <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2">
                                 {cert.course_title}
                               </h3>
                               <p className="text-sm text-gray-600">
-                                {t('certificates.instructor')}: {cert.instructor_name}
+                                Instructor: <span className="font-medium text-gray-800">{cert.instructor_name}</span>
                               </p>
                             </div>
 
-                            <div className="flex items-center gap-4 mb-4 text-sm text-gray-600">
-                              <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-3 mb-4 text-sm">
+                              <div className="flex items-center gap-1.5 text-gray-600">
                                 <Calendar className="h-4 w-4 text-[#006d2c]" />
                                 <span>{formattedDate}</span>
                               </div>
-                              <Badge variant="secondary" className="bg-[#006d2c]/10 text-[#006d2c]">
-                                {t('certificates.grade')}: {cert.grade}
+                              <Badge variant="secondary" className="bg-[#006d2c]/10 text-[#006d2c] border-0">
+                                Grade: {cert.grade}
                               </Badge>
                             </div>
 
-                            {/* Action Buttons */}
-                            <div className="flex gap-3">
+                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                               <Button
-                                onClick={() => handleDownload(cert)}
+                                onClick={() => setPreviewCert(cert)}
                                 className="flex-1 bg-[#006d2c] hover:bg-[#005523] text-white"
                                 size="sm"
                               >
-                                <Download className="h-4 w-4 mr-2" />
-                                {t('certificates.viewBtn')}
+                                <Eye className="h-4 w-4 mr-2" />
+                                Preview
                               </Button>
                               <Button
-                                onClick={() => handleShare(cert)}
+                                onClick={() => handleDownload(cert)}
+                                disabled={downloading === cert.id}
                                 variant="outline"
                                 className="flex-1 border-[#006d2c] text-[#006d2c] hover:bg-[#006d2c]/10"
                                 size="sm"
                               >
-                                <Share2 className="h-4 w-4 mr-2" />
-                                {t('certificates.share')}
+                                <Download className="h-4 w-4 mr-2" />
+                                {downloading === cert.id ? "..." : "Download"}
+                              </Button>
+                              <Button
+                                onClick={() => handleShare(cert)}
+                                variant="outline"
+                                size="sm"
+                                className="border-gray-300"
+                                aria-label="Share"
+                              >
+                                <Share2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </CardContent>
 
                           {/* Verified Badge */}
-                          <div className="absolute top-36 right-4">
-                            <div className="relative">
-                              <div className="w-12 h-12 rounded-full bg-[#006d2c] flex items-center justify-center shadow-lg">
-                                <CheckCircle2 className="h-6 w-6 text-white" />
-                              </div>
-                              <div className="absolute inset-0 rounded-full bg-[#006d2c] animate-ping opacity-20" />
+                          <div className="absolute top-4 right-4">
+                            <div className="w-10 h-10 rounded-full bg-[#006d2c] flex items-center justify-center shadow-md ring-2 ring-white">
+                              <CheckCircle2 className="h-5 w-5 text-white" />
                             </div>
                           </div>
                         </Card>
@@ -368,6 +401,63 @@ const StudentCertificates = () => {
           </main>
         </div>
       </div>
+
+      {/* Certificate Preview Dialog */}
+      <Dialog open={!!previewCert} onOpenChange={(open) => !open && setPreviewCert(null)}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[95vh] p-0 overflow-hidden">
+          <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-[#006d2c] to-[#008c3a] text-white">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <Award className="h-6 w-6 flex-shrink-0" />
+                <div className="min-w-0">
+                  <DialogTitle className="text-white text-base truncate">
+                    {previewCert?.course_title}
+                  </DialogTitle>
+                  <p className="text-xs text-white/80 truncate">
+                    Instructor: {previewCert?.instructor_name}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <Button
+                  onClick={() => previewCert && handleDownload(previewCert)}
+                  disabled={!previewCert || downloading === previewCert.id}
+                  size="sm"
+                  className="bg-white text-[#006d2c] hover:bg-gray-100"
+                >
+                  <Download className="h-4 w-4 mr-1.5" />
+                  {previewCert && downloading === previewCert.id ? "Downloading..." : "Download"}
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="bg-gray-100 overflow-auto" style={{ height: "75vh" }}>
+            {previewCert?.certificate_url ? (
+              isPdf(previewCert.certificate_url) ? (
+                <iframe
+                  src={previewCert.certificate_url}
+                  className="w-full h-full border-0"
+                  title="Certificate preview"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center p-4">
+                  <img
+                    src={previewCert.certificate_url}
+                    alt="Certificate"
+                    className="max-w-full max-h-full object-contain shadow-2xl"
+                  />
+                </div>
+              )
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
+                <FileText className="h-16 w-16 mb-3 opacity-30" />
+                <p>Certificate file not available</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
