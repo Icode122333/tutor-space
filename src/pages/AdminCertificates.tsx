@@ -78,8 +78,9 @@ export default function AdminCertificates() {
             full_name,
             email
           ),
-          courses:course_id (
+          courses (
             title,
+            teacher_id,
             profiles:teacher_id (
               full_name
             )
@@ -111,8 +112,8 @@ export default function AdminCertificates() {
           student_name: e.profiles?.full_name || "Unknown",
           student_email: e.profiles?.email || "",
           course_id: e.course_id,
-          course_title: e.courses?.title || "Unknown Course",
-          teacher_name: e.courses?.profiles?.full_name || "Unknown",
+          course_title: (e.courses as any)?.title || "Unknown Course",
+          teacher_name: (e.courses as any)?.profiles?.full_name || "Unknown",
           enrolled_at: e.enrolled_at,
           certificate_id: cert?.id || null,
           certificate_status: cert?.status || null,
