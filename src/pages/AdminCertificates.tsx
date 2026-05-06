@@ -178,17 +178,16 @@ export default function AdminCertificates() {
     try {
       const ext = file.name.split(".").pop();
       const fileName = `${selectedStudent.student_id}_${selectedStudent.course_id}_${Date.now()}.${ext}`;
-      const filePath = `certificates/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("lesson-files")
-        .upload(filePath, file, { cacheControl: "3600", upsert: true });
+        .from("certificates")
+        .upload(fileName, file, { cacheControl: "3600", upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from("lesson-files")
-        .getPublicUrl(filePath);
+        .from("certificates")
+        .getPublicUrl(fileName);
 
       setCertificateUrl(publicUrl);
       setUploadedFileName(file.name);
