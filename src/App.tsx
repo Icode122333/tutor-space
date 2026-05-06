@@ -109,6 +109,7 @@ const App = () => (
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/debug" element={<RoleDebugger />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/grades" element={<TeacherGrades />} />
             <Route path="/admin/teacher-approvals" element={<AdminTeacherApprovals />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/logs" element={<AdminLogs />} />

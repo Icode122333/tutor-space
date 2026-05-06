@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
-import { Search, BookOpen, Star, Check, X, Trash2, Eye, DollarSign, Lock, Unlock } from "lucide-react";
+import { Search, BookOpen, Star, Check, X, Trash2, Eye, DollarSign, Lock, Unlock, Pencil } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { toast } from "sonner";
@@ -482,6 +482,15 @@ const AdminCourses = () => {
                               >
                                 <Eye className="h-4 w-4 mr-1" />
                                 View
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => navigate(`/create-course?edit=${course.id}`)}
+                                className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                              >
+                                <Pencil className="h-4 w-4 mr-1" />
+                                Edit
                               </Button>
                               <Button
                                 size="sm"

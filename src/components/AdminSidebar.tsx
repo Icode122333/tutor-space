@@ -25,7 +25,8 @@ import {
   MessageSquare,
   Handshake,
   DollarSign,
-  Package
+  Package,
+  ClipboardList
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -55,6 +56,7 @@ export function AdminSidebar({
 
   const studentItems = [
     { title: "Student Progress", url: "/admin/student-progress", icon: GraduationCap },
+    { title: "Grades", url: "/admin/grades", icon: ClipboardList },
     { title: "Certificates", url: "/admin/certificates", icon: Award, badge: pendingCertificates },
   ];
 

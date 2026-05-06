@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { TeacherSidebar } from "@/components/TeacherSidebar";
+import { AdminSidebar } from "@/components/AdminSidebar";
 import { TeacherHeader } from "@/components/TeacherHeader";
 import { GradesTable } from "@/components/GradesTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -91,6 +92,7 @@ const TeacherGrades = () => {
   const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>([]);
   const [showGradeDialog, setShowGradeDialog] = useState(false);
   const [teacherId, setTeacherId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [showQuizDialog, setShowQuizDialog] = useState(false);
   const [gradeForm, setGradeForm] = useState({
     grade: "",
@@ -121,11 +123,26 @@ const TeacherGrades = () => {
         return;
       }
 
-      const { data, error } = await supabase
+      // Check role — admins see all courses, teachers see only their own
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      const isAdmin = profile?.role === "admin";
+      setUserRole(profile?.role || null);
+
+      let query = supabase
         .from("courses")
         .select("id, title")
-        .eq("teacher_id", user.id)
         .order("created_at", { ascending: false });
+
+      if (!isAdmin) {
+        query = query.eq("teacher_id", user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -614,7 +631,7 @@ const TeacherGrades = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <TeacherSidebar />
+        {userRole === "admin" ? <AdminSidebar /> : <TeacherSidebar />}
 
         <div className="flex-1 flex flex-col overflow-hidden">
           <TeacherHeader 

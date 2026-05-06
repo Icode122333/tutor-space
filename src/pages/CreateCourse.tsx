@@ -672,7 +672,14 @@ export default function CreateCourse() {
       await syncCapstoneProject(course.id);
 
       toast({ title: "Success!", description: isEditMode ? "Course updated" : "Course created" });
-      navigate("/teacher/dashboard");
+
+      // Redirect admins back to admin courses, teachers to their dashboard
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      navigate(profile?.role === "admin" ? "/admin/courses" : "/teacher/dashboard");
     } catch (error) {
       console.error("Error:", error);
       toast({ title: "Error", description: "Failed to save course", variant: "destructive" });

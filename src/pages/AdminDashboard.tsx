@@ -13,7 +13,11 @@ import {
   UserCheck,
   AlertCircle,
   Activity,
-  DollarSign
+  DollarSign,
+  Pencil,
+  ClipboardList,
+  Award,
+  ArrowRight
 } from "lucide-react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { toast } from "sonner";
@@ -540,6 +544,72 @@ const AdminDashboard = () => {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Course Management */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Course Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div
+                      onClick={() => navigate("/admin/courses")}
+                      className="group cursor-pointer p-4 rounded-lg border border-gray-200 hover:border-[#006d2c] hover:bg-green-50/50 transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-10 h-10 rounded-lg bg-[#006d2c]/10 flex items-center justify-center">
+                          <BookOpen className="h-5 w-5 text-[#006d2c]" />
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-[#006d2c] group-hover:translate-x-1 transition-all" />
+                      </div>
+                      <p className="font-semibold text-sm text-gray-900">All Courses</p>
+                      <p className="text-xs text-gray-600 mt-0.5">View, approve, manage</p>
+                    </div>
+
+                    <div
+                      onClick={() => navigate("/create-course")}
+                      className="group cursor-pointer p-4 rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50/50 transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <Pencil className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                      </div>
+                      <p className="font-semibold text-sm text-gray-900">Create / Edit Course</p>
+                      <p className="text-xs text-gray-600 mt-0.5">Build or update content</p>
+                    </div>
+
+                    <div
+                      onClick={() => navigate("/admin/grades")}
+                      className="group cursor-pointer p-4 rounded-lg border border-gray-200 hover:border-purple-500 hover:bg-purple-50/50 transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                          <ClipboardList className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
+                      </div>
+                      <p className="font-semibold text-sm text-gray-900">Grades & Quizzes</p>
+                      <p className="text-xs text-gray-600 mt-0.5">Quiz, assignment, capstone</p>
+                    </div>
+
+                    <div
+                      onClick={() => navigate("/admin/certificates")}
+                      className="group cursor-pointer p-4 rounded-lg border border-gray-200 hover:border-orange-500 hover:bg-orange-50/50 transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                          <Award className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-orange-600 group-hover:translate-x-1 transition-all" />
+                      </div>
+                      <p className="font-semibold text-sm text-gray-900">Certificates</p>
+                      <p className="text-xs text-gray-600 mt-0.5">Issue & manage</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* System Health */}
               <Card>
