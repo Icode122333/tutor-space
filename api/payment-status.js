@@ -1,70 +1,101 @@
 /**
  * Vercel Serverless Function: Payment Status
  * GET /api/payment-status?ref=REFERENCE_ID
+ *
+ * Public (for card return page) — returns status only, no PII.
+ * Enrollment updates only when gateway confirms payment.
  */
+
+import {
+    getSupabaseAdmin,
+    findPaymentByReference,
+    updatePaymentStatus,
+    sanitizeReferenceId,
+} from './lib/supabase-payments.js';
+import {
+    getXentriCollectionStatus,
+    mapXentriCollectionStatus,
+} from './lib/xentripay.js';
+import { fetchLmbTechPaymentStatus } from './lib/lmbtech.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const referenceId = req.query.ref;
-
+    const referenceId = sanitizeReferenceId(req.query.ref);
     if (!referenceId) {
         return res.status(400).json({
             success: false,
-            error: 'Missing reference ID (ref query parameter)'
+            error: 'Invalid or missing reference ID',
         });
     }
 
     try {
-        const appKey = process.env.LMBTECH_APP_KEY;
-        const secretKey = process.env.LMBTECH_SECRET_KEY;
+        const supabase = getSupabaseAdmin();
+        let payment = null;
+        let gateway = req.query.gateway?.toLowerCase();
 
-        if (!appKey || !secretKey) {
-            return res.status(500).json({ success: false, error: 'Payment system not configured' });
+        if (supabase) {
+            payment = await findPaymentByReference(supabase, referenceId);
+            if (payment?.payment_provider && !gateway) {
+                gateway = payment.payment_provider;
+            }
         }
 
-        const credentials = Buffer.from(`${appKey}:${secretKey}`).toString('base64');
-        const url = `https://pay.lmbtech.rw/pay/config/api.php?reference_id=${encodeURIComponent(referenceId)}`;
+        if (!gateway) {
+            gateway = referenceId.startsWith('COURSE-') ? 'lmbtech' : 'xentripay';
+        }
 
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Basic ${credentials}`,
-                'Content-Type': 'application/json'
-            }
-        });
+        if (gateway === 'xentripay') {
+            return handleXentriPayStatus(res, referenceId, payment, supabase);
+        }
 
-        const data = await response.json();
-        console.log('[payment-status] LMBTech response:', JSON.stringify(data));
-
-        const paymentStatus = data.data?.status || data.status || 'pending';
-        const normalizedStatus = normalizeStatus(paymentStatus);
-
-        return res.status(200).json({
-            success: data.status === 'success',
-            status: normalizedStatus,
-            referenceId,
-            data: data.data || data
-        });
-
+        return handleLmbTechStatus(res, referenceId);
     } catch (error) {
         console.error('[payment-status] Error:', error);
         return res.status(500).json({
             success: false,
             status: 'pending',
             referenceId,
-            error: error.message
         });
     }
 }
 
-function normalizeStatus(status) {
-    if (typeof status === 'string') {
-        const s = status.toLowerCase().trim();
-        if (['success', 'completed', 'paid'].includes(s)) return 'success';
-        if (['failed', 'fail', 'cancelled', 'declined'].includes(s)) return 'failed';
+async function handleLmbTechStatus(res, referenceId) {
+    try {
+        const normalizedStatus = await fetchLmbTechPaymentStatus(referenceId);
+        return res.status(200).json({
+            success: normalizedStatus === 'success',
+            gateway: 'lmbtech',
+            status: normalizedStatus,
+            referenceId,
+        });
+    } catch {
+        return res.status(500).json({ success: false, error: 'Status check unavailable' });
     }
-    return 'pending';
+}
+
+async function handleXentriPayStatus(res, referenceId, payment, supabase) {
+    const providerRefId = payment?.provider_ref_id || referenceId;
+
+    const statusRes = await getXentriCollectionStatus(providerRefId);
+    const normalizedStatus = mapXentriCollectionStatus(statusRes.status);
+
+    if (
+        supabase &&
+        payment &&
+        payment.status === 'pending' &&
+        (normalizedStatus === 'success' || normalizedStatus === 'failed')
+    ) {
+        const dbStatus = normalizedStatus === 'success' ? 'success' : 'failed';
+        await updatePaymentStatus(supabase, payment.reference_id, dbStatus, statusRes.refid, statusRes);
+    }
+
+    return res.status(200).json({
+        success: normalizedStatus === 'success',
+        gateway: 'xentripay',
+        status: normalizedStatus,
+        referenceId: payment?.reference_id || referenceId,
+    });
 }

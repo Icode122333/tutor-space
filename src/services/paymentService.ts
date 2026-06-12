@@ -1,22 +1,26 @@
-// Payment service - calls local Vercel serverless functions (same domain, no CORS issues)
+// Payment service - calls Vercel serverless functions (same domain, no CORS issues)
+
+import { supabase } from '@/integrations/supabase/client';
+
+export type PaymentGateway = 'lmbtech' | 'xentripay';
+export type PaymentMethod = 'momo' | 'card';
 
 export interface PaymentInitiateRequest {
     type: 'course' | 'bundle';
     itemId: string;
-    studentId: string;
     email: string;
     name: string;
     phone?: string;
-    amount: number;
-    currency: string;
-    paymentMethod: 'momo' | 'card';
+    paymentMethod: PaymentMethod;
+    gateway: PaymentGateway;
 }
 
 export interface PaymentResult {
     success: boolean;
+    gateway?: PaymentGateway;
     referenceId?: string;
     redirectUrl?: string;
-    data?: any;
+    message?: string;
     error?: string;
 }
 
@@ -26,63 +30,83 @@ export interface PaymentStatus {
         status: 'pending' | 'success' | 'failed';
         reference_id: string;
         transaction_id?: string;
-        amount?: string;
     };
 }
 
+async function getAuthHeaders(): Promise<Record<string, string>> {
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+    };
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+
+    return headers;
+}
+
 /**
- * Initiate a payment via the local Vercel serverless function.
- * The function calls LMBTech API with server-side credentials.
+ * Initiate a payment via serverless function (LMBTech or XentriPay).
+ * Price is resolved server-side from the database — not from the client.
  */
 export async function initiatePayment(request: PaymentInitiateRequest): Promise<PaymentResult> {
     try {
-        console.log('[Payment] Initiating payment:', request.paymentMethod, request.amount);
+        const headers = await getAuthHeaders();
+        if (!headers['Authorization']) {
+            return { success: false, error: 'You must be logged in to pay' };
+        }
 
         const response = await fetch('/api/payment-initiate', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify({
+                gateway: request.gateway,
                 paymentMethod: request.paymentMethod,
                 email: request.email,
                 name: request.name,
-                amount: request.amount,
                 phone: request.phone,
                 servicePaid: `${request.type}_${request.itemId}`,
-                // These are critical for Supabase payment record + auto-enrollment
-                studentId: request.studentId,
                 courseId: request.type === 'course' ? request.itemId : undefined,
                 bundleId: request.type === 'bundle' ? request.itemId : undefined,
-                currency: request.currency,
             }),
         });
 
         const data = await response.json();
-        console.log('[Payment] Response:', data);
+
+        if (response.status === 401) {
+            return { success: false, error: 'Session expired — please sign in again' };
+        }
 
         return {
             success: data.success,
+            gateway: data.gateway,
             referenceId: data.referenceId,
             redirectUrl: data.redirectUrl,
-            data: data,
-            error: data.success ? undefined : (data.error || data.message || 'Payment initiation failed'),
+            message: data.message,
+            error: data.success ? undefined : (data.error || 'Payment initiation failed'),
         };
     } catch (error: any) {
         console.error('[Payment] Error:', error);
         return {
             success: false,
-            error: error.message || 'Failed to connect to payment service',
+            error: 'Failed to connect to payment service',
         };
     }
 }
 
 /**
- * Check the status of a payment by reference ID
+ * Check the status of a payment by reference ID.
  */
-export async function checkPaymentStatus(referenceId: string): Promise<PaymentStatus> {
+export async function checkPaymentStatus(
+    referenceId: string,
+    gateway?: PaymentGateway,
+): Promise<PaymentStatus> {
     try {
-        const response = await fetch(`/api/payment-status?ref=${encodeURIComponent(referenceId)}`);
+        const params = new URLSearchParams({ ref: referenceId });
+        if (gateway) params.set('gateway', gateway);
+
+        const response = await fetch(`/api/payment-status?${params.toString()}`);
         const data = await response.json();
 
         return {
@@ -90,10 +114,9 @@ export async function checkPaymentStatus(referenceId: string): Promise<PaymentSt
             data: {
                 status: data.status || 'pending',
                 reference_id: referenceId,
-                transaction_id: data.data?.transaction_id,
             },
         };
-    } catch (error: any) {
+    } catch {
         return {
             success: false,
             data: {

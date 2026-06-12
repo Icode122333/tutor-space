@@ -1,13 +1,26 @@
 /**
  * Vercel Serverless Function: Payment Initiate
  * POST /api/payment-initiate
- * 
- * 1. Creates a payment record in Supabase (with student_id, course_id)
- * 2. Calls LMBTech API with server-side credentials
- * 3. Returns reference ID and redirect URL
+ *
+ * Requires: Authorization: Bearer <supabase_jwt>
+ * Supports gateways: lmbtech (default) | xentripay
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { verifyAuthUser } from './lib/auth.js';
+import {
+    getSupabaseAdmin,
+    createPaymentRecord,
+    generateReferenceId,
+    formatLmbPhone,
+    resolvePurchasePrice,
+} from './lib/supabase-payments.js';
+import {
+    getXentriPayConfig,
+    initiateXentriCollection,
+    normalizeRwandaMomoPhones,
+    amountToXentriInteger,
+} from './lib/xentripay.js';
+import { getLmbTechCredentials } from './lib/lmbtech.js';
 
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') {
@@ -19,167 +32,266 @@ export default async function handler(req, res) {
     }
 
     try {
+        const userId = await verifyAuthUser(req);
+        if (!userId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+
         const {
+            gateway = 'lmbtech',
             paymentMethod,
             email,
             name,
-            amount,
             phone,
             servicePaid,
-            studentId,
             courseId,
             bundleId,
-            currency,
         } = req.body;
 
-        // Validate required fields
-        if (!email || !name || !amount || !paymentMethod) {
+        if (!email || !name || !paymentMethod) {
             return res.status(400).json({
                 success: false,
-                error: 'Missing required fields: email, name, amount, paymentMethod'
-            });
-        }
-
-        if (!studentId) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing studentId - user must be logged in'
+                error: 'Missing required fields',
             });
         }
 
         if (!courseId && !bundleId) {
             return res.status(400).json({
                 success: false,
-                error: 'Missing courseId or bundleId'
+                error: 'Missing course or bundle',
             });
+        }
+
+        const normalizedGateway = String(gateway).toLowerCase();
+        if (!['lmbtech', 'xentripay'].includes(normalizedGateway)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid payment gateway',
+            });
+        }
+
+        if (!['momo', 'card'].includes(paymentMethod)) {
+            return res.status(400).json({ success: false, error: 'Invalid payment method' });
         }
 
         if (paymentMethod === 'momo' && !phone) {
             return res.status(400).json({
                 success: false,
-                error: 'Phone number is required for MoMo payments'
+                error: 'Phone number is required for MoMo payments',
             });
         }
 
-        // Get credentials from environment
-        const appKey = process.env.LMBTECH_APP_KEY;
-        const secretKey = process.env.LMBTECH_SECRET_KEY;
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        if (!appKey || !secretKey) {
-            console.error('[payment-initiate] LMBTECH credentials not configured');
-            return res.status(500).json({ success: false, error: 'Payment system not configured' });
+        if (normalizedGateway === 'xentripay' && paymentMethod === 'card' && !phone) {
+            return res.status(400).json({
+                success: false,
+                error: 'Phone number is required for card payments',
+            });
         }
 
-        // Build auth header (Base64 of appKey:secretKey)
-        const credentials = Buffer.from(`${appKey}:${secretKey}`).toString('base64');
+        const supabase = getSupabaseAdmin();
+        if (!supabase) {
+            return res.status(500).json({ success: false, error: 'Payment system unavailable' });
+        }
 
-        // Generate unique reference ID
-        const date = new Date();
-        const dateStr = date.getFullYear()
-            + String(date.getMonth() + 1).padStart(2, '0')
-            + String(date.getDate()).padStart(2, '0');
-        const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-        const referenceId = `COURSE-${dateStr}-${random}`;
+        let pricing;
+        try {
+            pricing = await resolvePurchasePrice(supabase, { courseId, bundleId });
+        } catch (e) {
+            return res.status(400).json({ success: false, error: e.message });
+        }
 
-        // Callback URL
         const siteUrl = process.env.SITE_URL || 'https://dataplusacademy.com';
-        const callbackUrl = `${siteUrl}/api/payment-callback`;
+        const referenceId = generateReferenceId();
 
-        // ============================================================
-        // STEP 1: Create payment record in Supabase FIRST
-        // The callback handler looks up by reference_id to auto-enroll
-        // ============================================================
-        if (supabaseUrl && supabaseServiceKey) {
-            const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-            const { data: paymentId, error: createError } = await supabase.rpc('create_payment_record', {
-                p_student_id: studentId,
-                p_course_id: courseId || null,
-                p_bundle_id: bundleId || null,
-                p_amount: Number(amount),
-                p_currency: currency || 'RWF',
-                p_reference_id: referenceId,
-                p_payment_method: paymentMethod === 'momo' ? 'MTN_MOMO_RWA' : 'card',
-                p_payer_phone: phone || null,
-                p_payer_email: email
+        if (normalizedGateway === 'xentripay') {
+            return handleXentriPayInitiate(res, {
+                paymentMethod,
+                email,
+                name,
+                phone,
+                studentId: userId,
+                courseId,
+                bundleId,
+                pricing,
+                referenceId,
+                siteUrl,
+                supabase,
             });
-
-            if (createError) {
-                console.error('[payment-initiate] Failed to create payment record:', createError);
-                return res.status(500).json({
-                    success: false,
-                    error: 'Failed to create payment record: ' + createError.message
-                });
-            }
-            console.log('[payment-initiate] Payment record created:', paymentId, 'ref:', referenceId);
-        } else {
-            console.warn('[payment-initiate] Supabase not configured, skipping payment record');
         }
 
-        // ============================================================
-        // STEP 2: Call LMBTech API
-        // ============================================================
-        const lmbBody = {
-            action: 'pay',
+        return handleLmbTechInitiate(res, {
+            paymentMethod,
             email,
             name,
-            amount: Number(amount),
-            service_paid: servicePaid || `course_${courseId || bundleId}`,
-            reference_id: referenceId,
-            callback_url: callbackUrl,
-        };
-
-        if (paymentMethod === 'momo') {
-            lmbBody.payment_method = 'MTN_MOMO_RWA';
-            lmbBody.payer_phone = formatPhone(phone);
-        } else if (paymentMethod === 'card') {
-            lmbBody.payment_method = 'card';
-            lmbBody.card_redirect_url = 'https://pay.lmbtech.rw/pay/pesapal/iframe.php';
-        }
-
-        console.log('[payment-initiate] Calling LMBTech API:', JSON.stringify(lmbBody));
-
-        const response = await fetch('https://pay.lmbtech.rw/pay/config/api.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Basic ${credentials}`
-            },
-            body: JSON.stringify(lmbBody)
-        });
-
-        const data = await response.json();
-        console.log('[payment-initiate] LMBTech response:', JSON.stringify(data));
-
-        // Parse response
-        const isSuccess = data.status === 'success' || data.status === 'pending';
-        const redirectUrl = data.data?.redirect_url || data.redirect_url || null;
-
-        return res.status(200).json({
-            success: isSuccess,
+            phone,
+            servicePaid,
+            studentId: userId,
+            courseId,
+            bundleId,
+            pricing,
             referenceId,
-            redirectUrl,
-            message: data.message || (isSuccess ? 'Payment initiated' : 'Payment failed'),
-            data: data.data || data
+            siteUrl,
+            supabase,
         });
-
     } catch (error) {
         console.error('[payment-initiate] Error:', error);
         return res.status(500).json({
             success: false,
-            error: error.message || 'Internal server error'
+            error: 'Payment initiation failed',
         });
     }
 }
 
-function formatPhone(phone) {
-    if (!phone) return phone;
-    const clean = phone.replace(/[^\d+]/g, '');
-    if (clean.startsWith('+250') && clean.length === 13) return clean;
-    if (clean.startsWith('250') && clean.length === 12) return `+${clean}`;
-    if (clean.startsWith('0') && clean.length === 10) return `+250${clean.slice(1)}`;
-    if (/^\d{9}$/.test(clean) && clean.startsWith('7')) return `+250${clean}`;
-    return clean;
+async function handleLmbTechInitiate(res, ctx) {
+    const credentials = getLmbTechCredentials();
+    if (!credentials) {
+        return res.status(500).json({ success: false, error: 'LMBTech payment system not configured' });
+    }
+
+    const callbackUrl = `${ctx.siteUrl}/api/payment-callback`;
+
+    try {
+        await createPaymentRecord(ctx.supabase, {
+            p_student_id: ctx.studentId,
+            p_course_id: ctx.courseId || null,
+            p_bundle_id: ctx.bundleId || null,
+            p_amount: ctx.pricing.amount,
+            p_currency: ctx.pricing.currency,
+            p_reference_id: ctx.referenceId,
+            p_payment_method: ctx.paymentMethod === 'momo' ? 'MTN_MOMO_RWA' : 'card',
+            p_payer_phone: ctx.phone || null,
+            p_payer_email: ctx.email,
+            p_payment_provider: 'lmbtech',
+            p_provider_ref_id: null,
+        });
+    } catch {
+        return res.status(500).json({ success: false, error: 'Failed to create payment record' });
+    }
+
+    const lmbBody = {
+        action: 'pay',
+        email: ctx.email,
+        name: ctx.name,
+        amount: ctx.pricing.amount,
+        service_paid: ctx.servicePaid || `course_${ctx.courseId || ctx.bundleId}`,
+        reference_id: ctx.referenceId,
+        callback_url: callbackUrl,
+    };
+
+    if (ctx.paymentMethod === 'momo') {
+        lmbBody.payment_method = 'MTN_MOMO_RWA';
+        lmbBody.payer_phone = formatLmbPhone(ctx.phone);
+    } else {
+        lmbBody.payment_method = 'card';
+        lmbBody.card_redirect_url = 'https://pay.lmbtech.rw/pay/pesapal/iframe.php';
+    }
+
+    const response = await fetch('https://pay.lmbtech.rw/pay/config/api.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Basic ${credentials}`,
+        },
+        body: JSON.stringify(lmbBody),
+    });
+
+    const data = await response.json();
+
+    const isSuccess = data.status === 'success' || data.status === 'pending';
+    const redirectUrl = data.data?.redirect_url || data.redirect_url || null;
+
+    return res.status(200).json({
+        success: isSuccess,
+        gateway: 'lmbtech',
+        referenceId: ctx.referenceId,
+        redirectUrl,
+        message: isSuccess ? 'Payment initiated' : 'Payment failed',
+    });
+}
+
+async function handleXentriPayInitiate(res, ctx) {
+    try {
+        getXentriPayConfig();
+    } catch {
+        return res.status(500).json({ success: false, error: 'XentriPay not configured' });
+    }
+
+    let phones;
+    try {
+        phones = normalizeRwandaMomoPhones(ctx.phone);
+    } catch (e) {
+        return res.status(400).json({ success: false, error: e.message });
+    }
+
+    let xentriAmount;
+    try {
+        xentriAmount = amountToXentriInteger(ctx.pricing.amount);
+    } catch (e) {
+        return res.status(400).json({ success: false, error: e.message });
+    }
+
+    const pmethod = ctx.paymentMethod === 'card' ? 'card' : 'momo';
+    const cfg = getXentriPayConfig();
+    const returnUrl =
+        pmethod === 'card'
+            ? `${ctx.siteUrl}/payment/success?ref=${encodeURIComponent(ctx.referenceId)}`
+            : undefined;
+
+    const collectionBody = {
+        email: ctx.email,
+        cname: ctx.name,
+        amount: xentriAmount,
+        cnumber: phones.cnumber,
+        msisdn: phones.msisdn,
+        currency: 'RWF',
+        pmethod,
+        chargesIncluded: cfg.chargesIncluded ? 'true' : 'false',
+        ...(returnUrl && { returnUrl, redirectUrl: returnUrl }),
+    };
+
+    let response;
+    try {
+        response = await initiateXentriCollection(collectionBody);
+    } catch (e) {
+        return res.status(400).json({ success: false, error: e.message });
+    }
+
+    const providerRefId = response.refid;
+    if (!providerRefId) {
+        return res.status(500).json({ success: false, error: 'Payment gateway error' });
+    }
+
+    const redirectUrl = response.url?.trim() || null;
+    if (pmethod === 'card' && !redirectUrl) {
+        return res.status(400).json({
+            success: false,
+            error: 'Card checkout is not available',
+        });
+    }
+
+    try {
+        await createPaymentRecord(ctx.supabase, {
+            p_student_id: ctx.studentId,
+            p_course_id: ctx.courseId || null,
+            p_bundle_id: ctx.bundleId || null,
+            p_amount: ctx.pricing.amount,
+            p_currency: ctx.pricing.currency,
+            p_reference_id: ctx.referenceId,
+            p_payment_method: pmethod === 'momo' ? 'MTN_MOMO_RWA' : 'card',
+            p_payer_phone: ctx.phone || null,
+            p_payer_email: ctx.email,
+            p_payment_provider: 'xentripay',
+            p_provider_ref_id: providerRefId,
+        });
+    } catch {
+        return res.status(500).json({ success: false, error: 'Failed to create payment record' });
+    }
+
+    return res.status(200).json({
+        success: true,
+        gateway: 'xentripay',
+        referenceId: ctx.referenceId,
+        redirectUrl,
+        message: response.reply || 'Payment initiated',
+    });
 }

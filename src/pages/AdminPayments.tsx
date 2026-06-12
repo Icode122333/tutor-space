@@ -35,6 +35,7 @@ interface Payment {
     status: string;
     payer_phone: string | null;
     payer_email: string | null;
+    payment_provider?: string | null;
     created_at: string;
     student_name?: string;
     course_title?: string;
@@ -282,11 +283,18 @@ export default function AdminPayments() {
                                             {formatPrice(payment.amount, payment.currency)}
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex items-center gap-1.5">
-                                                {getMethodIcon(payment.payment_method)}
-                                                <span className="text-xs text-gray-500">
-                                                    {payment.payment_method === "MTN_MOMO_RWA" ? "MoMo" : payment.payment_method || "—"}
-                                                </span>
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="flex items-center gap-1.5">
+                                                    {getMethodIcon(payment.payment_method)}
+                                                    <span className="text-xs text-gray-500">
+                                                        {payment.payment_method === "MTN_MOMO_RWA" ? "MoMo" : payment.payment_method || "—"}
+                                                    </span>
+                                                </div>
+                                                {payment.payment_provider && (
+                                                    <span className="text-[10px] text-gray-400 capitalize">
+                                                        {payment.payment_provider}
+                                                    </span>
+                                                )}
                                             </div>
                                         </TableCell>
                                         <TableCell>{getStatusBadge(payment.status)}</TableCell>

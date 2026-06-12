@@ -1,97 +1,87 @@
 /**
- * Vercel Serverless Function: Payment Callback
- * 
- * MoMo: POST with JSON body (server-to-server) → returns JSON
- * Card: GET with query params (user browser redirect from Pesapal) → redirects to /payment/success
+ * Vercel Serverless Function: Payment Callback (LMBTech)
+ *
+ * MoMo: POST with JSON body (server-to-server)
+ * Card: GET with query params (browser redirect from Pesapal)
+ *
+ * Security: verifies payment status with LMBTech API before enrolling.
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { fetchLmbTechPaymentStatus } from './lib/lmbtech.js';
+import { sanitizeReferenceId } from './lib/supabase-payments.js';
 
 export default async function handler(req, res) {
     const payload = req.method === 'GET' ? req.query : req.body;
     const isBrowserRedirect = req.method === 'GET';
 
-    console.log('[payment-callback] Received:', req.method, JSON.stringify(payload));
-
     try {
-        let referenceId, transactionId, status;
+        let referenceId, transactionId;
 
-        // Card callback (Pesapal query/form data)
         if (payload.pesapal_merchant_reference) {
             referenceId = payload.pesapal_merchant_reference;
             transactionId = payload.pesapal_transaction_tracking_id || '';
-            const responseData = payload.pesapal_response_data || '';
-            status = responseData.toUpperCase() === 'COMPLETED' ? 'success' : 'failed';
-            console.log('[payment-callback] Card callback:', { referenceId, transactionId, status });
-        }
-        // MoMo callback (JSON body)
-        else if (payload.reference_id) {
+        } else if (payload.reference_id) {
             referenceId = payload.reference_id;
             transactionId = payload.transaction_id || '';
-            status = normalizeStatus(payload.status);
-            console.log('[payment-callback] MoMo callback:', { referenceId, transactionId, status });
-        }
-        else {
-            console.error('[payment-callback] Unknown format:', payload);
-            if (req.method === 'GET') {
+        } else {
+            if (isBrowserRedirect) {
                 return res.redirect(302, '/payment/success?error=invalid_callback');
             }
-            return res.status(400).json({ success: false, error: 'Invalid callback format' });
+            return res.status(400).json({ success: false, error: 'Invalid callback' });
         }
 
-        // Update Supabase payment record + auto-enroll student
+        const safeRef = sanitizeReferenceId(referenceId);
+        if (!safeRef) {
+            if (isBrowserRedirect) {
+                return res.redirect(302, '/payment/success?error=invalid_callback');
+            }
+            return res.status(400).json({ success: false, error: 'Invalid reference' });
+        }
+
+        // Verify with LMBTech — never trust callback payload alone for enrollment
+        let verifiedStatus;
+        try {
+            verifiedStatus = await fetchLmbTechPaymentStatus(safeRef);
+        } catch (e) {
+            console.error('[payment-callback] LMBTech verification failed:', e.message);
+            if (isBrowserRedirect) {
+                return res.redirect(302, `/payment/success?ref=${encodeURIComponent(safeRef)}`);
+            }
+            return res.status(502).json({ success: false, error: 'Verification failed' });
+        }
+
         const supabaseUrl = process.env.SUPABASE_URL;
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-        if (supabaseUrl && supabaseServiceKey) {
+        if (supabaseUrl && supabaseServiceKey && verifiedStatus !== 'pending') {
             const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-            try {
-                const { data: rpcResult, error: rpcError } = await supabase.rpc('update_payment_status', {
-                    p_reference_id: referenceId,
-                    p_status: status,
-                    p_transaction_id: transactionId,
-                    p_callback_data: payload
-                });
+            const { error: rpcError } = await supabase.rpc('update_payment_status', {
+                p_reference_id: safeRef,
+                p_status: verifiedStatus,
+                p_transaction_id: transactionId || null,
+                p_callback_data: payload,
+            });
 
-                if (rpcError) {
-                    console.error('[payment-callback] Supabase RPC error:', rpcError);
-                } else {
-                    console.log('[payment-callback] Supabase updated:', JSON.stringify(rpcResult));
-                }
-            } catch (dbError) {
-                console.error('[payment-callback] DB error:', dbError);
+            if (rpcError) {
+                console.error('[payment-callback] Supabase RPC error:', rpcError);
             }
         }
 
-        // GET request = user's browser → redirect to success page
         if (isBrowserRedirect) {
-            return res.redirect(302, `/payment/success?ref=${encodeURIComponent(referenceId)}`);
+            return res.redirect(302, `/payment/success?ref=${encodeURIComponent(safeRef)}`);
         }
 
-        // For MoMo: return JSON acknowledgment
         return res.status(200).json({
             success: true,
             message: 'Callback processed',
-            reference_id: referenceId
         });
-
     } catch (error) {
         console.error('[payment-callback] Error:', error);
         if (req.method === 'GET') {
             return res.redirect(302, '/payment/success?error=processing_error');
         }
-        return res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: 'Processing error' });
     }
-}
-
-function normalizeStatus(status) {
-    if (typeof status === 'string') {
-        const s = status.toLowerCase().trim();
-        if (['success', 'completed', 'paid', 'ok'].includes(s)) return 'success';
-        if (['failed', 'fail', 'cancelled', 'declined', 'error'].includes(s)) return 'failed';
-    }
-    if (status === true || status === 1) return 'success';
-    if (status === false || status === 0) return 'failed';
-    return 'pending';
 }
