@@ -4,7 +4,7 @@
  */
 
 import { verifyAuthUser } from './lib/auth.js';
-import { getSupabaseAdmin, resolvePurchasePrice } from './lib/supabase-payments.js';
+import { getSupabaseAdmin, resolvePurchasePrice, resolvePurchaseTarget } from './lib/supabase-payments.js';
 import { validateCouponForPurchase } from './lib/coupons.js';
 
 export default async function handler(req, res) {
@@ -22,14 +22,21 @@ export default async function handler(req, res) {
             return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
-        const { code, courseId, bundleId } = req.body;
+        const { code, courseId: rawCourseId, bundleId: rawBundleId } = req.body;
 
         if (!code?.trim()) {
             return res.status(400).json({ success: false, error: 'Coupon code is required' });
         }
 
-        if (!courseId && !bundleId) {
-            return res.status(400).json({ success: false, error: 'Missing course or bundle' });
+        let courseId;
+        let bundleId;
+        try {
+            ({ courseId, bundleId } = resolvePurchaseTarget({
+                courseId: rawCourseId,
+                bundleId: rawBundleId,
+            }));
+        } catch (e) {
+            return res.status(400).json({ success: false, error: e.message });
         }
 
         const supabase = getSupabaseAdmin();

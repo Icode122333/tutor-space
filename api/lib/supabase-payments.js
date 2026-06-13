@@ -94,6 +94,26 @@ export async function resolvePurchasePrice(supabase, { courseId, bundleId }) {
     throw new Error('Missing courseId or bundleId');
 }
 
+/**
+ * Resolve course vs bundle target from API body. Rejects ambiguous requests.
+ */
+export function resolvePurchaseTarget({ courseId, bundleId }) {
+    const hasCourse = Boolean(courseId);
+    const hasBundle = Boolean(bundleId);
+
+    if (hasCourse && hasBundle) {
+        throw new Error('Provide either courseId or bundleId, not both');
+    }
+    if (!hasCourse && !hasBundle) {
+        throw new Error('Missing course or bundle');
+    }
+
+    return {
+        courseId: hasCourse ? courseId : null,
+        bundleId: hasBundle ? bundleId : null,
+    };
+}
+
 export async function createPaymentRecord(supabase, params) {
     const { data, error } = await supabase.rpc('create_payment_record', params);
     if (!error) return data;
