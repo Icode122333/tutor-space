@@ -13,6 +13,20 @@ export interface PaymentInitiateRequest {
     phone?: string;
     paymentMethod: PaymentMethod;
     gateway: PaymentGateway;
+    couponCode?: string;
+}
+
+export interface CouponValidationResult {
+    success: boolean;
+    valid?: boolean;
+    code?: string;
+    discountType?: 'percent' | 'fixed';
+    discountValue?: number;
+    originalAmount?: number;
+    discountAmount?: number;
+    finalAmount?: number;
+    currency?: string;
+    error?: string;
 }
 
 export interface PaymentResult {
@@ -71,6 +85,7 @@ export async function initiatePayment(request: PaymentInitiateRequest): Promise<
                 servicePaid: `${request.type}_${request.itemId}`,
                 courseId: request.type === 'course' ? request.itemId : undefined,
                 bundleId: request.type === 'bundle' ? request.itemId : undefined,
+                couponCode: request.couponCode?.trim() || undefined,
             }),
         });
 
@@ -96,6 +111,57 @@ export async function initiatePayment(request: PaymentInitiateRequest): Promise<
             success: false,
             error: 'Failed to connect to payment service',
         };
+    }
+}
+
+/**
+ * Preview a coupon discount before checkout.
+ */
+export async function validateCoupon(params: {
+    code: string;
+    type: 'course' | 'bundle';
+    itemId: string;
+}): Promise<CouponValidationResult> {
+    try {
+        const headers = await getAuthHeaders();
+        if (!headers['Authorization']) {
+            return { success: false, error: 'You must be logged in' };
+        }
+
+        const response = await fetch('/api/coupon-validate', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                code: params.code.trim(),
+                courseId: params.type === 'course' ? params.itemId : undefined,
+                bundleId: params.type === 'bundle' ? params.itemId : undefined,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (response.status === 401) {
+            return { success: false, error: 'Session expired — please sign in again' };
+        }
+
+        if (!data.success) {
+            return { success: false, error: data.error || 'Invalid coupon' };
+        }
+
+        return {
+            success: true,
+            valid: true,
+            code: data.code,
+            discountType: data.discountType,
+            discountValue: data.discountValue,
+            originalAmount: data.originalAmount,
+            discountAmount: data.discountAmount,
+            finalAmount: data.finalAmount,
+            currency: data.currency,
+        };
+    } catch (error) {
+        console.error('[Coupon] Error:', error);
+        return { success: false, error: 'Failed to validate coupon' };
     }
 }
 

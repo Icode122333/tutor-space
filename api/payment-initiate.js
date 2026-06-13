@@ -22,6 +22,7 @@ import {
     resolveXentriPayCollectionAmount,
 } from './lib/xentripay.js';
 import { getLmbTechCredentials } from './lib/lmbtech.js';
+import { validateCouponForPurchase, buildPaymentRecordCouponParams } from './lib/coupons.js';
 
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') {
@@ -39,7 +40,7 @@ export default async function handler(req, res) {
         }
 
         const {
-            gateway = 'lmbtech',
+            gateway = 'xentripay',
             paymentMethod,
             email,
             name,
@@ -47,6 +48,7 @@ export default async function handler(req, res) {
             servicePaid,
             courseId,
             bundleId,
+            couponCode,
         } = req.body;
 
         if (!email || !name || !paymentMethod) {
@@ -64,6 +66,14 @@ export default async function handler(req, res) {
         }
 
         const normalizedGateway = String(gateway).toLowerCase();
+
+        if (normalizedGateway === 'lmbtech' && process.env.LMBTECH_ENABLED !== 'true') {
+            return res.status(400).json({
+                success: false,
+                error: 'LMBTech payments are currently unavailable. Please use XentriPay.',
+            });
+        }
+
         if (!['lmbtech', 'xentripay'].includes(normalizedGateway)) {
             return res.status(400).json({
                 success: false,
@@ -101,6 +111,23 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: e.message });
         }
 
+        let couponMeta = null;
+        if (couponCode?.trim()) {
+            try {
+                const applied = await validateCouponForPurchase(supabase, {
+                    code: couponCode,
+                    studentId: userId,
+                    courseId,
+                    bundleId,
+                    pricing,
+                });
+                pricing = applied.pricing;
+                couponMeta = applied.coupon;
+            } catch (e) {
+                return res.status(400).json({ success: false, error: e.message });
+            }
+        }
+
         const siteUrl = process.env.SITE_URL || 'https://dataplusacademy.com';
         const referenceId = generateReferenceId();
 
@@ -114,6 +141,7 @@ export default async function handler(req, res) {
                 courseId,
                 bundleId,
                 pricing,
+                couponMeta,
                 referenceId,
                 siteUrl,
                 supabase,
@@ -130,6 +158,7 @@ export default async function handler(req, res) {
             courseId,
             bundleId,
             pricing,
+            couponMeta,
             referenceId,
             siteUrl,
             supabase,
@@ -164,6 +193,7 @@ async function handleLmbTechInitiate(res, ctx) {
             p_payer_email: ctx.email,
             p_payment_provider: 'lmbtech',
             p_provider_ref_id: null,
+            ...buildPaymentRecordCouponParams(ctx.pricing, ctx.couponMeta),
         });
     } catch {
         return res.status(500).json({ success: false, error: 'Failed to create payment record' });
@@ -252,6 +282,7 @@ async function handleXentriPayInitiate(res, ctx) {
             p_payer_email: ctx.email,
             p_payment_provider: 'xentripay',
             p_provider_ref_id: null,
+            ...buildPaymentRecordCouponParams(ctx.pricing, ctx.couponMeta),
         });
     } catch (e) {
         console.error('[payment-initiate] create record failed:', e);

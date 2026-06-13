@@ -115,6 +115,9 @@ export async function createPaymentRecord(supabase, params) {
 
     if (params.p_payment_provider) row.payment_provider = params.p_payment_provider;
     if (params.p_provider_ref_id) row.provider_ref_id = params.p_provider_ref_id;
+    if (params.p_coupon_id) row.coupon_id = params.p_coupon_id;
+    if (params.p_original_amount != null) row.original_amount = params.p_original_amount;
+    if (params.p_discount_amount != null) row.discount_amount = params.p_discount_amount;
 
     let { data: inserted, error: insertError } = await supabase
         .from('payments')

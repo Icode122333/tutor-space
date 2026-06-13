@@ -1,5 +1,5 @@
 /**
- * Apply payment_provider migration to remote Supabase.
+ * Apply payment + coupon migrations to remote Supabase.
  * Requires DATABASE_URL in .env (Supabase → Settings → Database → Connection string → URI)
  *
  * Run: npm run db:migrate:payment
@@ -12,6 +12,11 @@ import pg from 'pg';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
+
+const MIGRATIONS = [
+    'supabase/migrations/20260612000000_add_payment_provider.sql',
+    'supabase/migrations/20260613000000_add_coupon_system.sql',
+];
 
 function loadEnv() {
     const envPath = path.join(root, '.env');
@@ -40,12 +45,6 @@ if (!databaseUrl) {
     process.exit(1);
 }
 
-const migrationPath = path.join(
-    root,
-    'supabase/migrations/20260612000000_add_payment_provider.sql',
-);
-const sql = fs.readFileSync(migrationPath, 'utf8');
-
 const client = new pg.Client({
     connectionString: databaseUrl,
     ssl: { rejectUnauthorized: false },
@@ -53,9 +52,22 @@ const client = new pg.Client({
 
 try {
     await client.connect();
-    console.log('Connected. Applying payment_provider migration…');
-    await client.query(sql);
-    console.log('Migration applied successfully.');
+    console.log('Connected. Applying migrations…\n');
+
+    for (const relPath of MIGRATIONS) {
+        const migrationPath = path.join(root, relPath);
+        if (!fs.existsSync(migrationPath)) {
+            console.error(`Migration file not found: ${relPath}`);
+            process.exit(1);
+        }
+
+        const sql = fs.readFileSync(migrationPath, 'utf8');
+        console.log(`→ ${path.basename(relPath)}`);
+        await client.query(sql);
+        console.log(`  ✓ applied\n`);
+    }
+
+    console.log('All migrations applied successfully.');
 } catch (err) {
     console.error('Migration failed:', err.message);
     process.exit(1);

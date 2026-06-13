@@ -26,6 +26,7 @@ import {
   Handshake,
   DollarSign,
   Package,
+  Tag,
   ClipboardList
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +82,7 @@ export function AdminSidebar({
   const paymentItems = [
     { title: "Payments", url: "/admin/payments", icon: DollarSign },
     { title: "Bundles", url: "/admin/bundles", icon: Package },
+    { title: "Coupons", url: "/admin/coupons", icon: Tag },
   ];
 
   const systemItems = [

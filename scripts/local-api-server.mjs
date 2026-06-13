@@ -31,6 +31,7 @@ loadEnv();
 
 const routes = {
     'POST /api/payment-initiate': () => import('../api/payment-initiate.js'),
+    'POST /api/coupon-validate': () => import('../api/coupon-validate.js'),
     'GET /api/payment-status': () => import('../api/payment-status.js'),
     'POST /api/payment-callback': () => import('../api/payment-callback.js'),
     'GET /api/payment-callback': () => import('../api/payment-callback.js'),

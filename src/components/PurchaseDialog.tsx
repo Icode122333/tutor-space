@@ -10,15 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Smartphone, CreditCard, Loader2, CheckCircle, XCircle, Phone, Building2 } from "lucide-react";
+import { Smartphone, CreditCard, Loader2, CheckCircle, XCircle, Phone, Tag } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
     initiatePayment,
     checkPaymentStatus,
+    validateCoupon,
     formatPrice,
-    type PaymentGateway,
     type PaymentMethod,
+    type CouponValidationResult,
 } from "@/services/paymentService";
+
+const PAYMENT_GATEWAY = "xentripay" as const;
 
 interface PurchaseDialogProps {
     open: boolean;
@@ -36,63 +39,30 @@ interface PurchaseDialogProps {
 
 type PaymentStep = "method" | "confirming" | "processing" | "success" | "failed";
 
-function GatewayOption({
-    selected,
-    onSelect,
-    title,
-    description,
-    icon,
-}: {
-    selected: boolean;
-    onSelect: () => void;
-    title: string;
-    description: string;
-    icon: React.ReactNode;
-}) {
-    return (
-        <button
-            type="button"
-            onClick={onSelect}
-            className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-all text-left ${selected
-                ? "border-[#006d2c] bg-green-50"
-                : "border-gray-200 hover:border-gray-300"
-                }`}
-        >
-            <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${selected ? "bg-[#006d2c] text-white" : "bg-gray-100 text-gray-500"
-                    }`}
-            >
-                {icon}
-            </div>
-            <div className="flex-1 min-w-0">
-                <p className="font-semibold">{title}</p>
-                <p className="text-xs text-gray-500">{description}</p>
-            </div>
-            {selected && <CheckCircle className="h-5 w-5 text-[#006d2c] shrink-0" />}
-        </button>
-    );
-}
-
 export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: PurchaseDialogProps) {
     const { user, profile } = useAuth();
     const [step, setStep] = useState<PaymentStep>("method");
-    const [gateway, setGateway] = useState<PaymentGateway>("lmbtech");
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("momo");
     const [phone, setPhone] = useState("");
+    const [couponInput, setCouponInput] = useState("");
+    const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResult | null>(null);
+    const [couponLoading, setCouponLoading] = useState(false);
     const [referenceId, setReferenceId] = useState<string | null>(null);
     const [gatewayMessage, setGatewayMessage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [pollCount, setPollCount] = useState(0);
 
-    const needsPhone =
-        paymentMethod === "momo" || (paymentMethod === "card" && gateway === "xentripay");
+    const needsPhone = paymentMethod === "momo" || paymentMethod === "card";
+    const displayAmount = appliedCoupon?.finalAmount ?? item.price;
+    const displayCurrency = appliedCoupon?.currency ?? item.currency;
 
     useEffect(() => {
         if (open) {
             setStep("method");
-            setGateway("lmbtech");
             setPaymentMethod("momo");
             setPhone("");
+            setCouponInput("");
+            setAppliedCoupon(null);
             setReferenceId(null);
             setGatewayMessage(null);
             setError(null);
@@ -104,7 +74,7 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
         if (step !== "confirming" || !referenceId) return;
 
         const interval = setInterval(async () => {
-            const status = await checkPaymentStatus(referenceId, gateway);
+            const status = await checkPaymentStatus(referenceId, PAYMENT_GATEWAY);
 
             if (status.data?.status === "success") {
                 setStep("success");
@@ -125,7 +95,38 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [step, referenceId, gateway]);
+    }, [step, referenceId]);
+
+    const handleApplyCoupon = async () => {
+        if (!couponInput.trim()) {
+            setError("Enter a coupon code");
+            return;
+        }
+
+        setCouponLoading(true);
+        setError(null);
+
+        const result = await validateCoupon({
+            code: couponInput,
+            type,
+            itemId: item.id,
+        });
+
+        setCouponLoading(false);
+
+        if (result.success && result.valid) {
+            setAppliedCoupon(result);
+        } else {
+            setAppliedCoupon(null);
+            setError(result.error || "Invalid coupon code");
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setAppliedCoupon(null);
+        setCouponInput("");
+        setError(null);
+    };
 
     const handleInitiatePayment = async () => {
         if (!user) return;
@@ -146,7 +147,8 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
             name: profile?.full_name || user.email || "Student",
             phone: needsPhone ? phone : undefined,
             paymentMethod,
-            gateway,
+            gateway: PAYMENT_GATEWAY,
+            couponCode: appliedCoupon?.code || couponInput.trim() || undefined,
         });
 
         if (result.success && result.referenceId) {
@@ -190,31 +192,71 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                 </DialogHeader>
 
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                        <span className="text-sm font-medium text-gray-700">Total</span>
-                        <span className="text-xl font-bold text-green-700">
-                            {formatPrice(item.price, item.currency)}
-                        </span>
+                    <div className="p-3 bg-green-50 rounded-lg border border-green-200 space-y-1">
+                        {appliedCoupon?.discountAmount ? (
+                            <>
+                                <div className="flex items-center justify-between text-sm text-gray-600">
+                                    <span>Subtotal</span>
+                                    <span>{formatPrice(item.price, item.currency)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm text-emerald-700">
+                                    <span className="flex items-center gap-1">
+                                        <Tag className="h-3.5 w-3.5" />
+                                        {appliedCoupon.code}
+                                    </span>
+                                    <span>-{formatPrice(appliedCoupon.discountAmount, displayCurrency)}</span>
+                                </div>
+                                <div className="flex items-center justify-between pt-1 border-t border-green-200">
+                                    <span className="text-sm font-medium text-gray-700">Total</span>
+                                    <span className="text-xl font-bold text-green-700">
+                                        {formatPrice(displayAmount, displayCurrency)}
+                                    </span>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-gray-700">Total</span>
+                                <span className="text-xl font-bold text-green-700">
+                                    {formatPrice(item.price, item.currency)}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {step === "method" && (
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label className="text-sm font-medium">Payment Gateway</Label>
-                                <GatewayOption
-                                    selected={gateway === "lmbtech"}
-                                    onSelect={() => setGateway("lmbtech")}
-                                    title="LMBTech"
-                                    description="MTN MoMo & Pesapal card payments"
-                                    icon={<Building2 className="h-5 w-5" />}
-                                />
-                                <GatewayOption
-                                    selected={gateway === "xentripay"}
-                                    onSelect={() => setGateway("xentripay")}
-                                    title="XentriPay"
-                                    description="MTN MoMo & hosted card checkout"
-                                    icon={<CreditCard className="h-5 w-5" />}
-                                />
+                                <Label className="text-sm font-medium">Coupon Code</Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder="Enter code"
+                                        value={couponInput}
+                                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                                        disabled={!!appliedCoupon?.valid}
+                                        className="uppercase"
+                                    />
+                                    {appliedCoupon?.valid ? (
+                                        <Button type="button" variant="outline" onClick={handleRemoveCoupon}>
+                                            Remove
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleApplyCoupon}
+                                            disabled={couponLoading || !couponInput.trim()}
+                                        >
+                                            {couponLoading ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                "Apply"
+                                            )}
+                                        </Button>
+                                    )}
+                                </div>
+                                {appliedCoupon?.valid && (
+                                    <p className="text-xs text-emerald-700">Coupon applied successfully</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -259,11 +301,7 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                                     </div>
                                     <div className="text-left">
                                         <p className="font-semibold">Card Payment</p>
-                                        <p className="text-xs text-gray-500">
-                                            {gateway === "lmbtech"
-                                                ? "Visa, Mastercard via Pesapal"
-                                                : "Visa, Mastercard via XentriPay"}
-                                        </p>
+                                        <p className="text-xs text-gray-500">Visa, Mastercard via XentriPay</p>
                                     </div>
                                     {paymentMethod === "card" && (
                                         <CheckCircle className="h-5 w-5 text-blue-500 ml-auto" />
@@ -289,9 +327,7 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                                     </div>
                                     <p className="text-xs text-gray-500">
                                         Rwanda format: 0788..., +250788..., etc.
-                                        {paymentMethod === "card" && gateway === "xentripay"
-                                            ? " Required for XentriPay card checkout."
-                                            : ""}
+                                        {paymentMethod === "card" ? " Required for card checkout." : ""}
                                     </p>
                                 </div>
                             )}
@@ -306,8 +342,7 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                                 className="w-full bg-[#006d2c] hover:bg-[#005523] text-white h-12 text-base"
                                 onClick={handleInitiatePayment}
                             >
-                                Pay {formatPrice(item.price, item.currency)} via{" "}
-                                {gateway === "lmbtech" ? "LMBTech" : "XentriPay"}
+                                Pay {formatPrice(displayAmount, displayCurrency)}
                             </Button>
                         </div>
                     )}
@@ -350,8 +385,7 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                                 </Badge>
                             )}
                             <Badge variant="secondary" className="text-xs">
-                                {gateway === "lmbtech" ? "LMBTech" : "XentriPay"} ·{" "}
-                                {paymentMethod === "momo" ? "MoMo" : "Card"}
+                                XentriPay · {paymentMethod === "momo" ? "MoMo" : "Card"}
                             </Badge>
                         </div>
                     )}
