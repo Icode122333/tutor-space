@@ -13,6 +13,7 @@ import {
     generateReferenceId,
     formatLmbPhone,
     resolvePurchasePrice,
+    resolvePurchaseTarget,
     updatePaymentProviderRef,
 } from './lib/supabase-payments.js';
 import {
@@ -46,8 +47,8 @@ export default async function handler(req, res) {
             name,
             phone,
             servicePaid,
-            courseId,
-            bundleId,
+            courseId: rawCourseId,
+            bundleId: rawBundleId,
             couponCode,
         } = req.body;
 
@@ -58,11 +59,15 @@ export default async function handler(req, res) {
             });
         }
 
-        if (!courseId && !bundleId) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing course or bundle',
-            });
+        let courseId;
+        let bundleId;
+        try {
+            ({ courseId, bundleId } = resolvePurchaseTarget({
+                courseId: rawCourseId,
+                bundleId: rawBundleId,
+            }));
+        } catch (e) {
+            return res.status(400).json({ success: false, error: e.message });
         }
 
         const normalizedGateway = String(gateway).toLowerCase();

@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS public.coupons (
     (applies_to = 'all' AND course_id IS NULL AND bundle_id IS NULL) OR
     (applies_to = 'course' AND course_id IS NOT NULL AND bundle_id IS NULL) OR
     (applies_to = 'bundle' AND bundle_id IS NOT NULL AND course_id IS NULL)
+  ),
+  CONSTRAINT coupons_percent_max CHECK (
+    discount_type <> 'percent' OR discount_value <= 100
   )
 );
 
@@ -49,10 +52,6 @@ CREATE POLICY "Admins can manage coupons"
       WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
     )
   );
-
-CREATE POLICY "Anyone can read active coupons metadata"
-  ON public.coupons FOR SELECT
-  USING (is_active = true);
 
 CREATE TRIGGER update_coupons_updated_at
   BEFORE UPDATE ON public.coupons
@@ -352,3 +351,12 @@ BEGIN
   );
 END;
 $$;
+
+-- Restrict coupon RPCs to service role (API uses service role key)
+REVOKE ALL ON FUNCTION public.validate_coupon(TEXT, UUID, UUID, UUID, NUMERIC, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.validate_coupon(TEXT, UUID, UUID, UUID, NUMERIC, TEXT) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.validate_coupon(TEXT, UUID, UUID, UUID, NUMERIC, TEXT) TO service_role;
+
+REVOKE ALL ON FUNCTION public.redeem_coupon_for_payment(UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.redeem_coupon_for_payment(UUID) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.redeem_coupon_for_payment(UUID) TO service_role;

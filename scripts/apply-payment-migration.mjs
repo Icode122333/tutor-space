@@ -16,6 +16,7 @@ const root = path.join(__dirname, '..');
 const MIGRATIONS = [
     'supabase/migrations/20260612000000_add_payment_provider.sql',
     'supabase/migrations/20260613000000_add_coupon_system.sql',
+    'supabase/migrations/20260613000001_fix_coupon_security.sql',
 ];
 
 function loadEnv() {

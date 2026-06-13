@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,8 @@ import {
 import { Tag, Plus, Pencil, Trash2 } from "lucide-react";
 import { formatPrice } from "@/services/paymentService";
 import { useToast } from "@/hooks/use-toast";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { toast as sonnerToast } from "sonner";
 
 interface CourseOption {
     id: string;
@@ -64,11 +67,13 @@ interface Coupon {
 }
 
 export default function AdminCoupons() {
+    const navigate = useNavigate();
     const { toast } = useToast();
     const [coupons, setCoupons] = useState<Coupon[]>([]);
     const [courses, setCourses] = useState<CourseOption[]>([]);
     const [bundles, setBundles] = useState<BundleOption[]>([]);
     const [loading, setLoading] = useState(true);
+    const [accessChecked, setAccessChecked] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
 
@@ -88,8 +93,37 @@ export default function AdminCoupons() {
     const [isActive, setIsActive] = useState(true);
 
     useEffect(() => {
-        fetchData();
+        checkAdminAccess();
     }, []);
+
+    const checkAdminAccess = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                navigate("/auth");
+                return;
+            }
+
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("role")
+                .eq("id", user.id)
+                .single();
+
+            if (profile?.role !== "admin") {
+                sonnerToast.error("Access denied. Admin privileges required.");
+                navigate("/");
+                return;
+            }
+
+            setAccessChecked(true);
+            await fetchData();
+        } catch (error) {
+            console.error("Error checking admin access:", error);
+            sonnerToast.error("Failed to verify admin access");
+            navigate("/");
+        }
+    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -258,6 +292,10 @@ export default function AdminCoupons() {
         }
         return `${formatPrice(coupon.discount_value, coupon.currency)} off`;
     };
+
+    if (!accessChecked) {
+        return <LoadingSpinner />;
+    }
 
     return (
         <div className="p-6 space-y-6">
