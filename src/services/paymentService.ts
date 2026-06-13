@@ -17,10 +17,12 @@ export interface PaymentInitiateRequest {
 
 export interface PaymentResult {
     success: boolean;
+    status?: 'awaiting_confirmation' | 'failed';
     gateway?: PaymentGateway;
     referenceId?: string;
     redirectUrl?: string;
     message?: string;
+    confirmationMessage?: string;
     error?: string;
 }
 
@@ -80,10 +82,12 @@ export async function initiatePayment(request: PaymentInitiateRequest): Promise<
 
         return {
             success: data.success,
+            status: data.status,
             gateway: data.gateway,
             referenceId: data.referenceId,
             redirectUrl: data.redirectUrl,
             message: data.message,
+            confirmationMessage: data.confirmationMessage || data.message,
             error: data.success ? undefined : (data.error || 'Payment initiation failed'),
         };
     } catch (error: any) {

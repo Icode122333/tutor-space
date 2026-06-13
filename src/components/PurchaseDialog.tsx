@@ -34,7 +34,7 @@ interface PurchaseDialogProps {
     onSuccess?: () => void;
 }
 
-type PaymentStep = "method" | "processing" | "success" | "failed";
+type PaymentStep = "method" | "confirming" | "processing" | "success" | "failed";
 
 function GatewayOption({
     selected,
@@ -101,7 +101,7 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
     }, [open]);
 
     useEffect(() => {
-        if (step !== "processing" || !referenceId) return;
+        if (step !== "confirming" || !referenceId) return;
 
         const interval = setInterval(async () => {
             const status = await checkPaymentStatus(referenceId, gateway);
@@ -151,17 +151,17 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
 
         if (result.success && result.referenceId) {
             setReferenceId(result.referenceId);
-
-            if (result.message && paymentMethod === "momo") {
-                setGatewayMessage(result.message);
-            }
+            setGatewayMessage(
+                result.confirmationMessage ||
+                    result.message ||
+                    (paymentMethod === "momo"
+                        ? "Approve the payment prompt on your phone to continue."
+                        : "Complete your payment on the secure checkout page."),
+            );
+            setStep("confirming");
 
             if (paymentMethod === "card") {
-                const redirectUrl =
-                    result.redirectUrl ||
-                    result.data?.redirectUrl ||
-                    result.data?.url ||
-                    result.data?.data?.redirect_url;
+                const redirectUrl = result.redirectUrl;
                 if (redirectUrl) {
                     window.location.href = redirectUrl;
                     return;
@@ -182,7 +182,9 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                             ? "Payment Successful!"
                             : step === "failed"
                               ? "Payment Failed"
-                              : `Purchase ${type === "bundle" ? "Bundle" : "Course"}`}
+                              : step === "confirming"
+                                ? "Confirm Your Payment"
+                                : `Purchase ${type === "bundle" ? "Bundle" : "Course"}`}
                     </DialogTitle>
                     <DialogDescription>{item.title}</DialogDescription>
                 </DialogHeader>
@@ -310,41 +312,54 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                         </div>
                     )}
 
-                    {step === "processing" && (
+                    {step === "confirming" && (
                         <div className="text-center py-6 space-y-4">
-                            <Loader2 className="h-12 w-12 animate-spin text-green-600 mx-auto" />
+                            <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto border-2 border-amber-200">
+                                {paymentMethod === "momo" ? (
+                                    <Smartphone className="h-8 w-8 text-amber-600" />
+                                ) : (
+                                    <CreditCard className="h-8 w-8 text-amber-600" />
+                                )}
+                            </div>
+                            <p className="font-semibold text-lg">Confirm your payment</p>
                             {paymentMethod === "momo" ? (
-                                <>
-                                    <p className="font-semibold text-lg">Check your phone!</p>
-                                    <p className="text-gray-500 text-sm">
-                                        A payment prompt has been sent to your phone.
-                                        <br />
-                                        Enter your MoMo PIN to complete the payment.
-                                    </p>
-                                    {gatewayMessage && (
-                                        <p className="text-sm text-emerald-700 bg-emerald-50 rounded-lg p-3">
-                                            {gatewayMessage}
-                                        </p>
-                                    )}
-                                </>
+                                <p className="text-gray-600 text-sm leading-relaxed">
+                                    A payment prompt has been sent to your phone.
+                                    <br />
+                                    <strong>Open MTN MoMo</strong> and approve the request to complete your purchase.
+                                </p>
                             ) : (
-                                <>
-                                    <p className="font-semibold text-lg">Complete payment on the checkout page</p>
-                                    <p className="text-gray-500 text-sm">
-                                        Enter your card details on the secure payment page.
-                                        <br />
-                                        You will be redirected back when done.
-                                    </p>
-                                </>
+                                <p className="text-gray-600 text-sm leading-relaxed">
+                                    Complete your payment on the secure card checkout page.
+                                    <br />
+                                    Enter your card details to confirm your purchase.
+                                </p>
                             )}
+                            {gatewayMessage && (
+                                <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg p-3 leading-relaxed">
+                                    {gatewayMessage}
+                                </p>
+                            )}
+                            <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                                <Loader2 className="h-4 w-4 animate-spin text-green-600" />
+                                Waiting for payment confirmation…
+                            </div>
                             {referenceId && (
                                 <Badge variant="outline" className="text-xs">
                                     Ref: {referenceId}
                                 </Badge>
                             )}
                             <Badge variant="secondary" className="text-xs">
-                                {gateway === "lmbtech" ? "LMBTech" : "XentriPay"}
+                                {gateway === "lmbtech" ? "LMBTech" : "XentriPay"} ·{" "}
+                                {paymentMethod === "momo" ? "MoMo" : "Card"}
                             </Badge>
+                        </div>
+                    )}
+
+                    {step === "processing" && (
+                        <div className="text-center py-6 space-y-4">
+                            <Loader2 className="h-12 w-12 animate-spin text-green-600 mx-auto" />
+                            <p className="font-semibold text-lg">Starting payment…</p>
                         </div>
                     )}
 

@@ -65,12 +65,47 @@ export function normalizeRwandaMomoPhones(input) {
     };
 }
 
+export const XENTRIPAY_MIN_AMOUNT_RWF = 100;
+
+/**
+ * XentriPay only collects in RWF. Convert USD (and other) prices before initiating.
+ */
+export function resolveXentriPayCollectionAmount(pricing) {
+    const currency = (pricing.currency || 'RWF').toUpperCase();
+    let amountRwf;
+
+    if (currency === 'RWF') {
+        amountRwf = Math.round(Number(pricing.amount));
+    } else if (currency === 'USD') {
+        const rate = Number(process.env.USD_TO_RWF_RATE || 1463.5);
+        if (!Number.isFinite(rate) || rate <= 0) {
+            throw new Error('USD conversion rate is not configured');
+        }
+        amountRwf = Math.round(Number(pricing.amount) * rate);
+    } else {
+        throw new Error(`XentriPay does not support ${currency}. Use LMBTech or set price in RWF.`);
+    }
+
+    if (!Number.isFinite(amountRwf) || amountRwf < XENTRIPAY_MIN_AMOUNT_RWF) {
+        throw new Error(
+            `Minimum XentriPay amount is ${XENTRIPAY_MIN_AMOUNT_RWF} RWF` +
+                (currency !== 'RWF'
+                    ? ` (≈ ${currency} ${pricing.amount} is too low after conversion)`
+                    : ''),
+        );
+    }
+
+    return amountRwf;
+}
+
 export function amountToXentriInteger(amount) {
     if (!Number.isFinite(amount) || amount <= 0) {
         throw new Error('Amount must be positive');
     }
     const whole = Math.round(amount);
-    if (whole < 1) throw new Error('Amount must be at least 1 RWF');
+    if (whole < XENTRIPAY_MIN_AMOUNT_RWF) {
+        throw new Error(`Amount must be at least ${XENTRIPAY_MIN_AMOUNT_RWF} RWF`);
+    }
     return whole;
 }
 

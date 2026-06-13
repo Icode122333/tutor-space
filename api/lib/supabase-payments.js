@@ -96,8 +96,61 @@ export async function resolvePurchasePrice(supabase, { courseId, bundleId }) {
 
 export async function createPaymentRecord(supabase, params) {
     const { data, error } = await supabase.rpc('create_payment_record', params);
-    if (error) throw new Error('Failed to create payment record');
-    return data;
+    if (!error) return data;
+
+    console.warn('[payments] RPC create_payment_record failed, trying direct insert:', error.message);
+
+    const row = {
+        student_id: params.p_student_id,
+        course_id: params.p_course_id,
+        bundle_id: params.p_bundle_id,
+        amount: params.p_amount,
+        currency: params.p_currency,
+        reference_id: params.p_reference_id,
+        payment_method: params.p_payment_method,
+        payer_phone: params.p_payer_phone,
+        payer_email: params.p_payer_email,
+        status: 'pending',
+    };
+
+    if (params.p_payment_provider) row.payment_provider = params.p_payment_provider;
+    if (params.p_provider_ref_id) row.provider_ref_id = params.p_provider_ref_id;
+
+    let { data: inserted, error: insertError } = await supabase
+        .from('payments')
+        .insert(row)
+        .select('id')
+        .single();
+
+    if (insertError && (row.payment_provider || row.provider_ref_id)) {
+        delete row.payment_provider;
+        delete row.provider_ref_id;
+        ({ data: inserted, error: insertError } = await supabase
+            .from('payments')
+            .insert(row)
+            .select('id')
+            .single());
+    }
+
+    if (insertError) {
+        console.error('[payments] direct insert failed:', insertError);
+        throw new Error('Failed to create payment record');
+    }
+
+    return inserted.id;
+}
+
+export async function updatePaymentProviderRef(supabase, referenceId, { providerRefId, paymentProvider }) {
+    const ref = sanitizeReferenceId(referenceId);
+    if (!ref || !providerRefId) return;
+
+    const payload = { provider_ref_id: providerRefId };
+    if (paymentProvider) payload.payment_provider = paymentProvider;
+
+    const { error } = await supabase.from('payments').update(payload).eq('reference_id', ref);
+    if (error) {
+        console.warn('[payments] provider ref update failed:', error.message);
+    }
 }
 
 export async function updatePaymentStatus(supabase, referenceId, status, transactionId, callbackData) {

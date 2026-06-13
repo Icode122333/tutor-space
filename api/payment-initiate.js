@@ -13,12 +13,13 @@ import {
     generateReferenceId,
     formatLmbPhone,
     resolvePurchasePrice,
+    updatePaymentProviderRef,
 } from './lib/supabase-payments.js';
 import {
     getXentriPayConfig,
     initiateXentriCollection,
     normalizeRwandaMomoPhones,
-    amountToXentriInteger,
+    resolveXentriPayCollectionAmount,
 } from './lib/xentripay.js';
 import { getLmbTechCredentials } from './lib/lmbtech.js';
 
@@ -202,10 +203,15 @@ async function handleLmbTechInitiate(res, ctx) {
 
     return res.status(200).json({
         success: isSuccess,
+        status: isSuccess ? 'awaiting_confirmation' : 'failed',
         gateway: 'lmbtech',
         referenceId: ctx.referenceId,
         redirectUrl,
         message: isSuccess ? 'Payment initiated' : 'Payment failed',
+        confirmationMessage:
+            ctx.paymentMethod === 'momo'
+                ? 'A payment request was sent to your phone. Open MTN MoMo and approve the prompt to confirm your payment.'
+                : 'Complete your card payment on the secure Pesapal checkout page.',
     });
 }
 
@@ -225,12 +231,33 @@ async function handleXentriPayInitiate(res, ctx) {
 
     let xentriAmount;
     try {
-        xentriAmount = amountToXentriInteger(ctx.pricing.amount);
+        xentriAmount = resolveXentriPayCollectionAmount(ctx.pricing);
     } catch (e) {
         return res.status(400).json({ success: false, error: e.message });
     }
 
     const pmethod = ctx.paymentMethod === 'card' ? 'card' : 'momo';
+
+    // Create pending payment record before calling gateway
+    try {
+        await createPaymentRecord(ctx.supabase, {
+            p_student_id: ctx.studentId,
+            p_course_id: ctx.courseId || null,
+            p_bundle_id: ctx.bundleId || null,
+            p_amount: ctx.pricing.amount,
+            p_currency: ctx.pricing.currency,
+            p_reference_id: ctx.referenceId,
+            p_payment_method: pmethod === 'momo' ? 'MTN_MOMO_RWA' : 'card',
+            p_payer_phone: ctx.phone || null,
+            p_payer_email: ctx.email,
+            p_payment_provider: 'xentripay',
+            p_provider_ref_id: null,
+        });
+    } catch (e) {
+        console.error('[payment-initiate] create record failed:', e);
+        return res.status(500).json({ success: false, error: 'Could not start payment' });
+    }
+
     const cfg = getXentriPayConfig();
     const returnUrl =
         pmethod === 'card'
@@ -269,29 +296,23 @@ async function handleXentriPayInitiate(res, ctx) {
         });
     }
 
-    try {
-        await createPaymentRecord(ctx.supabase, {
-            p_student_id: ctx.studentId,
-            p_course_id: ctx.courseId || null,
-            p_bundle_id: ctx.bundleId || null,
-            p_amount: ctx.pricing.amount,
-            p_currency: ctx.pricing.currency,
-            p_reference_id: ctx.referenceId,
-            p_payment_method: pmethod === 'momo' ? 'MTN_MOMO_RWA' : 'card',
-            p_payer_phone: ctx.phone || null,
-            p_payer_email: ctx.email,
-            p_payment_provider: 'xentripay',
-            p_provider_ref_id: providerRefId,
-        });
-    } catch {
-        return res.status(500).json({ success: false, error: 'Failed to create payment record' });
-    }
+    await updatePaymentProviderRef(ctx.supabase, ctx.referenceId, {
+        providerRefId,
+        paymentProvider: 'xentripay',
+    });
+
+    const confirmationMessage =
+        pmethod === 'momo'
+            ? 'A payment request was sent to your phone. Open MTN MoMo and approve the prompt to confirm your payment.'
+            : 'You will be redirected to complete your card payment. Enter your card details on the secure checkout page.';
 
     return res.status(200).json({
         success: true,
+        status: 'awaiting_confirmation',
         gateway: 'xentripay',
         referenceId: ctx.referenceId,
         redirectUrl,
-        message: response.reply || 'Payment initiated',
+        message: response.reply || confirmationMessage,
+        confirmationMessage,
     });
 }
