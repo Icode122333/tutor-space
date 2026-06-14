@@ -505,6 +505,21 @@ export default function CourseDetail() {
     section.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const scrollToLearningContent = () => {
+    const section = document.getElementById("course-learning-content");
+    if (!section) return;
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const getFirstLesson = () => {
+    for (const chapter of chapters) {
+      if (chapter.lessons.length > 0) {
+        return chapter.lessons[0];
+      }
+    }
+    return null;
+  };
+
   const handleLessonClick = async (lessonId: string) => {
     setIsWelcomeSelected(false);
 
@@ -572,6 +587,23 @@ export default function CourseDetail() {
       setCurrentLessonId(lessonId);
       setCurrentLesson(lesson);
       setShowQuiz(false);
+    }
+  };
+
+  const handleStartLearning = () => {
+    const firstLesson = getFirstLesson();
+    if (!firstLesson) {
+      toast({
+        title: "No lessons yet",
+        description: "This course curriculum is still being set up.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    scrollToLearningContent();
+    if (currentLessonId !== firstLesson.id || isWelcomeSelected || !currentLesson) {
+      handleLessonClick(firstLesson.id);
     }
   };
 
@@ -827,14 +859,14 @@ export default function CourseDetail() {
                   ) : (
                     <Button
                       className="w-full h-11 bg-[#0A400C] hover:bg-[#0d5210] text-white font-semibold text-sm shadow-md rounded-xl transition-all hover:shadow-lg"
-                      onClick={() => {
-                        if (chapters.length > 0 && chapters[0].lessons.length > 0) {
-                          handleLessonClick(chapters[0].lessons[0].id);
-                        }
-                      }}
+                      onClick={handleStartLearning}
                     >
                       <Zap className="h-4 w-4 mr-2" />
-                      {progressPercent > 0 ? 'Continue Learning' : 'Start Learning'}
+                      {progressPercent > 0
+                        ? "Continue Learning"
+                        : currentLesson
+                          ? "Go to Lesson"
+                          : "Start Learning"}
                     </Button>
                   )}
 
@@ -932,7 +964,7 @@ export default function CourseDetail() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div id="course-learning-content" className="max-w-7xl mx-auto px-6 py-8 scroll-mt-6">
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Side - Content Player */}
           <div className="lg:col-span-2">
