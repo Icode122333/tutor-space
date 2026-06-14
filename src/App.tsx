@@ -58,6 +58,8 @@ const AdminPartners = lazy(() => import("./pages/AdminPartners"));
 const AdminPayments = lazy(() => import("./pages/AdminPayments"));
 const AdminBundles = lazy(() => import("./pages/AdminBundles"));
 const AdminCoupons = lazy(() => import("./pages/AdminCoupons"));
+const AdminScholarships = lazy(() => import("./pages/AdminScholarships"));
+const AdminPricing = lazy(() => import("./pages/AdminPricing"));
 const TeacherPendingApproval = lazy(() => import("./pages/TeacherPendingApproval"));
 const BrowseBundles = lazy(() => import("./pages/BrowseBundles"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
@@ -125,6 +127,8 @@ const App = () => (
             <Route path="/admin/payments" element={<AdminPayments />} />
             <Route path="/admin/bundles" element={<AdminBundles />} />
             <Route path="/admin/coupons" element={<AdminCoupons />} />
+            <Route path="/admin/scholarships" element={<AdminScholarships />} />
+            <Route path="/admin/pricing" element={<AdminPricing />} />
             <Route path="/bundles" element={<BrowseBundles />} />
             <Route path="/payment/success" element={<PaymentSuccess />} />
             <Route path="*" element={<NotFound />} />

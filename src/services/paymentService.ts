@@ -31,12 +31,13 @@ export interface CouponValidationResult {
 
 export interface PaymentResult {
     success: boolean;
-    status?: 'awaiting_confirmation' | 'failed';
-    gateway?: PaymentGateway;
+    status?: 'awaiting_confirmation' | 'success' | 'failed';
+    gateway?: PaymentGateway | 'free';
     referenceId?: string;
     redirectUrl?: string;
     message?: string;
     confirmationMessage?: string;
+    freeCheckout?: boolean;
     error?: string;
 }
 
@@ -103,6 +104,7 @@ export async function initiatePayment(request: PaymentInitiateRequest): Promise<
             redirectUrl: data.redirectUrl,
             message: data.message,
             confirmationMessage: data.confirmationMessage || data.message,
+            freeCheckout: data.freeCheckout,
             error: data.success ? undefined : (data.error || 'Payment initiation failed'),
         };
     } catch (error: any) {

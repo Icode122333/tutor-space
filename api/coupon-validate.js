@@ -46,7 +46,11 @@ export default async function handler(req, res) {
 
         let pricing;
         try {
-            pricing = await resolvePurchasePrice(supabase, { courseId, bundleId });
+            pricing = await resolvePurchasePrice(supabase, {
+                courseId,
+                bundleId,
+                studentId: userId,
+            });
         } catch (e) {
             return res.status(400).json({ success: false, error: e.message });
         }

@@ -46,7 +46,7 @@ export async function findPaymentByReference(supabase, referenceId) {
     return byProvider;
 }
 
-export async function resolvePurchasePrice(supabase, { courseId, bundleId }) {
+export async function resolvePurchasePrice(supabase, { courseId, bundleId, studentId }) {
     if (courseId) {
         const { data, error } = await supabase
             .from('courses')
@@ -61,12 +61,39 @@ export async function resolvePurchasePrice(supabase, { courseId, bundleId }) {
             throw new Error('This course is free — no payment required');
         }
 
-        const amount = Number(data.price);
-        if (!Number.isFinite(amount) || amount <= 0) {
+        let amount = Number(data.price);
+        let currency = data.currency || 'RWF';
+
+        if (studentId) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('pricing_tier')
+                .eq('id', studentId)
+                .maybeSingle();
+
+            const tierCode = profile?.pricing_tier || 'standard';
+
+            if (tierCode !== 'standard') {
+                const { data: tierPrice } = await supabase
+                    .from('course_price_tiers')
+                    .select('price, currency')
+                    .eq('course_id', courseId)
+                    .eq('tier_code', tierCode)
+                    .eq('is_active', true)
+                    .maybeSingle();
+
+                if (tierPrice) {
+                    amount = Number(tierPrice.price);
+                    currency = tierPrice.currency || currency;
+                }
+            }
+        }
+
+        if (!Number.isFinite(amount) || amount < 0) {
             throw new Error('Course has no valid price');
         }
 
-        return { amount, currency: data.currency || 'RWF', title: data.title };
+        return { amount, currency, title: data.title, tierApplied: true };
     }
 
     if (bundleId) {

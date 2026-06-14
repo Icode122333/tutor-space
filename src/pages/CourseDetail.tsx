@@ -13,6 +13,7 @@ import { CapstoneSubmission } from "@/components/CapstoneSubmission";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { PurchaseDialog } from "@/components/PurchaseDialog";
+import { ScholarshipApplyDialog } from "@/components/ScholarshipApplyDialog";
 
 interface Teacher {
   full_name: string;
@@ -33,6 +34,9 @@ interface Course {
   price?: number;
   is_free?: boolean;
   currency?: string;
+  scholarship_open?: boolean;
+  scholarship_slots_max?: number | null;
+  scholarship_slots_used?: number;
 }
 
 interface Lesson {
@@ -86,6 +90,9 @@ export default function CourseDetail() {
   const [isWelcomeSelected, setIsWelcomeSelected] = useState(false);
   const [hasAccess, setHasAccess] = useState<boolean | null>(null); // null = not yet checked
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
+  const [showScholarshipDialog, setShowScholarshipDialog] = useState(false);
+  const [displayPrice, setDisplayPrice] = useState<number | null>(null);
+  const [displayCurrency, setDisplayCurrency] = useState("RWF");
 
   // Check if user is a student (not teacher/admin)
   const isStudent = userRole === 'student';
@@ -199,6 +206,33 @@ export default function CourseDetail() {
     }
 
     setCourse(data);
+    setDisplayPrice(data.price ?? 0);
+    setDisplayCurrency(data.currency || "RWF");
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && data.price != null && !data.is_free) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("pricing_tier")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const tier = profile?.pricing_tier || "standard";
+      if (tier !== "standard") {
+        const { data: tierPrice } = await supabase
+          .from("course_price_tiers")
+          .select("price, currency")
+          .eq("course_id", id)
+          .eq("tier_code", tier)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (tierPrice) {
+          setDisplayPrice(Number(tierPrice.price));
+          setDisplayCurrency(tierPrice.currency || data.currency || "RWF");
+        }
+      }
+    }
 
     // Fetch teacher info
     const { data: teacherData } = await supabase
@@ -335,6 +369,54 @@ export default function CourseDetail() {
   };
 
   const isPaidCourse = course ? !(course.is_free ?? true) : false;
+  const scholarshipAvailable =
+    course?.scholarship_open &&
+    (course.scholarship_slots_max == null ||
+      (course.scholarship_slots_used ?? 0) < course.scholarship_slots_max);
+
+  const formattedPrice = () => {
+    const amount = displayPrice ?? course?.price;
+    const currency = displayCurrency || course?.currency || "RWF";
+    if (amount == null) return "";
+    return currency === "USD"
+      ? `$${amount.toLocaleString()}`
+      : `${amount.toLocaleString()} ${currency}`;
+  };
+
+  const renderPaidCourseActions = (options?: {
+    buyClassName?: string;
+    iconClassName?: string;
+    stacked?: boolean;
+  }) => {
+    const buyClass =
+      options?.buyClassName ||
+      "w-full h-11 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm shadow-md rounded-xl";
+    const iconClass = options?.iconClassName || "h-4 w-4";
+    const wrapperClass = options?.stacked === false ? "flex flex-wrap gap-2" : "space-y-2";
+
+    return (
+      <div className={wrapperClass}>
+        <Button className={buyClass} onClick={() => setShowPurchaseDialog(true)}>
+          <ShoppingCart className={`${iconClass} mr-2`} />
+          Buy This Course
+        </Button>
+        {scholarshipAvailable && (
+          <Button
+            variant="outline"
+            className={
+              options?.stacked === false
+                ? "border-[#006d2c] text-[#006d2c]"
+                : "w-full h-11 border-[#006d2c] text-[#006d2c] font-semibold text-sm rounded-xl"
+            }
+            onClick={() => setShowScholarshipDialog(true)}
+          >
+            Apply for Scholarship
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   const canManageCapstone = Boolean(capstoneProjects.length > 0 && userId && isStudent);
   const capstoneLocked = Boolean(capstoneProjects.length > 0 && isPaidCourse && hasAccess === false);
 
@@ -657,22 +739,13 @@ export default function CourseDetail() {
                   {/* Price Display */}
                   {isPaidCourse && (
                     <div className="text-center">
-                      <span className="text-3xl font-bold text-gray-900">
-                        {course.currency === 'USD' ? '$' : ''}{course.price?.toLocaleString()}
-                      </span>
-                      <span className="text-gray-500 ml-1">{course.currency || 'RWF'}</span>
+                      <span className="text-3xl font-bold text-gray-900">{formattedPrice()}</span>
                     </div>
                   )}
 
                   {/* CTA Button */}
                   {isPaidCourse && !hasAccess ? (
-                    <Button
-                      className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm shadow-md rounded-xl transition-all hover:shadow-lg"
-                      onClick={() => setShowPurchaseDialog(true)}
-                    >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Buy This Course
-                    </Button>
+                    renderPaidCourseActions()
                   ) : (
                     <Button
                       className="w-full h-11 bg-[#0A400C] hover:bg-[#0d5210] text-white font-semibold text-sm shadow-md rounded-xl transition-all hover:shadow-lg"
@@ -797,17 +870,13 @@ export default function CourseDetail() {
                     This lesson is part of the paid content. Purchase this course to unlock all chapters and lessons.
                   </p>
                   {course && (
-                    <div className="text-2xl font-bold text-gray-900">
-                      {course.currency === 'USD' ? '$' : ''}{course.price?.toLocaleString()} {course.currency || 'RWF'}
-                    </div>
+                    <div className="text-2xl font-bold text-gray-900">{formattedPrice()}</div>
                   )}
-                  <Button
-                    className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 text-lg"
-                    onClick={() => setShowPurchaseDialog(true)}
-                  >
-                    <ShoppingCart className="h-5 w-5 mr-2" />
-                    Buy This Course
-                  </Button>
+                  {renderPaidCourseActions({
+                    buyClassName: "bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 text-lg",
+                    iconClassName: "h-5 w-5",
+                    stacked: false,
+                  })}
                 </CardContent>
               </Card>
             ) : isWelcomeSelected && course.welcome_video_url ? (
@@ -1002,13 +1071,10 @@ export default function CourseDetail() {
                             Purchase this course to view the complete capstone instructions and submit the links and notes required by your teacher.
                           </p>
                         </div>
-                        <Button
-                          className="bg-[#0A400C] hover:bg-[#0d5210] text-white px-8"
-                          onClick={() => setShowPurchaseDialog(true)}
-                        >
-                          <ShoppingCart className="h-4 w-4 mr-2" />
-                          Buy This Course
-                        </Button>
+                        {renderPaidCourseActions({
+                          buyClassName: "bg-[#0A400C] hover:bg-[#0d5210] text-white px-8",
+                          stacked: false,
+                        })}
                       </CardContent>
                     </Card>
                   ) : (
@@ -1033,14 +1099,23 @@ export default function CourseDetail() {
           item={{
             id: course.id,
             title: course.title,
-            price: course.price || 0,
-            currency: course.currency || 'RWF',
+            price: (displayPrice ?? course.price) || 0,
+            currency: displayCurrency || course.currency || 'RWF',
           }}
           onSuccess={() => {
             setHasAccess(true);
             setShowPurchaseDialog(false);
             toast({ title: "Purchase Successful!", description: "You now have full access to this course" });
           }}
+        />
+      )}
+
+      {course && (
+        <ScholarshipApplyDialog
+          open={showScholarshipDialog}
+          onOpenChange={setShowScholarshipDialog}
+          courseId={course.id}
+          courseTitle={course.title}
         />
       )}
     </div>

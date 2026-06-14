@@ -58,6 +58,9 @@ interface Course {
   price: number;
   is_free: boolean;
   currency: string;
+  scholarship_open?: boolean;
+  scholarship_slots_max?: number | null;
+  scholarship_slots_used?: number;
   profiles: {
     full_name: string;
     email: string;
@@ -223,7 +226,16 @@ const AdminCourses = () => {
     }
   };
 
-  const updatePricing = async (courseId: string, updates: { price?: number; is_free?: boolean; currency?: string }) => {
+  const updatePricing = async (
+    courseId: string,
+    updates: {
+      price?: number;
+      is_free?: boolean;
+      currency?: string;
+      scholarship_open?: boolean;
+      scholarship_slots_max?: number | null;
+    },
+  ) => {
     setProcessing(true);
     try {
       const { data, error } = await supabase
@@ -418,6 +430,35 @@ const AdminCourses = () => {
                                       <SelectItem value="USD">USD</SelectItem>
                                     </SelectContent>
                                   </Select>
+                                </div>
+                              )}
+                              {!course.is_free && (
+                                <div className="flex flex-col gap-1 mt-2">
+                                  <div className="flex items-center gap-2">
+                                    <Switch
+                                      checked={!!course.scholarship_open}
+                                      onCheckedChange={(checked) =>
+                                        updatePricing(course.id, { scholarship_open: checked })
+                                      }
+                                      disabled={processing}
+                                    />
+                                    <span className="text-xs text-gray-500">Scholarships open</span>
+                                  </div>
+                                  {course.scholarship_open && (
+                                    <Input
+                                      type="number"
+                                      className="h-7 w-20 text-xs"
+                                      placeholder="Max slots"
+                                      defaultValue={course.scholarship_slots_max ?? ""}
+                                      onBlur={(e) =>
+                                        updatePricing(course.id, {
+                                          scholarship_slots_max: e.target.value
+                                            ? Number(e.target.value)
+                                            : null,
+                                        })
+                                      }
+                                    />
+                                  )}
                                 </div>
                               )}
                             </div>

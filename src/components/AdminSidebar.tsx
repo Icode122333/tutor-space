@@ -27,6 +27,8 @@ import {
   DollarSign,
   Package,
   Tag,
+  GraduationCap,
+  Layers,
   ClipboardList
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +85,8 @@ export function AdminSidebar({
     { title: "Payments", url: "/admin/payments", icon: DollarSign },
     { title: "Bundles", url: "/admin/bundles", icon: Package },
     { title: "Coupons", url: "/admin/coupons", icon: Tag },
+    { title: "Scholarships", url: "/admin/scholarships", icon: GraduationCap },
+    { title: "Pricing Tiers", url: "/admin/pricing", icon: Layers },
   ];
 
   const systemItems = [

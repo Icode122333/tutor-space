@@ -50,6 +50,7 @@ interface Coupon {
     id: string;
     code: string;
     description: string | null;
+    coupon_type: "promo" | "scholarship" | "early_bird" | "staff" | "referral";
     discount_type: "percent" | "fixed";
     discount_value: number;
     currency: string;
@@ -79,6 +80,7 @@ export default function AdminCoupons() {
 
     const [code, setCode] = useState("");
     const [description, setDescription] = useState("");
+    const [couponType, setCouponType] = useState<Coupon["coupon_type"]>("promo");
     const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
     const [discountValue, setDiscountValue] = useState("");
     const [currency, setCurrency] = useState("RWF");
@@ -147,6 +149,7 @@ export default function AdminCoupons() {
     const resetForm = () => {
         setCode("");
         setDescription("");
+        setCouponType("promo");
         setDiscountType("percent");
         setDiscountValue("");
         setCurrency("RWF");
@@ -171,6 +174,7 @@ export default function AdminCoupons() {
         setEditingCoupon(coupon);
         setCode(coupon.code);
         setDescription(coupon.description || "");
+        setCouponType(coupon.coupon_type || "promo");
         setDiscountType(coupon.discount_type);
         setDiscountValue(String(coupon.discount_value));
         setCurrency(coupon.currency || "RWF");
@@ -217,6 +221,7 @@ export default function AdminCoupons() {
         const payload = {
             code: trimmedCode,
             description: description.trim() || null,
+            coupon_type: couponType,
             discount_type: discountType,
             discount_value: value,
             currency: discountType === "fixed" ? currency : "RWF",
@@ -274,6 +279,17 @@ export default function AdminCoupons() {
         }
     };
 
+    const couponTypeLabel = (type: Coupon["coupon_type"]) => {
+        const labels: Record<Coupon["coupon_type"], string> = {
+            promo: "Promo",
+            scholarship: "Scholarship",
+            early_bird: "Early bird",
+            staff: "Staff",
+            referral: "Referral",
+        };
+        return labels[type] || type;
+    };
+
     const scopeLabel = (coupon: Coupon) => {
         if (coupon.applies_to === "course") {
             const course = courses.find((c) => c.id === coupon.course_id);
@@ -319,6 +335,7 @@ export default function AdminCoupons() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Code</TableHead>
+                                <TableHead>Type</TableHead>
                                 <TableHead>Discount</TableHead>
                                 <TableHead>Scope</TableHead>
                                 <TableHead>Usage</TableHead>
@@ -330,13 +347,13 @@ export default function AdminCoupons() {
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                                         Loading coupons...
                                     </TableCell>
                                 </TableRow>
                             ) : coupons.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                                         No coupons yet. Create your first discount code.
                                     </TableCell>
                                 </TableRow>
@@ -350,6 +367,9 @@ export default function AdminCoupons() {
                                             {coupon.description && (
                                                 <p className="text-xs text-gray-500 mt-1">{coupon.description}</p>
                                             )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline">{couponTypeLabel(coupon.coupon_type || "promo")}</Badge>
                                         </TableCell>
                                         <TableCell>{discountLabel(coupon)}</TableCell>
                                         <TableCell className="text-sm">{scopeLabel(coupon)}</TableCell>
@@ -425,6 +445,25 @@ export default function AdminCoupons() {
                                 placeholder="Summer promotion"
                                 rows={2}
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Coupon type</Label>
+                            <Select
+                                value={couponType}
+                                onValueChange={(v) => setCouponType(v as Coupon["coupon_type"])}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="promo">Promo</SelectItem>
+                                    <SelectItem value="scholarship">Scholarship</SelectItem>
+                                    <SelectItem value="early_bird">Early bird</SelectItem>
+                                    <SelectItem value="staff">Staff</SelectItem>
+                                    <SelectItem value="referral">Referral</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">

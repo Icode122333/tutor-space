@@ -151,6 +151,12 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
             couponCode: appliedCoupon?.code || couponInput.trim() || undefined,
         });
 
+        if (result.success && result.freeCheckout) {
+            setReferenceId(result.referenceId || null);
+            setStep("success");
+            return;
+        }
+
         if (result.success && result.referenceId) {
             setReferenceId(result.referenceId);
             setGatewayMessage(
@@ -342,7 +348,9 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                                 className="w-full bg-[#006d2c] hover:bg-[#005523] text-white h-12 text-base"
                                 onClick={handleInitiatePayment}
                             >
-                                Pay {formatPrice(displayAmount, displayCurrency)}
+                                {displayAmount <= 0 && appliedCoupon?.valid
+                                    ? "Confirm Free Enrolment"
+                                    : `Pay ${formatPrice(displayAmount, displayCurrency)}`}
                             </Button>
                         </div>
                     )}

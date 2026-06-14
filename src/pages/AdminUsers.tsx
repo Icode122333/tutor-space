@@ -43,6 +43,7 @@ interface UserProfile {
   email: string;
   role: string;
   avatar_url: string | null;
+  pricing_tier?: string;
   created_at: string;
   is_suspended: boolean;
   suspension_reason: string | null;
@@ -186,6 +187,26 @@ const AdminUsers = () => {
     }
   };
 
+  const updatePricingTier = async (userId: string, tier: string) => {
+    setProcessing(true);
+    try {
+      const { data, error } = await supabase.rpc("update_user_pricing_tier", {
+        p_user_id: userId,
+        p_pricing_tier: tier,
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Update failed");
+
+      toast.success("Pricing tier updated");
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update pricing tier");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const getRoleBadge = (role: string) => {
     const colors = {
       admin: "bg-purple-100 text-purple-800",
@@ -270,6 +291,7 @@ const AdminUsers = () => {
                       <TableRow>
                         <TableHead>User</TableHead>
                         <TableHead>Role</TableHead>
+                        <TableHead>Pricing tier</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Joined</TableHead>
                         <TableHead>Actions</TableHead>
@@ -299,6 +321,28 @@ const AdminUsers = () => {
                             <Badge className={getRoleBadge(user.role)}>
                               {user.role}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {user.role === "student" ? (
+                              <Select
+                                value={user.pricing_tier || "standard"}
+                                onValueChange={(val) => updatePricingTier(user.id, val)}
+                                disabled={processing}
+                              >
+                                <SelectTrigger className="h-8 w-36 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="standard">Standard</SelectItem>
+                                  <SelectItem value="student">Student</SelectItem>
+                                  <SelectItem value="ngo">NGO</SelectItem>
+                                  <SelectItem value="corporate">Corporate</SelectItem>
+                                  <SelectItem value="partner">Partner</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             {user.is_suspended ? (
