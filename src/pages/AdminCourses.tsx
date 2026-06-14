@@ -58,6 +58,14 @@ interface Course {
   price: number;
   is_free: boolean;
   currency: string;
+  scholarship_open?: boolean;
+  scholarship_slots_max?: number | null;
+  scholarship_slots_used?: number;
+  early_bird_price?: number | null;
+  early_bird_start?: string | null;
+  early_bird_end?: string | null;
+  early_bird_max_seats?: number | null;
+  early_bird_seats_used?: number;
   profiles: {
     full_name: string;
     email: string;
@@ -78,6 +86,7 @@ const AdminCourses = () => {
   const [selectedCourseForChapters, setSelectedCourseForChapters] = useState<Course | null>(null);
   const [chaptersList, setChaptersList] = useState<Array<{ id: string; title: string; order_index: number; is_preview: boolean; lesson_count: number }>>([]);
   const [chaptersLoading, setChaptersLoading] = useState(false);
+  const [instalmentCourses, setInstalmentCourses] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     checkAdminAccess();
@@ -129,6 +138,12 @@ const AdminCourses = () => {
 
       if (error) throw error;
       setCourses(data || []);
+
+      const { data: plans } = await supabase
+        .from("course_instalment_plans")
+        .select("course_id")
+        .eq("is_active", true);
+      setInstalmentCourses(new Set((plans || []).map((p) => p.course_id)));
     } catch (error: any) {
       console.error("Error fetching courses:", error);
       toast.error("Failed to load courses");
@@ -223,7 +238,20 @@ const AdminCourses = () => {
     }
   };
 
-  const updatePricing = async (courseId: string, updates: { price?: number; is_free?: boolean; currency?: string }) => {
+  const updatePricing = async (
+    courseId: string,
+    updates: {
+      price?: number;
+      is_free?: boolean;
+      currency?: string;
+      scholarship_open?: boolean;
+      scholarship_slots_max?: number | null;
+      early_bird_price?: number | null;
+      early_bird_start?: string | null;
+      early_bird_end?: string | null;
+      early_bird_max_seats?: number | null;
+    },
+  ) => {
     setProcessing(true);
     try {
       const { data, error } = await supabase
@@ -242,6 +270,36 @@ const AdminCourses = () => {
     } catch (error: any) {
       console.error("Error:", error);
       toast.error("Failed to update pricing");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const toggleInstalmentPlan = async (courseId: string, enabled: boolean) => {
+    setProcessing(true);
+    try {
+      if (enabled) {
+        const { error } = await supabase.from("course_instalment_plans").upsert(
+          {
+            course_id: courseId,
+            instalment_count: 2,
+            deposit_percent: 50,
+            is_active: true,
+          },
+          { onConflict: "course_id" },
+        );
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("course_instalment_plans")
+          .update({ is_active: false })
+          .eq("course_id", courseId);
+        if (error) throw error;
+      }
+      toast.success(enabled ? "Instalment plan enabled" : "Instalment plan disabled");
+      fetchCourses();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update instalment plan");
     } finally {
       setProcessing(false);
     }
@@ -418,6 +476,104 @@ const AdminCourses = () => {
                                       <SelectItem value="USD">USD</SelectItem>
                                     </SelectContent>
                                   </Select>
+                                </div>
+                              )}
+                              {!course.is_free && (
+                                <div className="flex flex-col gap-1 mt-2">
+                                  <div className="flex items-center gap-2">
+                                    <Switch
+                                      checked={!!course.scholarship_open}
+                                      onCheckedChange={(checked) =>
+                                        updatePricing(course.id, { scholarship_open: checked })
+                                      }
+                                      disabled={processing}
+                                    />
+                                    <span className="text-xs text-gray-500">Scholarships open</span>
+                                  </div>
+                                  {course.scholarship_open && (
+                                    <Input
+                                      type="number"
+                                      className="h-7 w-20 text-xs"
+                                      placeholder="Max slots"
+                                      defaultValue={course.scholarship_slots_max ?? ""}
+                                      onBlur={(e) =>
+                                        updatePricing(course.id, {
+                                          scholarship_slots_max: e.target.value
+                                            ? Number(e.target.value)
+                                            : null,
+                                        })
+                                      }
+                                    />
+                                  )}
+                                </div>
+                              )}
+                              {!course.is_free && (
+                                <div className="flex flex-col gap-1 mt-2 border-t pt-2">
+                                  <span className="text-[10px] font-semibold text-gray-500 uppercase">Early bird</span>
+                                  <Input
+                                    type="number"
+                                    className="h-7 w-20 text-xs"
+                                    placeholder="Price"
+                                    defaultValue={course.early_bird_price ?? ""}
+                                    onBlur={(e) =>
+                                      updatePricing(course.id, {
+                                        early_bird_price: e.target.value ? Number(e.target.value) : null,
+                                      })
+                                    }
+                                  />
+                                  <Input
+                                    type="datetime-local"
+                                    className="h-7 text-xs"
+                                    defaultValue={
+                                      course.early_bird_start
+                                        ? course.early_bird_start.slice(0, 16)
+                                        : ""
+                                    }
+                                    onBlur={(e) =>
+                                      updatePricing(course.id, {
+                                        early_bird_start: e.target.value
+                                          ? new Date(e.target.value).toISOString()
+                                          : null,
+                                      })
+                                    }
+                                  />
+                                  <Input
+                                    type="datetime-local"
+                                    className="h-7 text-xs"
+                                    defaultValue={
+                                      course.early_bird_end ? course.early_bird_end.slice(0, 16) : ""
+                                    }
+                                    onBlur={(e) =>
+                                      updatePricing(course.id, {
+                                        early_bird_end: e.target.value
+                                          ? new Date(e.target.value).toISOString()
+                                          : null,
+                                      })
+                                    }
+                                  />
+                                  <Input
+                                    type="number"
+                                    className="h-7 w-20 text-xs"
+                                    placeholder="Max seats"
+                                    defaultValue={course.early_bird_max_seats ?? ""}
+                                    onBlur={(e) =>
+                                      updatePricing(course.id, {
+                                        early_bird_max_seats: e.target.value
+                                          ? Number(e.target.value)
+                                          : null,
+                                      })
+                                    }
+                                  />
+                                  <div className="flex items-center gap-2">
+                                    <Switch
+                                      checked={instalmentCourses.has(course.id)}
+                                      onCheckedChange={(checked) =>
+                                        toggleInstalmentPlan(course.id, checked)
+                                      }
+                                      disabled={processing}
+                                    />
+                                    <span className="text-xs text-gray-500">Instalments</span>
+                                  </div>
                                 </div>
                               )}
                             </div>

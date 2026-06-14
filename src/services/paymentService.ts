@@ -14,6 +14,10 @@ export interface PaymentInitiateRequest {
     paymentMethod: PaymentMethod;
     gateway: PaymentGateway;
     couponCode?: string;
+    checkoutStartedAt?: string;
+    paymentTrack?: 'full' | 'instalment' | 'scholarship';
+    cohortId?: string;
+    instalmentScheduleId?: string;
 }
 
 export interface CouponValidationResult {
@@ -31,12 +35,13 @@ export interface CouponValidationResult {
 
 export interface PaymentResult {
     success: boolean;
-    status?: 'awaiting_confirmation' | 'failed';
-    gateway?: PaymentGateway;
+    status?: 'awaiting_confirmation' | 'success' | 'failed';
+    gateway?: PaymentGateway | 'free';
     referenceId?: string;
     redirectUrl?: string;
     message?: string;
     confirmationMessage?: string;
+    freeCheckout?: boolean;
     error?: string;
 }
 
@@ -86,6 +91,10 @@ export async function initiatePayment(request: PaymentInitiateRequest): Promise<
                 courseId: request.type === 'course' ? request.itemId : undefined,
                 bundleId: request.type === 'bundle' ? request.itemId : undefined,
                 couponCode: request.couponCode?.trim() || undefined,
+                checkoutStartedAt: request.checkoutStartedAt,
+                paymentTrack: request.paymentTrack || 'full',
+                cohortId: request.cohortId,
+                instalmentScheduleId: request.instalmentScheduleId,
             }),
         });
 
@@ -103,6 +112,7 @@ export async function initiatePayment(request: PaymentInitiateRequest): Promise<
             redirectUrl: data.redirectUrl,
             message: data.message,
             confirmationMessage: data.confirmationMessage || data.message,
+            freeCheckout: data.freeCheckout,
             error: data.success ? undefined : (data.error || 'Payment initiation failed'),
         };
     } catch (error: any) {
@@ -121,6 +131,9 @@ export async function validateCoupon(params: {
     code: string;
     type: 'course' | 'bundle';
     itemId: string;
+    checkoutStartedAt?: string;
+    paymentTrack?: 'full' | 'instalment';
+    cohortId?: string;
 }): Promise<CouponValidationResult> {
     try {
         const headers = await getAuthHeaders();
@@ -135,6 +148,9 @@ export async function validateCoupon(params: {
                 code: params.code.trim(),
                 courseId: params.type === 'course' ? params.itemId : undefined,
                 bundleId: params.type === 'bundle' ? params.itemId : undefined,
+                checkoutStartedAt: params.checkoutStartedAt,
+                paymentTrack: params.paymentTrack || 'full',
+                cohortId: params.cohortId,
             }),
         });
 

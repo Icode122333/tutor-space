@@ -30,10 +30,12 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Tag, Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { formatPrice } from "@/services/paymentService";
 import { useToast } from "@/hooks/use-toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AdminSidebar } from "@/components/AdminSidebar";
 import { toast as sonnerToast } from "sonner";
 
 interface CourseOption {
@@ -50,6 +52,7 @@ interface Coupon {
     id: string;
     code: string;
     description: string | null;
+    coupon_type: "promo" | "scholarship" | "early_bird" | "staff" | "referral";
     discount_type: "percent" | "fixed";
     discount_value: number;
     currency: string;
@@ -79,6 +82,7 @@ export default function AdminCoupons() {
 
     const [code, setCode] = useState("");
     const [description, setDescription] = useState("");
+    const [couponType, setCouponType] = useState<Coupon["coupon_type"]>("promo");
     const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
     const [discountValue, setDiscountValue] = useState("");
     const [currency, setCurrency] = useState("RWF");
@@ -147,6 +151,7 @@ export default function AdminCoupons() {
     const resetForm = () => {
         setCode("");
         setDescription("");
+        setCouponType("promo");
         setDiscountType("percent");
         setDiscountValue("");
         setCurrency("RWF");
@@ -171,6 +176,7 @@ export default function AdminCoupons() {
         setEditingCoupon(coupon);
         setCode(coupon.code);
         setDescription(coupon.description || "");
+        setCouponType(coupon.coupon_type || "promo");
         setDiscountType(coupon.discount_type);
         setDiscountValue(String(coupon.discount_value));
         setCurrency(coupon.currency || "RWF");
@@ -217,6 +223,7 @@ export default function AdminCoupons() {
         const payload = {
             code: trimmedCode,
             description: description.trim() || null,
+            coupon_type: couponType,
             discount_type: discountType,
             discount_value: value,
             currency: discountType === "fixed" ? currency : "RWF",
@@ -274,6 +281,17 @@ export default function AdminCoupons() {
         }
     };
 
+    const couponTypeLabel = (type: Coupon["coupon_type"]) => {
+        const labels: Record<Coupon["coupon_type"], string> = {
+            promo: "Promo",
+            scholarship: "Scholarship",
+            early_bird: "Early bird",
+            staff: "Staff",
+            referral: "Referral",
+        };
+        return labels[type] || type;
+    };
+
     const scopeLabel = (coupon: Coupon) => {
         if (coupon.applies_to === "course") {
             const course = courses.find((c) => c.id === coupon.course_id);
@@ -298,20 +316,29 @@ export default function AdminCoupons() {
     }
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <Tag className="h-6 w-6 text-[#006d2c]" />
-                        Coupon Codes
-                    </h1>
-                    <p className="text-gray-500">Create discount codes for courses and bundles</p>
-                </div>
-                <Button onClick={openCreateDialog} className="bg-[#006d2c] hover:bg-[#005523]">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Coupon
-                </Button>
-            </div>
+        <SidebarProvider>
+            <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-50 via-white to-gray-50">
+                <AdminSidebar />
+                <div className="flex-1 flex flex-col overflow-hidden p-4">
+                    <header className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-100 mb-6">
+                        <div className="bg-gradient-to-r from-[#006d2c] to-[#008000] p-6 rounded-t-3xl">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <SidebarTrigger className="text-white" />
+                                    <div className="text-white">
+                                        <h1 className="text-3xl font-bold mb-1">Coupon Codes</h1>
+                                        <p className="text-white/90 text-sm">Create discount codes for courses and bundles</p>
+                                    </div>
+                                </div>
+                                <Button onClick={openCreateDialog} variant="secondary" size="sm">
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Create Coupon
+                                </Button>
+                            </div>
+                        </div>
+                    </header>
+                    <main className="flex-1 overflow-y-auto px-2">
+                        <div className="max-w-7xl mx-auto space-y-6">
 
             <Card>
                 <CardContent className="p-0">
@@ -319,6 +346,7 @@ export default function AdminCoupons() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Code</TableHead>
+                                <TableHead>Type</TableHead>
                                 <TableHead>Discount</TableHead>
                                 <TableHead>Scope</TableHead>
                                 <TableHead>Usage</TableHead>
@@ -330,13 +358,13 @@ export default function AdminCoupons() {
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                                         Loading coupons...
                                     </TableCell>
                                 </TableRow>
                             ) : coupons.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                                         No coupons yet. Create your first discount code.
                                     </TableCell>
                                 </TableRow>
@@ -350,6 +378,9 @@ export default function AdminCoupons() {
                                             {coupon.description && (
                                                 <p className="text-xs text-gray-500 mt-1">{coupon.description}</p>
                                             )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline">{couponTypeLabel(coupon.coupon_type || "promo")}</Badge>
                                         </TableCell>
                                         <TableCell>{discountLabel(coupon)}</TableCell>
                                         <TableCell className="text-sm">{scopeLabel(coupon)}</TableCell>
@@ -396,6 +427,10 @@ export default function AdminCoupons() {
                     </Table>
                 </CardContent>
             </Card>
+                        </div>
+                    </main>
+                </div>
+            </div>
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -425,6 +460,25 @@ export default function AdminCoupons() {
                                 placeholder="Summer promotion"
                                 rows={2}
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Coupon type</Label>
+                            <Select
+                                value={couponType}
+                                onValueChange={(v) => setCouponType(v as Coupon["coupon_type"])}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="promo">Promo</SelectItem>
+                                    <SelectItem value="scholarship">Scholarship</SelectItem>
+                                    <SelectItem value="early_bird">Early bird</SelectItem>
+                                    <SelectItem value="staff">Staff</SelectItem>
+                                    <SelectItem value="referral">Referral</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
@@ -592,6 +646,6 @@ export default function AdminCoupons() {
                     </div>
                 </DialogContent>
             </Dialog>
-        </div>
+        </SidebarProvider>
     );
 }

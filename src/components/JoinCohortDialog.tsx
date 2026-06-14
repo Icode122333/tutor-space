@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -12,8 +13,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Users, Calendar, BookOpen, Loader2 } from "lucide-react";
+import { Users, Calendar, BookOpen, Loader2, DollarSign } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { formatPrice } from "@/services/paymentService";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 interface Cohort {
   id: string;
@@ -25,6 +29,10 @@ interface Cohort {
   end_date?: string;
   max_students: number;
   is_active?: boolean;
+  price?: number | null;
+  currency?: string | null;
+  requires_payment?: boolean;
+  instalment_enabled?: boolean;
   isAlreadyIn?: boolean;
   hasPendingRequest?: boolean;
   courses?: {
@@ -46,10 +54,12 @@ interface JoinCohortDialogProps {
 
 export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCohort, setSelectedCohort] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [paymentTrack, setPaymentTrack] = useState<"full" | "instalment" | "scholarship">("full");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -75,6 +85,10 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
           teacher_id,
           max_students,
           is_active,
+          price,
+          currency,
+          requires_payment,
+          instalment_enabled,
           courses (
             id,
             title
@@ -162,6 +176,7 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
           student_id: user.id,
           message: message.trim() || null,
           status: "pending",
+          payment_track: paymentTrack,
         });
 
       if (error) {
@@ -173,8 +188,21 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
         return;
       }
 
-      toast.success(t("cohort.requestSent"));
+      const cohort = cohorts.find((c) => c.id === selectedCohort);
+
+      toast.success(t("cohort.requestSent"), {
+        description:
+          cohort?.requires_payment && paymentTrack === "full" && cohort.course_id
+            ? "Complete payment on the course page while your request is reviewed."
+            : undefined,
+      });
+
+      if (cohort?.requires_payment && paymentTrack === "full" && cohort.course_id) {
+        navigate(`/courses/${cohort.course_id}?cohort=${cohort.id}`);
+      }
+
       setMessage("");
+      setPaymentTrack("full");
       setSelectedCohort(null);
       onOpenChange(false);
     } catch (error: any) {
@@ -275,6 +303,40 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
 
             {selectedCohort && !cohorts.find(c => c.id === selectedCohort)?.isAlreadyIn && !cohorts.find(c => c.id === selectedCohort)?.hasPendingRequest && (
               <div className="space-y-3 pt-4 border-t">
+                {(() => {
+                  const cohort = cohorts.find((c) => c.id === selectedCohort);
+                  if (!cohort?.requires_payment || !cohort.price) return null;
+                  return (
+                    <div className="rounded-lg border bg-gray-50 p-3 space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                        <DollarSign className="h-4 w-4 text-[#006D2C]" />
+                        Cohort fee: {formatPrice(Number(cohort.price), cohort.currency || "RWF")}
+                      </div>
+                      <Label className="text-sm">Payment track</Label>
+                      <RadioGroup
+                        value={paymentTrack}
+                        onValueChange={(v) => setPaymentTrack(v as typeof paymentTrack)}
+                        className="space-y-2"
+                      >
+                        <label className="flex items-center gap-2 text-sm">
+                          <RadioGroupItem value="full" />
+                          Pay in full
+                        </label>
+                        {cohort.instalment_enabled && (
+                          <label className="flex items-center gap-2 text-sm">
+                            <RadioGroupItem value="instalment" />
+                            Instalment plan
+                          </label>
+                        )}
+                        <label className="flex items-center gap-2 text-sm">
+                          <RadioGroupItem value="scholarship" />
+                          Scholarship (apply separately on course page)
+                        </label>
+                      </RadioGroup>
+                    </div>
+                  );
+                })()}
+
                 <div>
                   <label className="text-sm font-medium mb-2 block">
                     {t("cohort.messageOptional")}

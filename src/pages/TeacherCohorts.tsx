@@ -71,6 +71,10 @@ interface Cohort {
   max_students: number;
   is_active: boolean;
   created_at: string;
+  price?: number | null;
+  currency?: string | null;
+  requires_payment?: boolean;
+  instalment_enabled?: boolean;
   courses?: { title: string } | null;
   student_count?: number;
 }
@@ -93,6 +97,7 @@ interface JoinRequest {
   student_id: string;
   status: string;
   message: string | null;
+  payment_track?: string | null;
   created_at: string;
   profiles: {
     full_name: string;
@@ -120,6 +125,10 @@ const TeacherCohorts = () => {
     description: "",
     course_id: "",
     max_students: 30,
+    price: "",
+    currency: "RWF",
+    requires_payment: false,
+    instalment_enabled: false,
   });
   
   const [announcement, setAnnouncement] = useState({
@@ -222,13 +231,26 @@ const TeacherCohorts = () => {
         teacher_id: user.id,
         max_students: newCohort.max_students,
         is_active: true,
+        price: newCohort.requires_payment && newCohort.price ? Number(newCohort.price) : null,
+        currency: newCohort.currency || "RWF",
+        requires_payment: newCohort.requires_payment,
+        instalment_enabled: newCohort.instalment_enabled,
       });
 
       if (error) throw error;
 
       toast.success(t("teacher.cohorts.created"));
       setShowCreateDialog(false);
-      setNewCohort({ name: "", description: "", course_id: "", max_students: 30 });
+      setNewCohort({
+        name: "",
+        description: "",
+        course_id: "",
+        max_students: 30,
+        price: "",
+        currency: "RWF",
+        requires_payment: false,
+        instalment_enabled: false,
+      });
       fetchData();
     } catch (error: any) {
       console.error("Error creating cohort:", error);
@@ -331,6 +353,42 @@ const TeacherCohorts = () => {
           .eq("id", request.id);
         fetchData();
         return;
+      }
+
+      // Paid cohort: require successful course payment linked to this cohort
+      if (cohort.requires_payment && request.payment_track === "full" && cohort.course_id) {
+        const { data: paid } = await supabase
+          .from("payments")
+          .select("id, amount")
+          .eq("student_id", request.student_id)
+          .eq("course_id", cohort.course_id)
+          .eq("cohort_id", cohort.id)
+          .eq("status", "success")
+          .maybeSingle();
+
+        if (!paid) {
+          toast.error("Student has not completed cohort payment yet.");
+          return;
+        }
+
+        if (cohort.price != null && Number(paid.amount) < Number(cohort.price)) {
+          toast.error("Payment amount does not match cohort fee.");
+          return;
+        }
+      } else if (cohort.requires_payment && request.payment_track === "instalment" && cohort.course_id) {
+        const { data: enrol } = await supabase
+          .from("student_instalment_enrollments")
+          .select("id")
+          .eq("student_id", request.student_id)
+          .eq("course_id", cohort.course_id)
+          .eq("cohort_id", cohort.id)
+          .eq("status", "active")
+          .maybeSingle();
+
+        if (!enrol) {
+          toast.error("Student has not started the cohort instalment plan.");
+          return;
+        }
       }
 
       // Check if student is already enrolled in this course
@@ -557,6 +615,11 @@ const TeacherCohorts = () => {
                                 <Calendar className="h-4 w-4" />
                                 <span>{new Date(cohort.created_at).toLocaleDateString()}</span>
                               </div>
+                              {cohort.requires_payment && cohort.price != null && (
+                                <Badge variant="outline">
+                                  {Number(cohort.price).toLocaleString()} {cohort.currency || "RWF"}
+                                </Badge>
+                              )}
                             </div>
                             <div className="flex gap-2">
                               <Button
@@ -626,6 +689,11 @@ const TeacherCohorts = () => {
                                   <p className="text-sm text-gray-600">{request.profiles.email}</p>
                                   <div className="flex items-center gap-2 mt-1">
                                     <Badge variant="outline">{cohort?.name}</Badge>
+                                    {request.payment_track && (
+                                      <Badge variant="secondary" className="capitalize">
+                                        {request.payment_track}
+                                      </Badge>
+                                    )}
                                     <span className="text-xs text-gray-500">
                                       {new Date(request.created_at).toLocaleDateString()}
                                     </span>
@@ -722,6 +790,52 @@ const TeacherCohorts = () => {
                   onChange={(e) => setNewCohort({ ...newCohort, max_students: parseInt(e.target.value) || 30 })}
                 />
               </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="requires_payment"
+                  checked={newCohort.requires_payment}
+                  onChange={(e) =>
+                    setNewCohort({ ...newCohort, requires_payment: e.target.checked })
+                  }
+                />
+                <Label htmlFor="requires_payment">Requires payment</Label>
+              </div>
+              {newCohort.requires_payment && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Price"
+                      value={newCohort.price}
+                      onChange={(e) => setNewCohort({ ...newCohort, price: e.target.value })}
+                    />
+                    <Select
+                      value={newCohort.currency}
+                      onValueChange={(val) => setNewCohort({ ...newCohort, currency: val })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="RWF">RWF</SelectItem>
+                        <SelectItem value="USD">USD</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="instalment_enabled"
+                      checked={newCohort.instalment_enabled}
+                      onChange={(e) =>
+                        setNewCohort({ ...newCohort, instalment_enabled: e.target.checked })
+                      }
+                    />
+                    <Label htmlFor="instalment_enabled">Allow instalment track</Label>
+                  </div>
+                </>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowCreateDialog(false)}>

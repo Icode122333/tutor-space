@@ -15,6 +15,7 @@ import {
     resolvePurchasePrice,
     resolvePurchaseTarget,
     updatePaymentProviderRef,
+    updatePaymentStatus,
 } from './lib/supabase-payments.js';
 import {
     getXentriPayConfig,
@@ -24,6 +25,7 @@ import {
 } from './lib/xentripay.js';
 import { getLmbTechCredentials } from './lib/lmbtech.js';
 import { validateCouponForPurchase, buildPaymentRecordCouponParams } from './lib/coupons.js';
+import { resolveInstalmentSchedulePayment } from './lib/instalments.js';
 
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') {
@@ -50,27 +52,150 @@ export default async function handler(req, res) {
             courseId: rawCourseId,
             bundleId: rawBundleId,
             couponCode,
+            checkoutStartedAt,
+            paymentTrack = 'full',
+            cohortId,
+            instalmentScheduleId,
         } = req.body;
 
-        if (!email || !name || !paymentMethod) {
+        if (!email || !name) {
             return res.status(400).json({
                 success: false,
                 error: 'Missing required fields',
             });
         }
 
+        const supabase = getSupabaseAdmin();
+        if (!supabase) {
+            return res.status(500).json({ success: false, error: 'Payment system unavailable' });
+        }
+
         let courseId;
         let bundleId;
-        try {
-            ({ courseId, bundleId } = resolvePurchaseTarget({
-                courseId: rawCourseId,
-                bundleId: rawBundleId,
-            }));
-        } catch (e) {
-            return res.status(400).json({ success: false, error: e.message });
+        let pricing;
+        let resolvedCohortId = cohortId || null;
+
+        if (instalmentScheduleId) {
+            if (rawBundleId) {
+                return res.status(400).json({ success: false, error: 'Instalment payments apply to courses only' });
+            }
+            try {
+                pricing = await resolveInstalmentSchedulePayment(supabase, {
+                    scheduleId: instalmentScheduleId,
+                    studentId: userId,
+                });
+                courseId = pricing.courseId;
+                resolvedCohortId = pricing.cohortId || resolvedCohortId;
+            } catch (e) {
+                return res.status(400).json({ success: false, error: e.message });
+            }
+        } else {
+            try {
+                ({ courseId, bundleId } = resolvePurchaseTarget({
+                    courseId: rawCourseId,
+                    bundleId: rawBundleId,
+                }));
+            } catch (e) {
+                return res.status(400).json({ success: false, error: e.message });
+            }
+
+            try {
+                pricing = await resolvePurchasePrice(supabase, {
+                    courseId,
+                    bundleId,
+                    studentId: userId,
+                    checkoutStartedAt,
+                    paymentTrack: bundleId ? 'full' : paymentTrack,
+                    cohortId: resolvedCohortId,
+                });
+            } catch (e) {
+                return res.status(400).json({ success: false, error: e.message });
+            }
+        }
+
+        let instalmentEnrollmentId = pricing.instalmentEnrollmentId || null;
+        if (
+            !instalmentScheduleId &&
+            paymentTrack === 'instalment' &&
+            courseId &&
+            pricing.fullAmount != null
+        ) {
+            const { data: enrolResult, error: enrolError } = await supabase.rpc(
+                'create_instalment_enrollment',
+                {
+                    p_student_id: userId,
+                    p_course_id: courseId,
+                    p_total_amount: pricing.fullAmount,
+                    p_currency: pricing.currency,
+                    p_cohort_id: resolvedCohortId || pricing.cohortId || null,
+                },
+            );
+
+            if (enrolError || !enrolResult?.success) {
+                return res.status(400).json({
+                    success: false,
+                    error: enrolResult?.error || enrolError?.message || 'Could not start instalment plan',
+                });
+            }
+
+            instalmentEnrollmentId = enrolResult.enrollment_id;
+            pricing = {
+                ...pricing,
+                amount: Number(enrolResult.deposit_amount),
+                instalmentEnrollmentId,
+            };
+        }
+
+        resolvedCohortId = pricing.cohortId || resolvedCohortId;
+
+        let couponMeta = null;
+        if (couponCode?.trim()) {
+            try {
+                const applied = await validateCouponForPurchase(supabase, {
+                    code: couponCode,
+                    studentId: userId,
+                    courseId,
+                    bundleId,
+                    pricing,
+                });
+                pricing = applied.pricing;
+                couponMeta = applied.coupon;
+            } catch (e) {
+                return res.status(400).json({ success: false, error: e.message });
+            }
+        }
+
+        const siteUrl = process.env.SITE_URL || 'https://dataplusacademy.com';
+        const referenceId = generateReferenceId();
+
+        // Free checkout (100% scholarship / full discount coupon)
+        if (pricing.amount <= 0) {
+            if (!couponMeta) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'A valid coupon is required for free enrolment',
+                });
+            }
+            return handleFreeCheckout(res, {
+                email,
+                name,
+                phone,
+                studentId: userId,
+                courseId,
+                bundleId,
+                pricing,
+                couponMeta,
+                referenceId,
+                supabase,
+                cohortId: resolvedCohortId,
+            });
         }
 
         const normalizedGateway = String(gateway).toLowerCase();
+
+        if (!paymentMethod) {
+            return res.status(400).json({ success: false, error: 'Payment method is required' });
+        }
 
         if (normalizedGateway === 'lmbtech' && process.env.LMBTECH_ENABLED !== 'true') {
             return res.status(400).json({
@@ -104,38 +229,6 @@ export default async function handler(req, res) {
             });
         }
 
-        const supabase = getSupabaseAdmin();
-        if (!supabase) {
-            return res.status(500).json({ success: false, error: 'Payment system unavailable' });
-        }
-
-        let pricing;
-        try {
-            pricing = await resolvePurchasePrice(supabase, { courseId, bundleId });
-        } catch (e) {
-            return res.status(400).json({ success: false, error: e.message });
-        }
-
-        let couponMeta = null;
-        if (couponCode?.trim()) {
-            try {
-                const applied = await validateCouponForPurchase(supabase, {
-                    code: couponCode,
-                    studentId: userId,
-                    courseId,
-                    bundleId,
-                    pricing,
-                });
-                pricing = applied.pricing;
-                couponMeta = applied.coupon;
-            } catch (e) {
-                return res.status(400).json({ success: false, error: e.message });
-            }
-        }
-
-        const siteUrl = process.env.SITE_URL || 'https://dataplusacademy.com';
-        const referenceId = generateReferenceId();
-
         if (normalizedGateway === 'xentripay') {
             return handleXentriPayInitiate(res, {
                 paymentMethod,
@@ -150,6 +243,7 @@ export default async function handler(req, res) {
                 referenceId,
                 siteUrl,
                 supabase,
+                cohortId: resolvedCohortId,
             });
         }
 
@@ -167,6 +261,7 @@ export default async function handler(req, res) {
             referenceId,
             siteUrl,
             supabase,
+            cohortId: resolvedCohortId,
         });
     } catch (error) {
         console.error('[payment-initiate] Error:', error);
@@ -175,6 +270,66 @@ export default async function handler(req, res) {
             error: 'Payment initiation failed',
         });
     }
+}
+
+async function handleFreeCheckout(res, ctx) {
+    try {
+        await createPaymentRecord(ctx.supabase, {
+            p_student_id: ctx.studentId,
+            p_course_id: ctx.courseId || null,
+            p_bundle_id: ctx.bundleId || null,
+            p_amount: 0,
+            p_currency: ctx.pricing.currency,
+            p_reference_id: ctx.referenceId,
+            p_payment_method: 'free',
+            p_payer_phone: ctx.phone || null,
+            p_payer_email: ctx.email,
+            p_payment_provider: 'free',
+            p_provider_ref_id: null,
+            p_payment_track: ctx.pricing.paymentTrack || 'scholarship',
+            p_cohort_id: ctx.cohortId || null,
+            p_instalment_enrollment_id: ctx.pricing.instalmentEnrollmentId || null,
+            ...buildPaymentRecordCouponParams(ctx.pricing, ctx.couponMeta),
+        });
+    } catch (e) {
+        console.error('[payment-initiate] free checkout record failed:', e);
+        return res.status(500).json({ success: false, error: 'Could not complete free enrolment' });
+    }
+
+    const result = await updatePaymentStatus(
+        ctx.supabase,
+        ctx.referenceId,
+        'success',
+        null,
+        {
+            type: 'free_checkout',
+            coupon_code: ctx.couponMeta?.code || null,
+            early_bird: ctx.pricing.earlyBirdApplied ? 'true' : 'false',
+        },
+    );
+
+    if (!result?.success) {
+        return res.status(500).json({ success: false, error: 'Enrolment failed' });
+    }
+
+    return res.status(200).json({
+        success: true,
+        status: 'success',
+        freeCheckout: true,
+        gateway: 'free',
+        referenceId: ctx.referenceId,
+        message: 'You have been enrolled successfully.',
+        confirmationMessage: 'Your scholarship or discount covered the full cost. You are now enrolled.',
+    });
+}
+
+function buildPaymentExtras(pricing, cohortId) {
+    return {
+        p_payment_track: pricing.paymentTrack || 'full',
+        p_cohort_id: cohortId || null,
+        p_instalment_enrollment_id: pricing.instalmentEnrollmentId || null,
+        p_instalment_schedule_id: pricing.instalmentScheduleId || null,
+    };
 }
 
 async function handleLmbTechInitiate(res, ctx) {
@@ -199,6 +354,7 @@ async function handleLmbTechInitiate(res, ctx) {
             p_payment_provider: 'lmbtech',
             p_provider_ref_id: null,
             ...buildPaymentRecordCouponParams(ctx.pricing, ctx.couponMeta),
+            ...buildPaymentExtras(ctx.pricing, ctx.cohortId),
         });
     } catch {
         return res.status(500).json({ success: false, error: 'Failed to create payment record' });
@@ -288,6 +444,7 @@ async function handleXentriPayInitiate(res, ctx) {
             p_payment_provider: 'xentripay',
             p_provider_ref_id: null,
             ...buildPaymentRecordCouponParams(ctx.pricing, ctx.couponMeta),
+            ...buildPaymentExtras(ctx.pricing, ctx.cohortId),
         });
     } catch (e) {
         console.error('[payment-initiate] create record failed:', e);

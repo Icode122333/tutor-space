@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/table";
 import { Package, Plus, Pencil, Trash2, BookOpen, X } from "lucide-react";
 import { formatPrice } from "@/services/paymentService";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AdminSidebar } from "@/components/AdminSidebar";
 import { useToast } from "@/hooks/use-toast";
 
 interface Course {
@@ -243,17 +245,29 @@ export default function AdminBundles() {
     };
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold">Course Bundles</h1>
-                    <p className="text-gray-500">Create and manage course bundle offers</p>
-                </div>
-                <Button onClick={openCreateDialog} className="bg-[#006d2c] hover:bg-[#005523]">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Bundle
-                </Button>
-            </div>
+        <SidebarProvider>
+            <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-50 via-white to-gray-50">
+                <AdminSidebar />
+                <div className="flex-1 flex flex-col overflow-hidden p-4">
+                    <header className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-100 mb-6">
+                        <div className="bg-gradient-to-r from-[#006d2c] to-[#008000] p-6 rounded-t-3xl">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <SidebarTrigger className="text-white" />
+                                    <div className="text-white">
+                                        <h1 className="text-3xl font-bold mb-1">Course Bundles</h1>
+                                        <p className="text-white/90 text-sm">Create and manage course bundle offers</p>
+                                    </div>
+                                </div>
+                                <Button onClick={openCreateDialog} variant="secondary" size="sm">
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Create Bundle
+                                </Button>
+                            </div>
+                        </div>
+                    </header>
+                    <main className="flex-1 overflow-y-auto px-2">
+                        <div className="max-w-7xl mx-auto space-y-6">
 
             {/* Bundles Table */}
             <Card>
@@ -341,8 +355,11 @@ export default function AdminBundles() {
                     </Table>
                 </CardContent>
             </Card>
+                        </div>
+                    </main>
+                </div>
+            </div>
 
-            {/* Create/Edit Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
@@ -433,6 +450,6 @@ export default function AdminBundles() {
                     </div>
                 </DialogContent>
             </Dialog>
-        </div>
+        </SidebarProvider>
     );
 }

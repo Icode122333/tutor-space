@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BookOpen, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { CourseCard } from "@/components/CourseCard";
+import { StudentInstalments } from "@/components/StudentInstalments";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -103,6 +104,7 @@ const MyCourses = () => {
           {/* Main Content */}
           <main className="flex-1 overflow-auto">
             <div className="container mx-auto px-4 sm:px-6 py-8">
+              <StudentInstalments />
               {courses.length === 0 ? (
                 <div className="text-center py-16">
                   <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">

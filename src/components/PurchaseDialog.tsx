@@ -20,6 +20,8 @@ import {
     type PaymentMethod,
     type CouponValidationResult,
 } from "@/services/paymentService";
+import type { EarlyBirdState } from "@/lib/earlyBirdPricing";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const PAYMENT_GATEWAY = "xentripay" as const;
 
@@ -35,14 +37,40 @@ interface PurchaseDialogProps {
         thumbnail_url?: string;
     };
     onSuccess?: () => void;
+    earlyBird?: EarlyBirdState | null;
+    instalmentAvailable?: boolean;
+    cohortId?: string;
+    fullPrice?: number;
+    depositPercent?: number;
+    mode?: "purchase" | "instalment-pay";
+    instalmentScheduleId?: string;
+    instalmentNumber?: number;
+    dueDate?: string;
 }
 
 type PaymentStep = "method" | "confirming" | "processing" | "success" | "failed";
 
-export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: PurchaseDialogProps) {
+export function PurchaseDialog({
+    open,
+    onOpenChange,
+    type,
+    item,
+    onSuccess,
+    earlyBird,
+    instalmentAvailable = false,
+    cohortId,
+    fullPrice,
+    depositPercent = 50,
+    mode = "purchase",
+    instalmentScheduleId,
+    instalmentNumber,
+    dueDate,
+}: PurchaseDialogProps) {
     const { user, profile } = useAuth();
     const [step, setStep] = useState<PaymentStep>("method");
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("momo");
+    const [paymentTrack, setPaymentTrack] = useState<"full" | "instalment">("full");
+    const [checkoutStartedAt, setCheckoutStartedAt] = useState<string | null>(null);
     const [phone, setPhone] = useState("");
     const [couponInput, setCouponInput] = useState("");
     const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResult | null>(null);
@@ -53,13 +81,24 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
     const [pollCount, setPollCount] = useState(0);
 
     const needsPhone = paymentMethod === "momo" || paymentMethod === "card";
-    const displayAmount = appliedCoupon?.finalAmount ?? item.price;
+    const listPrice = fullPrice ?? item.price;
+    const isInstalmentDeposit = mode === "purchase" && paymentTrack === "instalment";
+    const chargeBase = isInstalmentDeposit
+        ? Math.round(listPrice * depositPercent / 100)
+        : mode === "instalment-pay"
+          ? item.price
+          : listPrice;
+    const displayAmount = appliedCoupon?.finalAmount ?? chargeBase;
     const displayCurrency = appliedCoupon?.currency ?? item.currency;
+    const showCoupons = mode === "purchase";
+    const showPaymentPlan = instalmentAvailable && type === "course" && mode === "purchase";
 
     useEffect(() => {
         if (open) {
             setStep("method");
             setPaymentMethod("momo");
+            setPaymentTrack("full");
+            setCheckoutStartedAt(new Date().toISOString());
             setPhone("");
             setCouponInput("");
             setAppliedCoupon(null);
@@ -110,6 +149,9 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
             code: couponInput,
             type,
             itemId: item.id,
+            checkoutStartedAt: checkoutStartedAt || undefined,
+            paymentTrack: paymentTrack === "instalment" ? "instalment" : "full",
+            cohortId,
         });
 
         setCouponLoading(false);
@@ -136,6 +178,11 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
             return;
         }
 
+        if (showCoupons && couponInput.trim() && !appliedCoupon) {
+            setError("Click Apply to validate your coupon before paying");
+            return;
+        }
+
         setError(null);
         setGatewayMessage(null);
         setStep("processing");
@@ -148,8 +195,18 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
             phone: needsPhone ? phone : undefined,
             paymentMethod,
             gateway: PAYMENT_GATEWAY,
-            couponCode: appliedCoupon?.code || couponInput.trim() || undefined,
+            couponCode: showCoupons ? appliedCoupon?.code || undefined : undefined,
+            checkoutStartedAt: checkoutStartedAt || undefined,
+            paymentTrack: paymentTrack === "instalment" ? "instalment" : "full",
+            cohortId,
+            instalmentScheduleId,
         });
+
+        if (result.success && result.freeCheckout) {
+            setReferenceId(result.referenceId || null);
+            setStep("success");
+            return;
+        }
 
         if (result.success && result.referenceId) {
             setReferenceId(result.referenceId);
@@ -186,19 +243,41 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                               ? "Payment Failed"
                               : step === "confirming"
                                 ? "Confirm Your Payment"
-                                : `Purchase ${type === "bundle" ? "Bundle" : "Course"}`}
+                                : mode === "instalment-pay"
+                                  ? `Pay Instalment ${instalmentNumber ?? ""}`
+                                  : `Purchase ${type === "bundle" ? "Bundle" : "Course"}`}
                     </DialogTitle>
-                    <DialogDescription>{item.title}</DialogDescription>
+                    <DialogDescription>
+                        {item.title}
+                        {mode === "instalment-pay" && dueDate && (
+                            <span className="block text-xs mt-1">Due {new Date(dueDate).toLocaleDateString()}</span>
+                        )}
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4">
                     <div className="p-3 bg-green-50 rounded-lg border border-green-200 space-y-1">
+                        {earlyBird?.active && (
+                            <div className="flex items-center justify-between text-sm text-orange-700">
+                                <span>Early bird price</span>
+                                <span className="line-through text-gray-400 mr-2">
+                                    {formatPrice(earlyBird.regularPrice, item.currency)}
+                                </span>
+                                <span>{formatPrice(earlyBird.price, item.currency)}</span>
+                            </div>
+                        )}
                         {appliedCoupon?.discountAmount ? (
                             <>
                                 <div className="flex items-center justify-between text-sm text-gray-600">
-                                    <span>Subtotal</span>
-                                    <span>{formatPrice(item.price, item.currency)}</span>
+                                    <span>{isInstalmentDeposit ? "Deposit" : "Subtotal"}</span>
+                                    <span>{formatPrice(chargeBase, item.currency)}</span>
                                 </div>
+                                {isInstalmentDeposit && (
+                                    <div className="flex items-center justify-between text-xs text-gray-500">
+                                        <span>Full course price</span>
+                                        <span>{formatPrice(listPrice, item.currency)}</span>
+                                    </div>
+                                )}
                                 <div className="flex items-center justify-between text-sm text-emerald-700">
                                     <span className="flex items-center gap-1">
                                         <Tag className="h-3.5 w-3.5" />
@@ -207,9 +286,26 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                                     <span>-{formatPrice(appliedCoupon.discountAmount, displayCurrency)}</span>
                                 </div>
                                 <div className="flex items-center justify-between pt-1 border-t border-green-200">
-                                    <span className="text-sm font-medium text-gray-700">Total</span>
+                                    <span className="text-sm font-medium text-gray-700">Total due now</span>
                                     <span className="text-xl font-bold text-green-700">
                                         {formatPrice(displayAmount, displayCurrency)}
+                                    </span>
+                                </div>
+                            </>
+                        ) : isInstalmentDeposit ? (
+                            <>
+                                <div className="flex items-center justify-between text-sm text-gray-600">
+                                    <span>Full course price</span>
+                                    <span>{formatPrice(listPrice, item.currency)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm text-gray-600">
+                                    <span>Deposit ({depositPercent}%)</span>
+                                    <span>{formatPrice(chargeBase, item.currency)}</span>
+                                </div>
+                                <div className="flex items-center justify-between pt-1 border-t border-green-200">
+                                    <span className="text-sm font-medium text-gray-700">Due now</span>
+                                    <span className="text-xl font-bold text-green-700">
+                                        {formatPrice(chargeBase, item.currency)}
                                     </span>
                                 </div>
                             </>
@@ -217,7 +313,7 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                             <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium text-gray-700">Total</span>
                                 <span className="text-xl font-bold text-green-700">
-                                    {formatPrice(item.price, item.currency)}
+                                    {formatPrice(chargeBase, item.currency)}
                                 </span>
                             </div>
                         )}
@@ -225,6 +321,36 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
 
                     {step === "method" && (
                         <div className="space-y-4">
+                            {showPaymentPlan && (
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">Payment plan</Label>
+                                    <RadioGroup
+                                        value={paymentTrack}
+                                        onValueChange={(v) => {
+                                            setPaymentTrack(v as "full" | "instalment");
+                                            setAppliedCoupon(null);
+                                            setCouponInput("");
+                                        }}
+                                        className="grid grid-cols-2 gap-2"
+                                    >
+                                        <label className="flex items-center gap-2 border rounded-lg p-3 cursor-pointer has-[:checked]:border-green-500 has-[:checked]:bg-green-50">
+                                            <RadioGroupItem value="full" />
+                                            <span className="text-sm font-medium">Pay in full</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 border rounded-lg p-3 cursor-pointer has-[:checked]:border-green-500 has-[:checked]:bg-green-50">
+                                            <RadioGroupItem value="instalment" />
+                                            <span className="text-sm font-medium">Instalments</span>
+                                        </label>
+                                    </RadioGroup>
+                                    {paymentTrack === "instalment" && (
+                                        <p className="text-xs text-gray-500">
+                                            Pay a deposit now; remaining instalments are due monthly.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            {showCoupons && (
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium">Coupon Code</Label>
                                 <div className="flex gap-2">
@@ -258,6 +384,7 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                                     <p className="text-xs text-emerald-700">Coupon applied successfully</p>
                                 )}
                             </div>
+                            )}
 
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium">Payment Method</Label>
@@ -342,7 +469,9 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
                                 className="w-full bg-[#006d2c] hover:bg-[#005523] text-white h-12 text-base"
                                 onClick={handleInitiatePayment}
                             >
-                                Pay {formatPrice(displayAmount, displayCurrency)}
+                                {displayAmount <= 0 && appliedCoupon?.valid
+                                    ? "Confirm Free Enrolment"
+                                    : `Pay ${formatPrice(displayAmount, displayCurrency)}`}
                             </Button>
                         </div>
                     )}
