@@ -178,6 +178,11 @@ export function PurchaseDialog({
             return;
         }
 
+        if (showCoupons && couponInput.trim() && !appliedCoupon) {
+            setError("Click Apply to validate your coupon before paying");
+            return;
+        }
+
         setError(null);
         setGatewayMessage(null);
         setStep("processing");
@@ -190,7 +195,7 @@ export function PurchaseDialog({
             phone: needsPhone ? phone : undefined,
             paymentMethod,
             gateway: PAYMENT_GATEWAY,
-            couponCode: showCoupons ? appliedCoupon?.code || couponInput.trim() || undefined : undefined,
+            couponCode: showCoupons ? appliedCoupon?.code || undefined : undefined,
             checkoutStartedAt: checkoutStartedAt || undefined,
             paymentTrack: paymentTrack === "instalment" ? "instalment" : "full",
             cohortId,

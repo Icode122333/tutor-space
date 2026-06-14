@@ -27,7 +27,6 @@ import {
   DollarSign,
   Package,
   Tag,
-  GraduationCap,
   Layers,
   ClipboardList
 } from "lucide-react";

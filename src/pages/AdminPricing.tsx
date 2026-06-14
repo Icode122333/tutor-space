@@ -20,8 +20,10 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Layers, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AdminSidebar } from "@/components/AdminSidebar";
 import { formatPrice } from "@/services/paymentService";
 import { toast } from "sonner";
 
@@ -136,16 +138,25 @@ export default function AdminPricing() {
     const selectedCourse = courses.find((c) => c.id === selectedCourseId);
 
     return (
-        <div className="p-6 space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <Layers className="h-6 w-6 text-[#006d2c]" />
-                    Audience Pricing Tiers
-                </h1>
-                <p className="text-gray-500">
-                    Set different prices per learner category. Assign users a tier in their profile (`pricing_tier`).
-                </p>
-            </div>
+        <SidebarProvider>
+            <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-50 via-white to-gray-50">
+                <AdminSidebar />
+                <div className="flex-1 flex flex-col overflow-hidden p-4">
+                    <header className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-100 mb-6">
+                        <div className="bg-gradient-to-r from-[#006d2c] to-[#008000] p-6 rounded-t-3xl">
+                            <div className="flex items-center gap-4">
+                                <SidebarTrigger className="text-white" />
+                                <div className="text-white">
+                                    <h1 className="text-3xl font-bold mb-1">Audience Pricing Tiers</h1>
+                                    <p className="text-white/90 text-sm">
+                                        Set different prices per learner category. Assign users a tier in their profile.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+                    <main className="flex-1 overflow-y-auto px-2">
+                        <div className="max-w-7xl mx-auto space-y-6">
 
             <Card>
                 <CardContent className="p-4 space-y-4">
@@ -229,6 +240,10 @@ export default function AdminPricing() {
                     )}
                 </CardContent>
             </Card>
-        </div>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </SidebarProvider>
     );
 }

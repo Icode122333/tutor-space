@@ -19,8 +19,10 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { GraduationCap, CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle } from "lucide-react";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AdminSidebar } from "@/components/AdminSidebar";
 import { toast } from "sonner";
 
 interface Application {
@@ -154,28 +156,37 @@ export default function AdminScholarships() {
     if (!accessChecked) return <LoadingSpinner />;
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <GraduationCap className="h-6 w-6 text-[#006d2c]" />
-                        Scholarship Applications
-                    </h1>
-                    <p className="text-gray-500">Review applications and issue scholarship codes</p>
-                </div>
-                <Select value={filter} onValueChange={setFilter}>
-                    <SelectTrigger className="w-40">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="redeemed">Redeemed</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                        <SelectItem value="all">All</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+        <SidebarProvider>
+            <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-50 via-white to-gray-50">
+                <AdminSidebar />
+                <div className="flex-1 flex flex-col overflow-hidden p-4">
+                    <header className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-100 mb-6">
+                        <div className="bg-gradient-to-r from-[#006d2c] to-[#008000] p-6 rounded-t-3xl">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <SidebarTrigger className="text-white" />
+                                    <div className="text-white">
+                                        <h1 className="text-3xl font-bold mb-1">Scholarship Applications</h1>
+                                        <p className="text-white/90 text-sm">Review applications and issue scholarship codes</p>
+                                    </div>
+                                </div>
+                                <Select value={filter} onValueChange={setFilter}>
+                                    <SelectTrigger className="w-40 bg-white">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="pending">Pending</SelectItem>
+                                        <SelectItem value="approved">Approved</SelectItem>
+                                        <SelectItem value="redeemed">Redeemed</SelectItem>
+                                        <SelectItem value="rejected">Rejected</SelectItem>
+                                        <SelectItem value="all">All</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </header>
+                    <main className="flex-1 overflow-y-auto px-2">
+                        <div className="max-w-7xl mx-auto space-y-6">
 
             <Card>
                 <CardContent className="p-0">
@@ -255,6 +266,10 @@ export default function AdminScholarships() {
                     </Table>
                 </CardContent>
             </Card>
-        </div>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </SidebarProvider>
     );
 }

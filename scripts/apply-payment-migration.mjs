@@ -22,6 +22,7 @@ const MIGRATIONS = [
     'supabase/migrations/20260614000002_admin_pricing_tier.sql',
     'supabase/migrations/20260615000000_payment_spec_phase2.sql',
     'supabase/migrations/20260616000000_payment_fixes_phase3.sql',
+    'supabase/migrations/20260617000000_coupon_security_hardening.sql',
 ];
 
 function loadEnv() {

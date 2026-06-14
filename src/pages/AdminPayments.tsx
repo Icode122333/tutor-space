@@ -23,6 +23,8 @@ import {
 import { DollarSign, Search, Filter, CheckCircle, XCircle, Clock, CreditCard, Smartphone, Tag } from "lucide-react";
 import { formatPrice } from "@/services/paymentService";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AdminSidebar } from "@/components/AdminSidebar";
 import { toast } from "sonner";
 
 interface Payment {
@@ -268,24 +270,36 @@ export default function AdminPayments() {
     }
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold">Payments</h1>
-                    <p className="text-gray-500">Track all course and bundle purchases</p>
-                </div>
-                <Button
-                    onClick={() => {
-                        fetchPayments();
-                        fetchInstalments();
-                        fetchCouponStats();
-                    }}
-                    variant="outline"
-                    size="sm"
-                >
-                    Refresh
-                </Button>
-            </div>
+        <SidebarProvider>
+            <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-50 via-white to-gray-50">
+                <AdminSidebar />
+                <div className="flex-1 flex flex-col overflow-hidden p-4">
+                    <header className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-100 mb-6">
+                        <div className="bg-gradient-to-r from-[#006d2c] to-[#008000] p-6 rounded-t-3xl">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <SidebarTrigger className="text-white" />
+                                    <div className="text-white">
+                                        <h1 className="text-3xl font-bold mb-1">Payments</h1>
+                                        <p className="text-white/90 text-sm">Track all course and bundle purchases</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    onClick={() => {
+                                        fetchPayments();
+                                        fetchInstalments();
+                                        fetchCouponStats();
+                                    }}
+                                    variant="secondary"
+                                    size="sm"
+                                >
+                                    Refresh
+                                </Button>
+                            </div>
+                        </div>
+                    </header>
+                    <main className="flex-1 overflow-y-auto px-2">
+                        <div className="max-w-7xl mx-auto space-y-6">
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -608,6 +622,10 @@ export default function AdminPayments() {
                     </Table>
                 </CardContent>
             </Card>
-        </div>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </SidebarProvider>
     );
 }
