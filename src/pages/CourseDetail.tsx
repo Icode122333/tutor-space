@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { PurchaseDialog } from "@/components/PurchaseDialog";
 import { ScholarshipApplyDialog } from "@/components/ScholarshipApplyDialog";
+import { EarlyBirdCountdown } from "@/components/EarlyBirdCountdown";
+import { resolveEarlyBirdPricing, type EarlyBirdState } from "@/lib/earlyBirdPricing";
 
 interface Teacher {
   full_name: string;
@@ -37,6 +39,11 @@ interface Course {
   scholarship_open?: boolean;
   scholarship_slots_max?: number | null;
   scholarship_slots_used?: number;
+  early_bird_price?: number | null;
+  early_bird_start?: string | null;
+  early_bird_end?: string | null;
+  early_bird_max_seats?: number | null;
+  early_bird_seats_used?: number;
 }
 
 interface Lesson {
@@ -93,6 +100,8 @@ export default function CourseDetail() {
   const [showScholarshipDialog, setShowScholarshipDialog] = useState(false);
   const [displayPrice, setDisplayPrice] = useState<number | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("RWF");
+  const [earlyBird, setEarlyBird] = useState<EarlyBirdState | null>(null);
+  const [instalmentAvailable, setInstalmentAvailable] = useState(false);
 
   // Check if user is a student (not teacher/admin)
   const isStudent = userRole === 'student';
@@ -209,6 +218,12 @@ export default function CourseDetail() {
     setDisplayPrice(data.price ?? 0);
     setDisplayCurrency(data.currency || "RWF");
 
+    const earlyBirdState = resolveEarlyBirdPricing(data);
+    setEarlyBird(earlyBirdState);
+    if (earlyBirdState) {
+      setDisplayPrice(earlyBirdState.price);
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (user && data.price != null && !data.is_free) {
       const { data: profile } = await supabase
@@ -218,7 +233,7 @@ export default function CourseDetail() {
         .maybeSingle();
 
       const tier = profile?.pricing_tier || "standard";
-      if (tier !== "standard") {
+      if (tier !== "standard" && !earlyBirdState) {
         const { data: tierPrice } = await supabase
           .from("course_price_tiers")
           .select("price, currency")
@@ -232,6 +247,16 @@ export default function CourseDetail() {
           setDisplayCurrency(tierPrice.currency || data.currency || "RWF");
         }
       }
+
+      const { data: instalmentPlan } = await supabase
+        .from("course_instalment_plans")
+        .select("id")
+        .eq("course_id", id)
+        .eq("is_active", true)
+        .maybeSingle();
+      setInstalmentAvailable(!!instalmentPlan);
+    } else {
+      setInstalmentAvailable(false);
     }
 
     // Fetch teacher info
@@ -378,6 +403,10 @@ export default function CourseDetail() {
     const amount = displayPrice ?? course?.price;
     const currency = displayCurrency || course?.currency || "RWF";
     if (amount == null) return "";
+    return formattedPriceForAmount(amount, currency);
+  };
+
+  const formattedPriceForAmount = (amount: number, currency = displayCurrency || course?.currency || "RWF") => {
     return currency === "USD"
       ? `$${amount.toLocaleString()}`
       : `${amount.toLocaleString()} ${currency}`;
@@ -738,8 +767,25 @@ export default function CourseDetail() {
                 <CardContent className="p-4 space-y-3">
                   {/* Price Display */}
                   {isPaidCourse && (
-                    <div className="text-center">
+                    <div className="text-center space-y-1">
+                      {earlyBird?.active && (
+                        <>
+                          <EarlyBirdCountdown
+                            endsAt={earlyBird.endsAt}
+                            seatsLeft={earlyBird.seatsLeft}
+                            className="flex flex-col items-center"
+                          />
+                          <p className="text-sm text-gray-400 line-through">
+                            {formattedPriceForAmount(earlyBird.regularPrice)}
+                          </p>
+                        </>
+                      )}
                       <span className="text-3xl font-bold text-gray-900">{formattedPrice()}</span>
+                      {earlyBird?.active && earlyBird.savings > 0 && (
+                        <p className="text-xs text-orange-600 font-medium">
+                          Save {formattedPriceForAmount(earlyBird.savings)}
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -1107,6 +1153,8 @@ export default function CourseDetail() {
             setShowPurchaseDialog(false);
             toast({ title: "Purchase Successful!", description: "You now have full access to this course" });
           }}
+          earlyBird={earlyBird}
+          instalmentAvailable={instalmentAvailable}
         />
       )}
 

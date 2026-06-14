@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { resolveEarlyBirdPricing } from './early-bird.js';
 
 const REFERENCE_ID_PATTERN = /^[A-Za-z0-9_-]{4,128}$/;
 
@@ -46,11 +47,13 @@ export async function findPaymentByReference(supabase, referenceId) {
     return byProvider;
 }
 
-export async function resolvePurchasePrice(supabase, { courseId, bundleId, studentId }) {
+export async function resolvePurchasePrice(supabase, { courseId, bundleId, studentId, checkoutStartedAt, paymentTrack }) {
     if (courseId) {
         const { data, error } = await supabase
             .from('courses')
-            .select('price, currency, is_free, title')
+            .select(
+                'price, currency, is_free, title, early_bird_price, early_bird_start, early_bird_end, early_bird_max_seats, early_bird_seats_used',
+            )
             .eq('id', courseId)
             .maybeSingle();
 
@@ -63,6 +66,15 @@ export async function resolvePurchasePrice(supabase, { courseId, bundleId, stude
 
         let amount = Number(data.price);
         let currency = data.currency || 'RWF';
+        let earlyBirdApplied = false;
+        let paymentTrackResolved = paymentTrack || 'full';
+
+        const earlyBird = resolveEarlyBirdPricing(data, { checkoutStartedAt });
+        if (earlyBird) {
+            amount = earlyBird.price;
+            earlyBirdApplied = true;
+            paymentTrackResolved = 'early_bird';
+        }
 
         if (studentId) {
             const { data: profile } = await supabase
@@ -73,7 +85,7 @@ export async function resolvePurchasePrice(supabase, { courseId, bundleId, stude
 
             const tierCode = profile?.pricing_tier || 'standard';
 
-            if (tierCode !== 'standard') {
+            if (tierCode !== 'standard' && !earlyBirdApplied) {
                 const { data: tierPrice } = await supabase
                     .from('course_price_tiers')
                     .select('price, currency')
@@ -93,7 +105,33 @@ export async function resolvePurchasePrice(supabase, { courseId, bundleId, stude
             throw new Error('Course has no valid price');
         }
 
-        return { amount, currency, title: data.title, tierApplied: true };
+        let instalmentDeposit = null;
+        if (paymentTrack === 'instalment') {
+            const { data: plan } = await supabase
+                .from('course_instalment_plans')
+                .select('deposit_percent, is_active')
+                .eq('course_id', courseId)
+                .eq('is_active', true)
+                .maybeSingle();
+
+            if (!plan) {
+                throw new Error('Instalment plan not available for this course');
+            }
+
+            instalmentDeposit = Math.round(amount * Number(plan.deposit_percent) / 100);
+            paymentTrackResolved = 'instalment';
+        }
+
+        return {
+            amount: paymentTrack === 'instalment' && instalmentDeposit != null ? instalmentDeposit : amount,
+            fullAmount: amount,
+            instalmentDeposit,
+            currency,
+            title: data.title,
+            tierApplied: true,
+            earlyBirdApplied,
+            paymentTrack: paymentTrackResolved,
+        };
     }
 
     if (bundleId) {
@@ -165,6 +203,9 @@ export async function createPaymentRecord(supabase, params) {
     if (params.p_coupon_id) row.coupon_id = params.p_coupon_id;
     if (params.p_original_amount != null) row.original_amount = params.p_original_amount;
     if (params.p_discount_amount != null) row.discount_amount = params.p_discount_amount;
+    if (params.p_payment_track) row.payment_track = params.p_payment_track;
+    if (params.p_cohort_id) row.cohort_id = params.p_cohort_id;
+    if (params.p_instalment_enrollment_id) row.instalment_enrollment_id = params.p_instalment_enrollment_id;
 
     let { data: inserted, error: insertError } = await supabase
         .from('payments')

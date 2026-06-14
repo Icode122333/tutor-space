@@ -14,6 +14,9 @@ export interface PaymentInitiateRequest {
     paymentMethod: PaymentMethod;
     gateway: PaymentGateway;
     couponCode?: string;
+    checkoutStartedAt?: string;
+    paymentTrack?: 'full' | 'instalment' | 'scholarship';
+    cohortId?: string;
 }
 
 export interface CouponValidationResult {
@@ -87,6 +90,9 @@ export async function initiatePayment(request: PaymentInitiateRequest): Promise<
                 courseId: request.type === 'course' ? request.itemId : undefined,
                 bundleId: request.type === 'bundle' ? request.itemId : undefined,
                 couponCode: request.couponCode?.trim() || undefined,
+                checkoutStartedAt: request.checkoutStartedAt,
+                paymentTrack: request.paymentTrack || 'full',
+                cohortId: request.cohortId,
             }),
         });
 
@@ -123,6 +129,8 @@ export async function validateCoupon(params: {
     code: string;
     type: 'course' | 'bundle';
     itemId: string;
+    checkoutStartedAt?: string;
+    paymentTrack?: 'full' | 'instalment';
 }): Promise<CouponValidationResult> {
     try {
         const headers = await getAuthHeaders();
@@ -137,6 +145,8 @@ export async function validateCoupon(params: {
                 code: params.code.trim(),
                 courseId: params.type === 'course' ? params.itemId : undefined,
                 bundleId: params.type === 'bundle' ? params.itemId : undefined,
+                checkoutStartedAt: params.checkoutStartedAt,
+                paymentTrack: params.paymentTrack || 'full',
             }),
         });
 

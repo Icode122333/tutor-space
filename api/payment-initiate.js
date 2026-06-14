@@ -51,6 +51,9 @@ export default async function handler(req, res) {
             courseId: rawCourseId,
             bundleId: rawBundleId,
             couponCode,
+            checkoutStartedAt,
+            paymentTrack = 'full',
+            cohortId,
         } = req.body;
 
         if (!email || !name) {
@@ -78,9 +81,43 @@ export default async function handler(req, res) {
 
         let pricing;
         try {
-            pricing = await resolvePurchasePrice(supabase, { courseId, bundleId, studentId: userId });
+            pricing = await resolvePurchasePrice(supabase, {
+                courseId,
+                bundleId,
+                studentId: userId,
+                checkoutStartedAt,
+                paymentTrack: bundleId ? 'full' : paymentTrack,
+            });
         } catch (e) {
             return res.status(400).json({ success: false, error: e.message });
+        }
+
+        let instalmentEnrollmentId = null;
+        if (paymentTrack === 'instalment' && courseId && pricing.fullAmount != null) {
+            const { data: enrolResult, error: enrolError } = await supabase.rpc(
+                'create_instalment_enrollment',
+                {
+                    p_student_id: userId,
+                    p_course_id: courseId,
+                    p_total_amount: pricing.fullAmount,
+                    p_currency: pricing.currency,
+                    p_cohort_id: cohortId || null,
+                },
+            );
+
+            if (enrolError || !enrolResult?.success) {
+                return res.status(400).json({
+                    success: false,
+                    error: enrolResult?.error || enrolError?.message || 'Could not start instalment plan',
+                });
+            }
+
+            instalmentEnrollmentId = enrolResult.enrollment_id;
+            pricing = {
+                ...pricing,
+                amount: Number(enrolResult.deposit_amount),
+                instalmentEnrollmentId,
+            };
         }
 
         let couponMeta = null;
@@ -122,6 +159,7 @@ export default async function handler(req, res) {
                 couponMeta,
                 referenceId,
                 supabase,
+                cohortId,
             });
         }
 
@@ -177,6 +215,7 @@ export default async function handler(req, res) {
                 referenceId,
                 siteUrl,
                 supabase,
+                cohortId,
             });
         }
 
@@ -218,6 +257,9 @@ async function handleFreeCheckout(res, ctx) {
             p_payer_email: ctx.email,
             p_payment_provider: 'free',
             p_provider_ref_id: null,
+            p_payment_track: ctx.pricing.paymentTrack || 'scholarship',
+            p_cohort_id: ctx.cohortId || null,
+            p_instalment_enrollment_id: ctx.pricing.instalmentEnrollmentId || null,
             ...buildPaymentRecordCouponParams(ctx.pricing, ctx.couponMeta),
         });
     } catch (e) {
@@ -230,7 +272,11 @@ async function handleFreeCheckout(res, ctx) {
         ctx.referenceId,
         'success',
         null,
-        { type: 'free_checkout', coupon_code: ctx.couponMeta?.code || null },
+        {
+            type: 'free_checkout',
+            coupon_code: ctx.couponMeta?.code || null,
+            early_bird: ctx.pricing.earlyBirdApplied ? 'true' : 'false',
+        },
     );
 
     if (!result?.success) {
@@ -246,6 +292,14 @@ async function handleFreeCheckout(res, ctx) {
         message: 'You have been enrolled successfully.',
         confirmationMessage: 'Your scholarship or discount covered the full cost. You are now enrolled.',
     });
+}
+
+function buildPaymentExtras(pricing, cohortId) {
+    return {
+        p_payment_track: pricing.paymentTrack || 'full',
+        p_cohort_id: cohortId || null,
+        p_instalment_enrollment_id: pricing.instalmentEnrollmentId || null,
+    };
 }
 
 async function handleLmbTechInitiate(res, ctx) {
@@ -270,6 +324,7 @@ async function handleLmbTechInitiate(res, ctx) {
             p_payment_provider: 'lmbtech',
             p_provider_ref_id: null,
             ...buildPaymentRecordCouponParams(ctx.pricing, ctx.couponMeta),
+            ...buildPaymentExtras(ctx.pricing, ctx.cohortId),
         });
     } catch {
         return res.status(500).json({ success: false, error: 'Failed to create payment record' });
@@ -359,6 +414,7 @@ async function handleXentriPayInitiate(res, ctx) {
             p_payment_provider: 'xentripay',
             p_provider_ref_id: null,
             ...buildPaymentRecordCouponParams(ctx.pricing, ctx.couponMeta),
+            ...buildPaymentExtras(ctx.pricing, ctx.cohortId),
         });
     } catch (e) {
         console.error('[payment-initiate] create record failed:', e);

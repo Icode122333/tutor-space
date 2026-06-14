@@ -22,7 +22,7 @@ export default async function handler(req, res) {
             return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
-        const { code, courseId: rawCourseId, bundleId: rawBundleId } = req.body;
+        const { code, courseId: rawCourseId, bundleId: rawBundleId, checkoutStartedAt, paymentTrack } = req.body;
 
         if (!code?.trim()) {
             return res.status(400).json({ success: false, error: 'Coupon code is required' });
@@ -50,6 +50,8 @@ export default async function handler(req, res) {
                 courseId,
                 bundleId,
                 studentId: userId,
+                checkoutStartedAt,
+                paymentTrack: bundleId ? 'full' : paymentTrack || 'full',
             });
         } catch (e) {
             return res.status(400).json({ success: false, error: e.message });

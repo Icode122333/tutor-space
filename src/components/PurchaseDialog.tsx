@@ -20,6 +20,8 @@ import {
     type PaymentMethod,
     type CouponValidationResult,
 } from "@/services/paymentService";
+import type { EarlyBirdState } from "@/lib/earlyBirdPricing";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const PAYMENT_GATEWAY = "xentripay" as const;
 
@@ -35,14 +37,28 @@ interface PurchaseDialogProps {
         thumbnail_url?: string;
     };
     onSuccess?: () => void;
+    earlyBird?: EarlyBirdState | null;
+    instalmentAvailable?: boolean;
+    cohortId?: string;
 }
 
 type PaymentStep = "method" | "confirming" | "processing" | "success" | "failed";
 
-export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: PurchaseDialogProps) {
+export function PurchaseDialog({
+    open,
+    onOpenChange,
+    type,
+    item,
+    onSuccess,
+    earlyBird,
+    instalmentAvailable = false,
+    cohortId,
+}: PurchaseDialogProps) {
     const { user, profile } = useAuth();
     const [step, setStep] = useState<PaymentStep>("method");
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("momo");
+    const [paymentTrack, setPaymentTrack] = useState<"full" | "instalment">("full");
+    const [checkoutStartedAt, setCheckoutStartedAt] = useState<string | null>(null);
     const [phone, setPhone] = useState("");
     const [couponInput, setCouponInput] = useState("");
     const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResult | null>(null);
@@ -60,6 +76,8 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
         if (open) {
             setStep("method");
             setPaymentMethod("momo");
+            setPaymentTrack("full");
+            setCheckoutStartedAt(new Date().toISOString());
             setPhone("");
             setCouponInput("");
             setAppliedCoupon(null);
@@ -110,6 +128,8 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
             code: couponInput,
             type,
             itemId: item.id,
+            checkoutStartedAt: checkoutStartedAt || undefined,
+            paymentTrack: paymentTrack === "instalment" ? "instalment" : "full",
         });
 
         setCouponLoading(false);
@@ -149,6 +169,9 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
             paymentMethod,
             gateway: PAYMENT_GATEWAY,
             couponCode: appliedCoupon?.code || couponInput.trim() || undefined,
+            checkoutStartedAt: checkoutStartedAt || undefined,
+            paymentTrack: paymentTrack === "instalment" ? "instalment" : "full",
+            cohortId,
         });
 
         if (result.success && result.freeCheckout) {
@@ -199,6 +222,15 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
 
                 <div className="space-y-4">
                     <div className="p-3 bg-green-50 rounded-lg border border-green-200 space-y-1">
+                        {earlyBird?.active && (
+                            <div className="flex items-center justify-between text-sm text-orange-700">
+                                <span>Early bird price</span>
+                                <span className="line-through text-gray-400 mr-2">
+                                    {formatPrice(earlyBird.regularPrice, item.currency)}
+                                </span>
+                                <span>{formatPrice(earlyBird.price, item.currency)}</span>
+                            </div>
+                        )}
                         {appliedCoupon?.discountAmount ? (
                             <>
                                 <div className="flex items-center justify-between text-sm text-gray-600">
@@ -231,6 +263,35 @@ export function PurchaseDialog({ open, onOpenChange, type, item, onSuccess }: Pu
 
                     {step === "method" && (
                         <div className="space-y-4">
+                            {instalmentAvailable && type === "course" && (
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">Payment plan</Label>
+                                    <RadioGroup
+                                        value={paymentTrack}
+                                        onValueChange={(v) => {
+                                            setPaymentTrack(v as "full" | "instalment");
+                                            setAppliedCoupon(null);
+                                            setCouponInput("");
+                                        }}
+                                        className="grid grid-cols-2 gap-2"
+                                    >
+                                        <label className="flex items-center gap-2 border rounded-lg p-3 cursor-pointer has-[:checked]:border-green-500 has-[:checked]:bg-green-50">
+                                            <RadioGroupItem value="full" />
+                                            <span className="text-sm font-medium">Pay in full</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 border rounded-lg p-3 cursor-pointer has-[:checked]:border-green-500 has-[:checked]:bg-green-50">
+                                            <RadioGroupItem value="instalment" />
+                                            <span className="text-sm font-medium">Instalments</span>
+                                        </label>
+                                    </RadioGroup>
+                                    {paymentTrack === "instalment" && (
+                                        <p className="text-xs text-gray-500">
+                                            Pay a deposit now; remaining instalments are due monthly.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium">Coupon Code</Label>
                                 <div className="flex gap-2">
