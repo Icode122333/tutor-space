@@ -163,14 +163,9 @@ export async function getXentriCollectionStatus(refid) {
 export function verifyXentriWebhookSecret(provided) {
     const secret = process.env.XENTRIPAY_WEBHOOK_SECRET?.trim();
 
-    // Fail closed in production if webhook secret is not configured
-    if (!secret) {
-        if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
-            console.error('[xentripay] XENTRIPAY_WEBHOOK_SECRET required in production');
-            return false;
-        }
-        return true;
-    }
+    // XentriPay dashboard webhook UI is URL-only (no shared secret header).
+    // When unset, accept the webhook and rely on getXentriCollectionStatus() verification.
+    if (!secret) return true;
 
     if (!provided?.trim()) return false;
 
@@ -178,6 +173,19 @@ export function verifyXentriWebhookSecret(provided) {
     const b = Buffer.from(secret);
     if (a.length !== b.length) return false;
     return timingSafeEqual(a, b);
+}
+
+/** Public site base URL (no trailing slash). Used for card return + callbacks. */
+export function getSiteUrl() {
+    return (process.env.SITE_URL || 'https://dataplusacademy.com').replace(/\/$/, '');
+}
+
+/** Card checkout return URL after XentriPay hosted payment (Zoea-style). */
+export function buildXentriCardReturnUrl(referenceId) {
+    const base = (
+        process.env.XENTRIPAY_CARD_RETURN_URL_BASE?.trim() || getSiteUrl()
+    ).replace(/\/$/, '');
+    return `${base}/payment/success?ref=${encodeURIComponent(referenceId)}&payment=return`;
 }
 
 const COLLECTION_SUCCESS_EVENTS = new Set([
@@ -229,9 +237,17 @@ export function normalizeXentriWebhookPayload(body) {
         body.refId,
     );
 
+    const customerReference = pickString(
+        data.customerReference,
+        data.customer_reference,
+        data.customerRef,
+        body.customerReference,
+        body.customer_reference,
+    );
+
     const status =
         pickString(data.status, body.status) ||
         (event ? eventToStatus(event) : undefined);
 
-    return { event, refid, status };
+    return { event, refid, customerReference, status };
 }

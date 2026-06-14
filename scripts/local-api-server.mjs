@@ -36,6 +36,7 @@ const routes = {
     'POST /api/payment-callback': () => import('../api/payment-callback.js'),
     'GET /api/payment-callback': () => import('../api/payment-callback.js'),
     'POST /api/xentripay-webhook': () => import('../api/xentripay-webhook.js'),
+    'POST /api/webhooks/xentripay': () => import('../api/webhooks/xentripay.js'),
 };
 
 function parseQuery(url) {
@@ -123,8 +124,11 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
+    const siteUrl = (process.env.SITE_URL || 'http://localhost:8080').replace(/\/$/, '');
     console.log(`[local-api] Payment API running at http://localhost:${PORT}`);
     console.log('[local-api] Start Vite with: npm run dev  →  http://localhost:8080');
+    console.log(`[local-api] XentriPay webhook (prod): ${siteUrl}/api/webhooks/xentripay`);
+    console.log(`[local-api] Card return URL base: ${siteUrl}/payment/success?ref=...`);
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
         console.warn('[local-api] WARNING: SUPABASE_SERVICE_ROLE_KEY is missing — payments will not enroll');
     }

@@ -22,6 +22,8 @@ import {
     initiateXentriCollection,
     normalizeRwandaMomoPhones,
     resolveXentriPayCollectionAmount,
+    buildXentriCardReturnUrl,
+    getSiteUrl,
 } from './lib/xentripay.js';
 import { getLmbTechCredentials } from './lib/lmbtech.js';
 import { validateCouponForPurchase, buildPaymentRecordCouponParams } from './lib/coupons.js';
@@ -165,7 +167,7 @@ export default async function handler(req, res) {
             }
         }
 
-        const siteUrl = process.env.SITE_URL || 'https://dataplusacademy.com';
+        const siteUrl = getSiteUrl();
         const referenceId = generateReferenceId();
 
         // Free checkout (100% scholarship / full discount coupon)
@@ -452,10 +454,7 @@ async function handleXentriPayInitiate(res, ctx) {
     }
 
     const cfg = getXentriPayConfig();
-    const returnUrl =
-        pmethod === 'card'
-            ? `${ctx.siteUrl}/payment/success?ref=${encodeURIComponent(ctx.referenceId)}`
-            : undefined;
+    const returnUrl = pmethod === 'card' ? buildXentriCardReturnUrl(ctx.referenceId) : undefined;
 
     const collectionBody = {
         email: ctx.email,
