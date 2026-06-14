@@ -9,7 +9,6 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { GradesTable } from "@/components/GradesTable";
 import { useTranslation } from 'react-i18next';
@@ -17,6 +16,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { JoinCohortDialog } from "@/components/JoinCohortDialog";
 import { CourseCard } from "@/components/CourseCard";
 import { useActivityTracker } from "@/hooks/useActivityTracker";
+import { AccountMenu } from "@/components/AccountMenu";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -220,15 +220,12 @@ const StudentDashboard = () => {
                   <Search className="h-4 w-4 text-[#006D2C] absolute right-3 top-1/2 -translate-y-1/2" />
                 </div>
                 <NotificationBell />
-                <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-[#006D2C]">
-                  {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="User Avatar" className="object-cover" />
-                  ) : (
-                    <AvatarFallback className="bg-[#006D2C] text-white text-sm">
-                      {profile?.full_name?.charAt(0) || 'U'}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
+                <AccountMenu
+                  profile={profile}
+                  fallback="U"
+                  className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-[#006D2C]"
+                  onProfileUpdated={setProfile}
+                />
               </div>
             </div>
           </header>

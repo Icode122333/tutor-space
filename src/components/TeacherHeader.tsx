@@ -1,9 +1,9 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AccountMenu } from "@/components/AccountMenu";
 
 interface TeacherHeaderProps {
   title: string;
@@ -40,12 +40,7 @@ export function TeacherHeader({ title, subtitle, loading, children }: TeacherHea
             {children}
             <LanguageSelector />
             <NotificationBell />
-            <Avatar className="h-9 w-9 ring-2 ring-gray-100">
-              <AvatarImage src={profile?.avatar_url} />
-              <AvatarFallback className="bg-[#006d2c] text-white text-sm">
-                {profile?.full_name?.substring(0, 2).toUpperCase() || 'TC'}
-              </AvatarFallback>
-            </Avatar>
+            <AccountMenu profile={profile} fallback="TC" className="h-9 w-9 ring-2 ring-gray-100" />
           </div>
         </div>
       </div>

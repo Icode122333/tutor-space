@@ -9,7 +9,8 @@
     "db:migrate:payment": "node scripts/apply-payment-migration.mjs",
     "build": "tsc && vite build",
     "build:dev": "vite build --mode development",
-    "build:netlify": "npm run build && npm run preview",
+    "build:netlify": "npm run build",
+    "build:vercel": "npm run build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
