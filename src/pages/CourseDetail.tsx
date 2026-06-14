@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -102,6 +102,9 @@ export default function CourseDetail() {
   const [displayCurrency, setDisplayCurrency] = useState("RWF");
   const [earlyBird, setEarlyBird] = useState<EarlyBirdState | null>(null);
   const [instalmentAvailable, setInstalmentAvailable] = useState(false);
+  const [instalmentDepositPercent, setInstalmentDepositPercent] = useState(50);
+  const [cohortCheckoutId, setCohortCheckoutId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
 
   // Check if user is a student (not teacher/admin)
   const isStudent = userRole === 'student';
@@ -250,13 +253,42 @@ export default function CourseDetail() {
 
       const { data: instalmentPlan } = await supabase
         .from("course_instalment_plans")
-        .select("id")
+        .select("id, deposit_percent")
         .eq("course_id", id)
         .eq("is_active", true)
         .maybeSingle();
       setInstalmentAvailable(!!instalmentPlan);
+      if (instalmentPlan?.deposit_percent != null) {
+        setInstalmentDepositPercent(Number(instalmentPlan.deposit_percent));
+      }
     } else {
       setInstalmentAvailable(false);
+    }
+
+    const cohortParam = searchParams.get("cohort");
+    if (cohortParam) {
+      const { data: cohort } = await supabase
+        .from("cohorts")
+        .select("id, price, currency, requires_payment, course_id, instalment_enabled, instalment_deposit_percent")
+        .eq("id", cohortParam)
+        .maybeSingle();
+
+      if (cohort?.requires_payment && cohort.course_id === id && cohort.price != null) {
+        setCohortCheckoutId(cohort.id);
+        setDisplayPrice(Number(cohort.price));
+        setDisplayCurrency(cohort.currency || data.currency || "RWF");
+        setEarlyBird(null);
+        if (cohort.instalment_enabled) {
+          setInstalmentAvailable(true);
+          if (cohort.instalment_deposit_percent != null) {
+            setInstalmentDepositPercent(Number(cohort.instalment_deposit_percent));
+          }
+        }
+      } else {
+        setCohortCheckoutId(null);
+      }
+    } else {
+      setCohortCheckoutId(null);
     }
 
     // Fetch teacher info
@@ -1155,6 +1187,9 @@ export default function CourseDetail() {
           }}
           earlyBird={earlyBird}
           instalmentAvailable={instalmentAvailable}
+          cohortId={cohortCheckoutId || undefined}
+          fullPrice={displayPrice ?? course.price ?? 0}
+          depositPercent={instalmentDepositPercent}
         />
       )}
 

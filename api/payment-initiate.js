@@ -25,6 +25,7 @@ import {
 } from './lib/xentripay.js';
 import { getLmbTechCredentials } from './lib/lmbtech.js';
 import { validateCouponForPurchase, buildPaymentRecordCouponParams } from './lib/coupons.js';
+import { resolveInstalmentSchedulePayment } from './lib/instalments.js';
 
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') {
@@ -54,6 +55,7 @@ export default async function handler(req, res) {
             checkoutStartedAt,
             paymentTrack = 'full',
             cohortId,
+            instalmentScheduleId,
         } = req.body;
 
         if (!email || !name) {
@@ -63,37 +65,61 @@ export default async function handler(req, res) {
             });
         }
 
-        let courseId;
-        let bundleId;
-        try {
-            ({ courseId, bundleId } = resolvePurchaseTarget({
-                courseId: rawCourseId,
-                bundleId: rawBundleId,
-            }));
-        } catch (e) {
-            return res.status(400).json({ success: false, error: e.message });
-        }
-
         const supabase = getSupabaseAdmin();
         if (!supabase) {
             return res.status(500).json({ success: false, error: 'Payment system unavailable' });
         }
 
+        let courseId;
+        let bundleId;
         let pricing;
-        try {
-            pricing = await resolvePurchasePrice(supabase, {
-                courseId,
-                bundleId,
-                studentId: userId,
-                checkoutStartedAt,
-                paymentTrack: bundleId ? 'full' : paymentTrack,
-            });
-        } catch (e) {
-            return res.status(400).json({ success: false, error: e.message });
+        let resolvedCohortId = cohortId || null;
+
+        if (instalmentScheduleId) {
+            if (rawBundleId) {
+                return res.status(400).json({ success: false, error: 'Instalment payments apply to courses only' });
+            }
+            try {
+                pricing = await resolveInstalmentSchedulePayment(supabase, {
+                    scheduleId: instalmentScheduleId,
+                    studentId: userId,
+                });
+                courseId = pricing.courseId;
+                resolvedCohortId = pricing.cohortId || resolvedCohortId;
+            } catch (e) {
+                return res.status(400).json({ success: false, error: e.message });
+            }
+        } else {
+            try {
+                ({ courseId, bundleId } = resolvePurchaseTarget({
+                    courseId: rawCourseId,
+                    bundleId: rawBundleId,
+                }));
+            } catch (e) {
+                return res.status(400).json({ success: false, error: e.message });
+            }
+
+            try {
+                pricing = await resolvePurchasePrice(supabase, {
+                    courseId,
+                    bundleId,
+                    studentId: userId,
+                    checkoutStartedAt,
+                    paymentTrack: bundleId ? 'full' : paymentTrack,
+                    cohortId: resolvedCohortId,
+                });
+            } catch (e) {
+                return res.status(400).json({ success: false, error: e.message });
+            }
         }
 
-        let instalmentEnrollmentId = null;
-        if (paymentTrack === 'instalment' && courseId && pricing.fullAmount != null) {
+        let instalmentEnrollmentId = pricing.instalmentEnrollmentId || null;
+        if (
+            !instalmentScheduleId &&
+            paymentTrack === 'instalment' &&
+            courseId &&
+            pricing.fullAmount != null
+        ) {
             const { data: enrolResult, error: enrolError } = await supabase.rpc(
                 'create_instalment_enrollment',
                 {
@@ -101,7 +127,7 @@ export default async function handler(req, res) {
                     p_course_id: courseId,
                     p_total_amount: pricing.fullAmount,
                     p_currency: pricing.currency,
-                    p_cohort_id: cohortId || null,
+                    p_cohort_id: resolvedCohortId || pricing.cohortId || null,
                 },
             );
 
@@ -119,6 +145,8 @@ export default async function handler(req, res) {
                 instalmentEnrollmentId,
             };
         }
+
+        resolvedCohortId = pricing.cohortId || resolvedCohortId;
 
         let couponMeta = null;
         if (couponCode?.trim()) {
@@ -159,7 +187,7 @@ export default async function handler(req, res) {
                 couponMeta,
                 referenceId,
                 supabase,
-                cohortId,
+                cohortId: resolvedCohortId,
             });
         }
 
@@ -215,7 +243,7 @@ export default async function handler(req, res) {
                 referenceId,
                 siteUrl,
                 supabase,
-                cohortId,
+                cohortId: resolvedCohortId,
             });
         }
 
@@ -233,6 +261,7 @@ export default async function handler(req, res) {
             referenceId,
             siteUrl,
             supabase,
+            cohortId: resolvedCohortId,
         });
     } catch (error) {
         console.error('[payment-initiate] Error:', error);
@@ -299,6 +328,7 @@ function buildPaymentExtras(pricing, cohortId) {
         p_payment_track: pricing.paymentTrack || 'full',
         p_cohort_id: cohortId || null,
         p_instalment_enrollment_id: pricing.instalmentEnrollmentId || null,
+        p_instalment_schedule_id: pricing.instalmentScheduleId || null,
     };
 }
 

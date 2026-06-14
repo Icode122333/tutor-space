@@ -355,18 +355,38 @@ const TeacherCohorts = () => {
         return;
       }
 
-      // Paid cohort: require successful course payment before enrollment
+      // Paid cohort: require successful course payment linked to this cohort
       if (cohort.requires_payment && request.payment_track === "full" && cohort.course_id) {
         const { data: paid } = await supabase
           .from("payments")
-          .select("id")
+          .select("id, amount")
           .eq("student_id", request.student_id)
           .eq("course_id", cohort.course_id)
+          .eq("cohort_id", cohort.id)
           .eq("status", "success")
           .maybeSingle();
 
         if (!paid) {
-          toast.error("Student has not completed payment yet. They must pay before enrolment.");
+          toast.error("Student has not completed cohort payment yet.");
+          return;
+        }
+
+        if (cohort.price != null && Number(paid.amount) < Number(cohort.price)) {
+          toast.error("Payment amount does not match cohort fee.");
+          return;
+        }
+      } else if (cohort.requires_payment && request.payment_track === "instalment" && cohort.course_id) {
+        const { data: enrol } = await supabase
+          .from("student_instalment_enrollments")
+          .select("id")
+          .eq("student_id", request.student_id)
+          .eq("course_id", cohort.course_id)
+          .eq("cohort_id", cohort.id)
+          .eq("status", "active")
+          .maybeSingle();
+
+        if (!enrol) {
+          toast.error("Student has not started the cohort instalment plan.");
           return;
         }
       }

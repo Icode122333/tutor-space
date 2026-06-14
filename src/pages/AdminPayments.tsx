@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { DollarSign, Search, Filter, CheckCircle, XCircle, Clock, CreditCard, Smartphone } from "lucide-react";
+import { DollarSign, Search, Filter, CheckCircle, XCircle, Clock, CreditCard, Smartphone, Tag } from "lucide-react";
 import { formatPrice } from "@/services/paymentService";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { toast } from "sonner";
 
 interface Payment {
     id: string;
@@ -56,18 +59,62 @@ interface InstalmentRow {
     next_due_date: string | null;
 }
 
+interface CouponStat {
+    coupon_id: string;
+    code: string;
+    coupon_type: string;
+    discount_type: string;
+    discount_value: number;
+    max_uses: number | null;
+    uses_count: number;
+    redemption_count: number;
+    total_discount: number;
+    is_active: boolean;
+}
+
 export default function AdminPayments() {
+    const navigate = useNavigate();
     const [payments, setPayments] = useState<Payment[]>([]);
     const [loading, setLoading] = useState(true);
+    const [accessChecked, setAccessChecked] = useState(false);
     const [filter, setFilter] = useState<string>("all");
     const [search, setSearch] = useState("");
     const [period, setPeriod] = useState<string>("30d");
     const [instalments, setInstalments] = useState<InstalmentRow[]>([]);
+    const [couponStats, setCouponStats] = useState<CouponStat[]>([]);
 
     useEffect(() => {
-        fetchPayments();
-        fetchInstalments();
+        checkAdminAccess();
     }, []);
+
+    const checkAdminAccess = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                navigate("/auth");
+                return;
+            }
+
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("role")
+                .eq("id", user.id)
+                .single();
+
+            if (profile?.role !== "admin") {
+                toast.error("Access denied. Admin privileges required.");
+                navigate("/");
+                return;
+            }
+
+            setAccessChecked(true);
+            await Promise.all([fetchPayments(), fetchInstalments(), fetchCouponStats()]);
+        } catch (error) {
+            console.error("Error checking admin access:", error);
+            toast.error("Failed to verify admin access");
+            navigate("/");
+        }
+    };
 
     const periodStart = useMemo(() => {
         const now = new Date();
@@ -111,6 +158,16 @@ export default function AdminPayments() {
                 .map(([title, revenue]) => ({ title, revenue })),
         };
     }, [payments, periodStart]);
+
+    const fetchCouponStats = async () => {
+        try {
+            const { data, error } = await supabase.rpc("get_coupon_redemption_stats");
+            if (error) throw error;
+            setCouponStats((data as CouponStat[]) || []);
+        } catch (error) {
+            console.error("Error fetching coupon stats:", error);
+        }
+    };
 
     const fetchInstalments = async () => {
         try {
@@ -206,6 +263,10 @@ export default function AdminPayments() {
         return null;
     };
 
+    if (!accessChecked) {
+        return <LoadingSpinner />;
+    }
+
     return (
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
@@ -213,7 +274,15 @@ export default function AdminPayments() {
                     <h1 className="text-2xl font-bold">Payments</h1>
                     <p className="text-gray-500">Track all course and bundle purchases</p>
                 </div>
-                <Button onClick={() => { fetchPayments(); fetchInstalments(); }} variant="outline" size="sm">
+                <Button
+                    onClick={() => {
+                        fetchPayments();
+                        fetchInstalments();
+                        fetchCouponStats();
+                    }}
+                    variant="outline"
+                    size="sm"
+                >
                     Refresh
                 </Button>
             </div>
@@ -425,6 +494,62 @@ export default function AdminPayments() {
                                                 hour: "2-digit",
                                                 minute: "2-digit",
                                             })}
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <Tag className="h-5 w-5 text-[#006d2c]" />
+                        Coupon redemption stats
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Code</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Uses</TableHead>
+                                <TableHead>Redemptions</TableHead>
+                                <TableHead>Total discount</TableHead>
+                                <TableHead>Status</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {couponStats.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                                        No coupon data yet
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                couponStats.slice(0, 15).map((row) => (
+                                    <TableRow key={row.coupon_id}>
+                                        <TableCell>
+                                            <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                                                {row.code}
+                                            </code>
+                                        </TableCell>
+                                        <TableCell className="capitalize text-sm">{row.coupon_type}</TableCell>
+                                        <TableCell className="text-sm">
+                                            {row.uses_count}
+                                            {row.max_uses != null ? ` / ${row.max_uses}` : ""}
+                                        </TableCell>
+                                        <TableCell className="text-sm">{row.redemption_count}</TableCell>
+                                        <TableCell className="text-sm font-medium">
+                                            {formatPrice(Number(row.total_discount), "RWF")}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={row.is_active ? "default" : "secondary"}>
+                                                {row.is_active ? "Active" : "Inactive"}
+                                            </Badge>
                                         </TableCell>
                                     </TableRow>
                                 ))

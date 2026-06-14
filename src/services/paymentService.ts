@@ -17,6 +17,7 @@ export interface PaymentInitiateRequest {
     checkoutStartedAt?: string;
     paymentTrack?: 'full' | 'instalment' | 'scholarship';
     cohortId?: string;
+    instalmentScheduleId?: string;
 }
 
 export interface CouponValidationResult {
@@ -93,6 +94,7 @@ export async function initiatePayment(request: PaymentInitiateRequest): Promise<
                 checkoutStartedAt: request.checkoutStartedAt,
                 paymentTrack: request.paymentTrack || 'full',
                 cohortId: request.cohortId,
+                instalmentScheduleId: request.instalmentScheduleId,
             }),
         });
 
@@ -131,6 +133,7 @@ export async function validateCoupon(params: {
     itemId: string;
     checkoutStartedAt?: string;
     paymentTrack?: 'full' | 'instalment';
+    cohortId?: string;
 }): Promise<CouponValidationResult> {
     try {
         const headers = await getAuthHeaders();
@@ -147,6 +150,7 @@ export async function validateCoupon(params: {
                 bundleId: params.type === 'bundle' ? params.itemId : undefined,
                 checkoutStartedAt: params.checkoutStartedAt,
                 paymentTrack: params.paymentTrack || 'full',
+                cohortId: params.cohortId,
             }),
         });
 

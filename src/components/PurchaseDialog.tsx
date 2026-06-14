@@ -40,6 +40,12 @@ interface PurchaseDialogProps {
     earlyBird?: EarlyBirdState | null;
     instalmentAvailable?: boolean;
     cohortId?: string;
+    fullPrice?: number;
+    depositPercent?: number;
+    mode?: "purchase" | "instalment-pay";
+    instalmentScheduleId?: string;
+    instalmentNumber?: number;
+    dueDate?: string;
 }
 
 type PaymentStep = "method" | "confirming" | "processing" | "success" | "failed";
@@ -53,6 +59,12 @@ export function PurchaseDialog({
     earlyBird,
     instalmentAvailable = false,
     cohortId,
+    fullPrice,
+    depositPercent = 50,
+    mode = "purchase",
+    instalmentScheduleId,
+    instalmentNumber,
+    dueDate,
 }: PurchaseDialogProps) {
     const { user, profile } = useAuth();
     const [step, setStep] = useState<PaymentStep>("method");
@@ -69,8 +81,17 @@ export function PurchaseDialog({
     const [pollCount, setPollCount] = useState(0);
 
     const needsPhone = paymentMethod === "momo" || paymentMethod === "card";
-    const displayAmount = appliedCoupon?.finalAmount ?? item.price;
+    const listPrice = fullPrice ?? item.price;
+    const isInstalmentDeposit = mode === "purchase" && paymentTrack === "instalment";
+    const chargeBase = isInstalmentDeposit
+        ? Math.round(listPrice * depositPercent / 100)
+        : mode === "instalment-pay"
+          ? item.price
+          : listPrice;
+    const displayAmount = appliedCoupon?.finalAmount ?? chargeBase;
     const displayCurrency = appliedCoupon?.currency ?? item.currency;
+    const showCoupons = mode === "purchase";
+    const showPaymentPlan = instalmentAvailable && type === "course" && mode === "purchase";
 
     useEffect(() => {
         if (open) {
@@ -130,6 +151,7 @@ export function PurchaseDialog({
             itemId: item.id,
             checkoutStartedAt: checkoutStartedAt || undefined,
             paymentTrack: paymentTrack === "instalment" ? "instalment" : "full",
+            cohortId,
         });
 
         setCouponLoading(false);
@@ -168,10 +190,11 @@ export function PurchaseDialog({
             phone: needsPhone ? phone : undefined,
             paymentMethod,
             gateway: PAYMENT_GATEWAY,
-            couponCode: appliedCoupon?.code || couponInput.trim() || undefined,
+            couponCode: showCoupons ? appliedCoupon?.code || couponInput.trim() || undefined : undefined,
             checkoutStartedAt: checkoutStartedAt || undefined,
             paymentTrack: paymentTrack === "instalment" ? "instalment" : "full",
             cohortId,
+            instalmentScheduleId,
         });
 
         if (result.success && result.freeCheckout) {
@@ -215,9 +238,16 @@ export function PurchaseDialog({
                               ? "Payment Failed"
                               : step === "confirming"
                                 ? "Confirm Your Payment"
-                                : `Purchase ${type === "bundle" ? "Bundle" : "Course"}`}
+                                : mode === "instalment-pay"
+                                  ? `Pay Instalment ${instalmentNumber ?? ""}`
+                                  : `Purchase ${type === "bundle" ? "Bundle" : "Course"}`}
                     </DialogTitle>
-                    <DialogDescription>{item.title}</DialogDescription>
+                    <DialogDescription>
+                        {item.title}
+                        {mode === "instalment-pay" && dueDate && (
+                            <span className="block text-xs mt-1">Due {new Date(dueDate).toLocaleDateString()}</span>
+                        )}
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4">
@@ -234,9 +264,15 @@ export function PurchaseDialog({
                         {appliedCoupon?.discountAmount ? (
                             <>
                                 <div className="flex items-center justify-between text-sm text-gray-600">
-                                    <span>Subtotal</span>
-                                    <span>{formatPrice(item.price, item.currency)}</span>
+                                    <span>{isInstalmentDeposit ? "Deposit" : "Subtotal"}</span>
+                                    <span>{formatPrice(chargeBase, item.currency)}</span>
                                 </div>
+                                {isInstalmentDeposit && (
+                                    <div className="flex items-center justify-between text-xs text-gray-500">
+                                        <span>Full course price</span>
+                                        <span>{formatPrice(listPrice, item.currency)}</span>
+                                    </div>
+                                )}
                                 <div className="flex items-center justify-between text-sm text-emerald-700">
                                     <span className="flex items-center gap-1">
                                         <Tag className="h-3.5 w-3.5" />
@@ -245,9 +281,26 @@ export function PurchaseDialog({
                                     <span>-{formatPrice(appliedCoupon.discountAmount, displayCurrency)}</span>
                                 </div>
                                 <div className="flex items-center justify-between pt-1 border-t border-green-200">
-                                    <span className="text-sm font-medium text-gray-700">Total</span>
+                                    <span className="text-sm font-medium text-gray-700">Total due now</span>
                                     <span className="text-xl font-bold text-green-700">
                                         {formatPrice(displayAmount, displayCurrency)}
+                                    </span>
+                                </div>
+                            </>
+                        ) : isInstalmentDeposit ? (
+                            <>
+                                <div className="flex items-center justify-between text-sm text-gray-600">
+                                    <span>Full course price</span>
+                                    <span>{formatPrice(listPrice, item.currency)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm text-gray-600">
+                                    <span>Deposit ({depositPercent}%)</span>
+                                    <span>{formatPrice(chargeBase, item.currency)}</span>
+                                </div>
+                                <div className="flex items-center justify-between pt-1 border-t border-green-200">
+                                    <span className="text-sm font-medium text-gray-700">Due now</span>
+                                    <span className="text-xl font-bold text-green-700">
+                                        {formatPrice(chargeBase, item.currency)}
                                     </span>
                                 </div>
                             </>
@@ -255,7 +308,7 @@ export function PurchaseDialog({
                             <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium text-gray-700">Total</span>
                                 <span className="text-xl font-bold text-green-700">
-                                    {formatPrice(item.price, item.currency)}
+                                    {formatPrice(chargeBase, item.currency)}
                                 </span>
                             </div>
                         )}
@@ -263,7 +316,7 @@ export function PurchaseDialog({
 
                     {step === "method" && (
                         <div className="space-y-4">
-                            {instalmentAvailable && type === "course" && (
+                            {showPaymentPlan && (
                                 <div className="space-y-2">
                                     <Label className="text-sm font-medium">Payment plan</Label>
                                     <RadioGroup
@@ -292,6 +345,7 @@ export function PurchaseDialog({
                                 </div>
                             )}
 
+                            {showCoupons && (
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium">Coupon Code</Label>
                                 <div className="flex gap-2">
@@ -325,6 +379,7 @@ export function PurchaseDialog({
                                     <p className="text-xs text-emerald-700">Coupon applied successfully</p>
                                 )}
                             </div>
+                            )}
 
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium">Payment Method</Label>

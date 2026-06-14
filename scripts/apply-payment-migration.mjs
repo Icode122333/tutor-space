@@ -21,6 +21,7 @@ const MIGRATIONS = [
     'supabase/migrations/20260614000001_fix_scholarship_rls.sql',
     'supabase/migrations/20260614000002_admin_pricing_tier.sql',
     'supabase/migrations/20260615000000_payment_spec_phase2.sql',
+    'supabase/migrations/20260616000000_payment_fixes_phase3.sql',
 ];
 
 function loadEnv() {
@@ -110,6 +111,10 @@ async function backfillAppliedMigrations() {
         [
             '20260615000000_payment_spec_phase2.sql',
             "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='courses' AND column_name='early_bird_price')",
+        ],
+        [
+            '20260616000000_payment_fixes_phase3.sql',
+            "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='instalment_schedule_id')",
         ],
     ];
 

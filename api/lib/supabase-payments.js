@@ -47,8 +47,30 @@ export async function findPaymentByReference(supabase, referenceId) {
     return byProvider;
 }
 
-export async function resolvePurchasePrice(supabase, { courseId, bundleId, studentId, checkoutStartedAt, paymentTrack }) {
+export async function resolvePurchasePrice(
+    supabase,
+    { courseId, bundleId, studentId, checkoutStartedAt, paymentTrack, cohortId },
+) {
     if (courseId) {
+        let cohortPricing = null;
+        if (cohortId) {
+            const { data: cohort } = await supabase
+                .from('cohorts')
+                .select(
+                    'id, course_id, price, currency, requires_payment, instalment_enabled, instalment_deposit_percent',
+                )
+                .eq('id', cohortId)
+                .maybeSingle();
+
+            if (
+                cohort?.requires_payment &&
+                cohort.price != null &&
+                cohort.course_id === courseId
+            ) {
+                cohortPricing = cohort;
+            }
+        }
+
         const { data, error } = await supabase
             .from('courses')
             .select(
@@ -68,35 +90,45 @@ export async function resolvePurchasePrice(supabase, { courseId, bundleId, stude
         let currency = data.currency || 'RWF';
         let earlyBirdApplied = false;
         let paymentTrackResolved = paymentTrack || 'full';
+        let cohortApplied = false;
 
-        const earlyBird = resolveEarlyBirdPricing(data, { checkoutStartedAt });
-        if (earlyBird) {
-            amount = earlyBird.price;
-            earlyBirdApplied = true;
-            paymentTrackResolved = 'early_bird';
+        if (cohortPricing) {
+            amount = Number(cohortPricing.price);
+            currency = cohortPricing.currency || currency;
+            cohortApplied = true;
+            paymentTrackResolved = paymentTrack || 'full';
         }
 
-        if (studentId) {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('pricing_tier')
-                .eq('id', studentId)
-                .maybeSingle();
+        if (!cohortApplied) {
+            const earlyBird = resolveEarlyBirdPricing(data, { checkoutStartedAt });
+            if (earlyBird) {
+                amount = earlyBird.price;
+                earlyBirdApplied = true;
+                paymentTrackResolved = 'early_bird';
+            }
 
-            const tierCode = profile?.pricing_tier || 'standard';
-
-            if (tierCode !== 'standard' && !earlyBirdApplied) {
-                const { data: tierPrice } = await supabase
-                    .from('course_price_tiers')
-                    .select('price, currency')
-                    .eq('course_id', courseId)
-                    .eq('tier_code', tierCode)
-                    .eq('is_active', true)
+            if (studentId) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('pricing_tier')
+                    .eq('id', studentId)
                     .maybeSingle();
 
-                if (tierPrice) {
-                    amount = Number(tierPrice.price);
-                    currency = tierPrice.currency || currency;
+                const tierCode = profile?.pricing_tier || 'standard';
+
+                if (tierCode !== 'standard' && !earlyBirdApplied) {
+                    const { data: tierPrice } = await supabase
+                        .from('course_price_tiers')
+                        .select('price, currency')
+                        .eq('course_id', courseId)
+                        .eq('tier_code', tierCode)
+                        .eq('is_active', true)
+                        .maybeSingle();
+
+                    if (tierPrice) {
+                        amount = Number(tierPrice.price);
+                        currency = tierPrice.currency || currency;
+                    }
                 }
             }
         }
@@ -106,19 +138,25 @@ export async function resolvePurchasePrice(supabase, { courseId, bundleId, stude
         }
 
         let instalmentDeposit = null;
+        let depositPercent = null;
         if (paymentTrack === 'instalment') {
-            const { data: plan } = await supabase
-                .from('course_instalment_plans')
-                .select('deposit_percent, is_active')
-                .eq('course_id', courseId)
-                .eq('is_active', true)
-                .maybeSingle();
+            if (cohortPricing?.instalment_enabled && cohortPricing.instalment_deposit_percent != null) {
+                depositPercent = Number(cohortPricing.instalment_deposit_percent);
+            } else {
+                const { data: plan } = await supabase
+                    .from('course_instalment_plans')
+                    .select('deposit_percent, is_active')
+                    .eq('course_id', courseId)
+                    .eq('is_active', true)
+                    .maybeSingle();
 
-            if (!plan) {
-                throw new Error('Instalment plan not available for this course');
+                if (!plan) {
+                    throw new Error('Instalment plan not available for this course');
+                }
+                depositPercent = Number(plan.deposit_percent);
             }
 
-            instalmentDeposit = Math.round(amount * Number(plan.deposit_percent) / 100);
+            instalmentDeposit = Math.round(amount * depositPercent / 100);
             paymentTrackResolved = 'instalment';
         }
 
@@ -126,9 +164,12 @@ export async function resolvePurchasePrice(supabase, { courseId, bundleId, stude
             amount: paymentTrack === 'instalment' && instalmentDeposit != null ? instalmentDeposit : amount,
             fullAmount: amount,
             instalmentDeposit,
+            depositPercent,
             currency,
             title: data.title,
-            tierApplied: true,
+            tierApplied: !cohortApplied,
+            cohortApplied,
+            cohortId: cohortPricing?.id || cohortId || null,
             earlyBirdApplied,
             paymentTrack: paymentTrackResolved,
         };
@@ -206,6 +247,7 @@ export async function createPaymentRecord(supabase, params) {
     if (params.p_payment_track) row.payment_track = params.p_payment_track;
     if (params.p_cohort_id) row.cohort_id = params.p_cohort_id;
     if (params.p_instalment_enrollment_id) row.instalment_enrollment_id = params.p_instalment_enrollment_id;
+    if (params.p_instalment_schedule_id) row.instalment_schedule_id = params.p_instalment_schedule_id;
 
     let { data: inserted, error: insertError } = await supabase
         .from('payments')

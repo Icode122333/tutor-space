@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -53,6 +54,7 @@ interface JoinCohortDialogProps {
 
 export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCohort, setSelectedCohort] = useState<string | null>(null);
@@ -186,7 +188,19 @@ export function JoinCohortDialog({ open, onOpenChange }: JoinCohortDialogProps) 
         return;
       }
 
-      toast.success(t("cohort.requestSent"));
+      const cohort = cohorts.find((c) => c.id === selectedCohort);
+
+      toast.success(t("cohort.requestSent"), {
+        description:
+          cohort?.requires_payment && paymentTrack === "full" && cohort.course_id
+            ? "Complete payment on the course page while your request is reviewed."
+            : undefined,
+      });
+
+      if (cohort?.requires_payment && paymentTrack === "full" && cohort.course_id) {
+        navigate(`/courses/${cohort.course_id}?cohort=${cohort.id}`);
+      }
+
       setMessage("");
       setPaymentTrack("full");
       setSelectedCohort(null);
