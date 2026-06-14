@@ -199,9 +199,18 @@ const Auth = () => {
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                {t('auth.password')}*
-              </Label>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  {t('auth.password')}*
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => navigate("/forgot-password")}
+                  className="text-sm font-medium text-[#006d2c] hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <div className="relative">
                 <Input
                   id="password"
