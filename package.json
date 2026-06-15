@@ -10,7 +10,7 @@
     "build": "tsc && vite build",
     "build:dev": "vite build --mode development",
     "build:netlify": "npm run build",
-    "build:vercel": "npm run build",
+    "build:vercel": "node scripts/vercel-build.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
