@@ -6,7 +6,7 @@
  * Supports gateways: lmbtech (default) | xentripay
  */
 
-import { verifyAuthUser } from './lib/auth.js';
+import { verifyAuthUser } from '../server/lib/auth.js';
 import {
     getSupabaseAdmin,
     createPaymentRecord,
@@ -16,7 +16,7 @@ import {
     resolvePurchaseTarget,
     updatePaymentProviderRef,
     updatePaymentStatus,
-} from './lib/supabase-payments.js';
+} from '../server/lib/supabase-payments.js';
 import {
     getXentriPayConfig,
     initiateXentriCollection,
@@ -24,10 +24,10 @@ import {
     resolveXentriPayCollectionAmount,
     buildXentriCardReturnUrl,
     getSiteUrl,
-} from './lib/xentripay.js';
-import { getLmbTechCredentials } from './lib/lmbtech.js';
-import { validateCouponForPurchase, buildPaymentRecordCouponParams } from './lib/coupons.js';
-import { resolveInstalmentSchedulePayment } from './lib/instalments.js';
+} from '../server/lib/xentripay.js';
+import { getLmbTechCredentials } from '../server/lib/lmbtech.js';
+import { validateCouponForPurchase, buildPaymentRecordCouponParams } from '../server/lib/coupons.js';
+import { resolveInstalmentSchedulePayment } from '../server/lib/instalments.js';
 
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') {

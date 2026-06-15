@@ -8,8 +8,8 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { fetchLmbTechPaymentStatus } from './lib/lmbtech.js';
-import { sanitizeReferenceId } from './lib/supabase-payments.js';
+import { fetchLmbTechPaymentStatus } from '../server/lib/lmbtech.js';
+import { sanitizeReferenceId } from '../server/lib/supabase-payments.js';
 
 export default async function handler(req, res) {
     const payload = req.method === 'GET' ? req.query : req.body;

@@ -3,9 +3,9 @@
  * Preview coupon discount before checkout (no redemption).
  */
 
-import { verifyAuthUser } from './lib/auth.js';
-import { getSupabaseAdmin, resolvePurchasePrice, resolvePurchaseTarget } from './lib/supabase-payments.js';
-import { validateCouponForPurchase } from './lib/coupons.js';
+import { verifyAuthUser } from '../server/lib/auth.js';
+import { getSupabaseAdmin, resolvePurchasePrice, resolvePurchaseTarget } from '../server/lib/supabase-payments.js';
+import { validateCouponForPurchase } from '../server/lib/coupons.js';
 
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') {

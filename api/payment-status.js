@@ -11,12 +11,12 @@ import {
     findPaymentByReference,
     updatePaymentStatus,
     sanitizeReferenceId,
-} from './lib/supabase-payments.js';
+} from '../server/lib/supabase-payments.js';
 import {
     getXentriCollectionStatus,
     mapXentriCollectionStatus,
-} from './lib/xentripay.js';
-import { fetchLmbTechPaymentStatus } from './lib/lmbtech.js';
+} from '../server/lib/xentripay.js';
+import { fetchLmbTechPaymentStatus } from '../server/lib/lmbtech.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
