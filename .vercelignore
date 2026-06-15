@@ -5,4 +5,4 @@ dist
 *.sql
 *.md
 vite.config.ts.timestamp-*
-supabase
+/supabase
