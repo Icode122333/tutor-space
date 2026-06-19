@@ -429,7 +429,7 @@
     "selectAssignment": "Sélectionner un devoir",
     "uploadFile": "Télécharger un fichier",
     "clickToUpload": "Cliquez pour télécharger ou glisser-déposer",
-    "fileTypes": "Tout fichier non média. Les PDF, Word, PowerPoint et Excel peuvent être prévisualisés.",
+    "fileTypes": "Tout fichier non média jusqu'à 10 Mo. Les PDF, Word, PowerPoint et Excel peuvent être prévisualisés.",
     "remarksOptional": "Remarques (Optionnel)",
     "remarksPlaceholder": "Ajoutez des notes ou commentaires sur votre soumission...",
     "uploading": "Téléchargement...",

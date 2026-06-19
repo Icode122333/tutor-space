@@ -10,9 +10,9 @@ import { Award, Plus, Trash2, CheckCircle, Clock, FileText, Download, Upload, Ey
 import PdfJsInlineViewer from "@/components/PdfJsInlineViewer";
 import {
   NON_MEDIA_FILE_HELP_TEXT,
-  isAllowedSubmissionFile,
   isViewableSubmissionFile,
   sanitizeFileName,
+  validateSubmissionFile,
 } from "@/lib/submissionFiles";
 
 interface CapstoneProject {
@@ -117,8 +117,9 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!isAllowedSubmissionFile(file)) {
-      toast.error("Media files are not allowed. Please upload a document, spreadsheet, archive, or another non-media file.");
+    const validation = validateSubmissionFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error || "This file cannot be uploaded.");
       event.target.value = "";
       return;
     }

@@ -8,8 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, CheckCircle2, MessageSquare } from "lucide-react";
 import {
   NON_MEDIA_FILE_HELP_TEXT,
-  isAllowedSubmissionFile,
   sanitizeFileName,
+  validateSubmissionFile,
 } from "@/lib/submissionFiles";
 
 interface AssignmentUploadWidgetProps {
@@ -28,10 +28,11 @@ export default function AssignmentUploadWidget({ studentId, capstoneProjectId, o
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0] || null;
 
-    if (selectedFile && !isAllowedSubmissionFile(selectedFile)) {
+    const validation = selectedFile ? validateSubmissionFile(selectedFile) : { valid: true };
+    if (!validation.valid) {
       toast({
-        title: "Media files are not allowed",
-        description: "Please upload a document, spreadsheet, archive, or another non-media file.",
+        title: "File cannot be uploaded",
+        description: validation.error,
         variant: "destructive",
       });
       event.target.value = "";
@@ -48,10 +49,11 @@ export default function AssignmentUploadWidget({ studentId, capstoneProjectId, o
       return;
     }
 
-    if (!isAllowedSubmissionFile(file)) {
+    const validation = validateSubmissionFile(file);
+    if (!validation.valid) {
       toast({
-        title: "Media files are not allowed",
-        description: "Please upload a document, spreadsheet, archive, or another non-media file.",
+        title: "File cannot be uploaded",
+        description: validation.error,
         variant: "destructive",
       });
       return;

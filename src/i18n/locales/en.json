@@ -429,7 +429,7 @@
     "selectAssignment": "Select an assignment",
     "uploadFile": "Upload File",
     "clickToUpload": "Click to upload or drag and drop",
-    "fileTypes": "Any non-media file. PDF, Word, PowerPoint, and Excel can be previewed.",
+    "fileTypes": "Any non-media file up to 10 MB. PDF, Word, PowerPoint, and Excel can be previewed.",
     "remarksOptional": "Remarks (Optional)",
     "remarksPlaceholder": "Add any notes or comments about your submission...",
     "uploading": "Uploading...",

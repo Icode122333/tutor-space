@@ -40,7 +40,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { isAllowedSubmissionFile, sanitizeFileName } from "@/lib/submissionFiles";
+import { sanitizeFileName, validateSubmissionFile } from "@/lib/submissionFiles";
 
 interface Assignment {
   id: string;
@@ -77,8 +77,9 @@ const StudentAssignments = () => {
   const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0] || null;
 
-    if (selectedFile && !isAllowedSubmissionFile(selectedFile)) {
-      toast.error("Media files are not allowed. Please upload a document, spreadsheet, archive, or another non-media file.");
+    const validation = selectedFile ? validateSubmissionFile(selectedFile) : { valid: true };
+    if (!validation.valid) {
+      toast.error(validation.error || "This file cannot be uploaded.");
       event.target.value = "";
       setUploadFile(null);
       return;
@@ -269,8 +270,9 @@ const StudentAssignments = () => {
       return;
     }
 
-    if (!isAllowedSubmissionFile(uploadFile)) {
-      toast.error("Media files are not allowed. Please upload a document, spreadsheet, archive, or another non-media file.");
+    const validation = validateSubmissionFile(uploadFile);
+    if (!validation.valid) {
+      toast.error(validation.error || "This file cannot be uploaded.");
       return;
     }
 

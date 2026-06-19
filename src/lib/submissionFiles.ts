@@ -54,8 +54,31 @@ const VIEWABLE_DOCUMENT_EXTENSIONS = new Set([
   "xlsx",
 ]);
 
+const BLOCKED_EXTENSIONS = new Set([
+  "app",
+  "bat",
+  "cmd",
+  "com",
+  "deb",
+  "dmg",
+  "exe",
+  "gadget",
+  "jar",
+  "msi",
+  "pif",
+  "ps1",
+  "rpm",
+  "scr",
+  "sh",
+  "vbs",
+  "workflow",
+]);
+
+export const MAX_SUBMISSION_FILE_SIZE_MB = 10;
+const MAX_SUBMISSION_FILE_SIZE_BYTES = MAX_SUBMISSION_FILE_SIZE_MB * 1024 * 1024;
+
 export const NON_MEDIA_FILE_HELP_TEXT =
-  "Any non-media file is accepted. PDF, Word, PowerPoint, and Excel files can be previewed.";
+  `Any non-media file up to ${MAX_SUBMISSION_FILE_SIZE_MB} MB is accepted. PDF, Word, PowerPoint, and Excel files can be previewed.`;
 
 export const getFileExtension = (fileNameOrPath: string) => {
   const withoutQuery = fileNameOrPath.split("?")[0]?.split("#")[0] || "";
@@ -74,7 +97,30 @@ export const isMediaFile = (file: File) => {
   );
 };
 
-export const isAllowedSubmissionFile = (file: File) => !isMediaFile(file);
+export const validateSubmissionFile = (file: File): { valid: boolean; error?: string } => {
+  if (isMediaFile(file)) {
+    return { valid: false, error: "Media files are not allowed." };
+  }
+
+  const extension = getFileExtension(file.name);
+  if (BLOCKED_EXTENSIONS.has(extension)) {
+    return {
+      valid: false,
+      error: "Executable and script files are not allowed for security reasons.",
+    };
+  }
+
+  if (file.size > MAX_SUBMISSION_FILE_SIZE_BYTES) {
+    return {
+      valid: false,
+      error: `File size must not exceed ${MAX_SUBMISSION_FILE_SIZE_MB} MB.`,
+    };
+  }
+
+  return { valid: true };
+};
+
+export const isAllowedSubmissionFile = (file: File) => validateSubmissionFile(file).valid;
 
 export const isViewableSubmissionFile = (fileNameOrPath: string) => {
   const extension = getFileExtension(fileNameOrPath);
