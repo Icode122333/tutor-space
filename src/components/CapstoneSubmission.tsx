@@ -8,6 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Award, Plus, Trash2, CheckCircle, Clock, FileText, Download, Upload, Eye, ExternalLink, AlertTriangle, RotateCcw } from "lucide-react";
 import PdfJsInlineViewer from "@/components/PdfJsInlineViewer";
+import {
+  NON_MEDIA_FILE_HELP_TEXT,
+  isAllowedSubmissionFile,
+  isViewableSubmissionFile,
+  sanitizeFileName,
+} from "@/lib/submissionFiles";
 
 interface CapstoneProject {
   id: string;
@@ -111,10 +117,15 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (!isAllowedSubmissionFile(file)) {
+      toast.error("Media files are not allowed. Please upload a document, spreadsheet, archive, or another non-media file.");
+      event.target.value = "";
+      return;
+    }
+
     setUploadingDoc(true);
     try {
-      const fileExt = file.name.split(".").pop()?.toLowerCase();
-      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const fileName = `${Date.now()}-${sanitizeFileName(file.name)}`;
       const filePath = `capstone-submissions/${studentId}/${fileName}`;
 
       const { data, error } = await supabase.storage
@@ -418,6 +429,7 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
                       variant="outline"
                       className="h-8 text-xs hover:bg-blue-50 border-blue-200"
                       onClick={handlePreviewSubmittedFile}
+                      disabled={!isViewableSubmissionFile(submission.file_url)}
                     >
                       <Eye className="h-3.5 w-3.5 mr-1" />
                       Preview
@@ -545,12 +557,11 @@ export function CapstoneSubmission({ capstoneProject, studentId }: CapstoneSubmi
           <div>
             <Label>Upload Document (Optional)</Label>
             <p className="text-xs text-muted-foreground mb-2">
-              Upload a .pdf, .doc, .docx, .ppt, .pptx, or .zip file
+              {NON_MEDIA_FILE_HELP_TEXT}
             </p>
             <div className="flex gap-2 items-center">
               <Input
                 type="file"
-                accept=".pdf,.doc,.docx,.ppt,.pptx,.zip"
                 onChange={handleFileUpload}
                 disabled={uploadingDoc}
                 className="flex-1"

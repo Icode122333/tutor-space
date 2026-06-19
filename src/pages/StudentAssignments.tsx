@@ -40,6 +40,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { isAllowedSubmissionFile, sanitizeFileName } from "@/lib/submissionFiles";
 
 interface Assignment {
   id: string;
@@ -72,6 +73,19 @@ const StudentAssignments = () => {
   const [uploading, setUploading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0] || null;
+
+    if (selectedFile && !isAllowedSubmissionFile(selectedFile)) {
+      toast.error("Media files are not allowed. Please upload a document, spreadsheet, archive, or another non-media file.");
+      event.target.value = "";
+      setUploadFile(null);
+      return;
+    }
+
+    setUploadFile(selectedFile);
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -255,11 +269,15 @@ const StudentAssignments = () => {
       return;
     }
 
+    if (!isAllowedSubmissionFile(uploadFile)) {
+      toast.error("Media files are not allowed. Please upload a document, spreadsheet, archive, or another non-media file.");
+      return;
+    }
+
     setUploading(true);
     try {
       const assignment = assignments.find(a => a.id === selectedAssignment);
-      const fileExt = uploadFile.name.split('.').pop();
-      const filePath = `capstone-submissions/${selectedAssignment}/${studentId}/${Date.now()}.${fileExt}`;
+      const filePath = `capstone-submissions/${selectedAssignment}/${studentId}/${Date.now()}-${sanitizeFileName(uploadFile.name)}`;
       
       const { data, error: uploadError } = await supabase.storage
         .from('lesson-files')
@@ -641,7 +659,7 @@ const StudentAssignments = () => {
                   <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-[#006d2c] transition-colors">
                     <Input
                       type="file"
-                      onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                      onChange={handleFileSelection}
                       className="hidden"
                       id="file-upload"
                     />

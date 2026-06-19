@@ -45,6 +45,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageSquare, Send } from "lucide-react";
+import { isViewableSubmissionFile } from "@/lib/submissionFiles";
 
 interface Course {
   id: string;
@@ -295,23 +296,31 @@ const TeacherAssignments = () => {
   const handleOpenLink = (link: string) => {
     if (link.startsWith('http')) {
       window.open(link, "_blank");
-    } else {
+    } else if (isViewableSubmissionFile(link)) {
       openInGoogleViewer(link);
+    } else {
+      handleDownloadFile(link);
     }
+  };
+
+  const resolveSubmissionFileUrl = async (fileUrl: string, download = false) => {
+    if (/^https?:\/\//i.test(fileUrl)) {
+      return fileUrl;
+    }
+
+    const cleaned = fileUrl.replace(/^\/+/, "").replace(/^lesson-files\//, "");
+    const { data, error } = await supabase.storage
+      .from("lesson-files")
+      .createSignedUrl(cleaned, 3600, download ? { download: true } : undefined);
+
+    if (error) throw error;
+    return data?.signedUrl || fileUrl;
   };
 
   const handleDownloadFile = async (fileUrl: string) => {
     try {
-      if (/^https?:\/\//i.test(fileUrl)) {
-        window.open(fileUrl, "_blank");
-        return;
-      }
-      const cleaned = fileUrl.replace(/^\/+/, "");
-      const { data, error } = await supabase.storage
-        .from("lesson-files")
-        .createSignedUrl(cleaned, 3600);
-      if (error) throw error;
-      window.open(data?.signedUrl, "_blank");
+      const url = await resolveSubmissionFileUrl(fileUrl, true);
+      window.open(url, "_blank");
     } catch (e) {
       console.error("Failed to download file", e);
       toast.error("Failed to download file");
@@ -320,16 +329,7 @@ const TeacherAssignments = () => {
 
   const openInGoogleViewer = async (link: string) => {
     try {
-      let url = link;
-      if (!/^https?:\/\//i.test(link)) {
-        // Treat as storage path within lesson-files bucket
-        const cleaned = link.replace(/^\/+/, "");
-        const { data, error } = await supabase.storage
-          .from("lesson-files")
-          .createSignedUrl(cleaned, 3600);
-        if (error) throw error;
-        url = data?.signedUrl || link;
-      }
+      const url = await resolveSubmissionFileUrl(link);
       const viewer = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(url)}`;
       window.open(viewer, "_blank");
     } catch (e) {
@@ -618,7 +618,7 @@ const TeacherAssignments = () => {
                                       </div>
                                       <div className="flex flex-col items-end gap-3">
                                         <div className="flex items-center gap-2">
-                                          {submission.project_links && submission.project_links.length > 0 && (
+                                          {(submission.project_links?.length > 0 || submission.file_url) && (
                                             <Button
                                               size="sm"
                                               variant="outline"
@@ -952,41 +952,61 @@ const TeacherAssignments = () => {
                 )}
               </div>
 
-              {/* Project Links */}
+              {/* Project Links and Uploaded Files */}
               {viewingSubmission.project_links && viewingSubmission.project_links.length > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                     <ExternalLink className="h-4 w-4" />
-                    Project Links
+                    Project Links & Files
                   </h4>
                   <div className="space-y-2">
-                    {viewingSubmission.project_links.map((link: string, idx: number) => (
-                      <div key={idx} className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-100">
-                        <span className="text-xs font-medium text-gray-500 w-14">Link {idx + 1}:</span>
-                        <a
-                          href={link.startsWith('http') ? link : '#'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => {
-                            if (!link.startsWith('http')) {
-                              e.preventDefault();
-                              handleOpenLink(link);
-                            }
-                          }}
-                          className="text-sm text-blue-600 hover:underline truncate flex-1"
-                        >
-                          {link}
-                        </a>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 px-2"
-                          onClick={() => handleOpenLink(link)}
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ))}
+                    {viewingSubmission.project_links.map((link: string, idx: number) => {
+                      const isUploadedFile = !/^https?:\/\//i.test(link);
+                      const canPreview = isViewableSubmissionFile(link);
+                      const displayName = isUploadedFile ? link.split("/").pop() || link : link;
+
+                      return (
+                        <div key={idx} className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-100">
+                          <span className="text-xs font-medium text-gray-500 w-14">
+                            {isUploadedFile ? `File ${idx + 1}:` : `Link ${idx + 1}:`}
+                          </span>
+                          {isUploadedFile ? (
+                            <span className="text-sm text-gray-700 truncate flex-1">
+                              {displayName}
+                            </span>
+                          ) : (
+                            <a
+                              href={link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline truncate flex-1"
+                            >
+                              {link}
+                            </a>
+                          )}
+                          {isUploadedFile && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2"
+                              onClick={() => handleDownloadFile(link)}
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {(!isUploadedFile || canPreview) && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2"
+                              onClick={() => handleOpenLink(link)}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1021,6 +1041,7 @@ const TeacherAssignments = () => {
                         variant="outline"
                         onClick={() => openInGoogleViewer(viewingSubmission.file_url!)}
                         className="hover:bg-blue-50"
+                        disabled={!isViewableSubmissionFile(viewingSubmission.file_url)}
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         Preview

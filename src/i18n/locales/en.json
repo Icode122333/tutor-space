@@ -429,7 +429,7 @@
     "selectAssignment": "Select an assignment",
     "uploadFile": "Upload File",
     "clickToUpload": "Click to upload or drag and drop",
-    "fileTypes": "PDF, DOC, DOCX up to 10MB",
+    "fileTypes": "Any non-media file. PDF, Word, PowerPoint, and Excel can be previewed.",
     "remarksOptional": "Remarks (Optional)",
     "remarksPlaceholder": "Add any notes or comments about your submission...",
     "uploading": "Uploading...",

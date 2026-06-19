@@ -6,6 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, CheckCircle2, MessageSquare } from "lucide-react";
+import {
+  NON_MEDIA_FILE_HELP_TEXT,
+  isAllowedSubmissionFile,
+  sanitizeFileName,
+} from "@/lib/submissionFiles";
 
 interface AssignmentUploadWidgetProps {
   studentId: string;
@@ -20,9 +25,35 @@ export default function AssignmentUploadWidget({ studentId, capstoneProjectId, o
   const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0] || null;
+
+    if (selectedFile && !isAllowedSubmissionFile(selectedFile)) {
+      toast({
+        title: "Media files are not allowed",
+        description: "Please upload a document, spreadsheet, archive, or another non-media file.",
+        variant: "destructive",
+      });
+      event.target.value = "";
+      setFile(null);
+      return;
+    }
+
+    setFile(selectedFile);
+  };
+
   const handleUpload = async () => {
     if (!file) {
       toast({ title: "No file selected", variant: "destructive" });
+      return;
+    }
+
+    if (!isAllowedSubmissionFile(file)) {
+      toast({
+        title: "Media files are not allowed",
+        description: "Please upload a document, spreadsheet, archive, or another non-media file.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -41,8 +72,7 @@ export default function AssignmentUploadWidget({ studentId, capstoneProjectId, o
       console.log('Student ID:', studentId);
       console.log('Will insert into table:', submissionType === 'assignment' ? 'assignment_submissions' : 'capstone_submissions');
       
-      const ext = file.name.split(".").pop()?.toLowerCase() || "dat";
-      const path = `capstone-submissions/${capstoneProjectId}/${studentId}/${Date.now()}.${ext}`;
+      const path = `capstone-submissions/${capstoneProjectId}/${studentId}/${Date.now()}-${sanitizeFileName(file.name)}`;
 
       const { data, error } = await supabase.storage
         .from("lesson-files")
@@ -106,8 +136,7 @@ export default function AssignmentUploadWidget({ studentId, capstoneProjectId, o
             <Input 
               id="file-upload"
               type="file" 
-              accept=".pdf,.doc,.docx,.ppt,.pptx" 
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              onChange={handleFileChange}
               className="cursor-pointer"
               disabled={uploading}
             />
@@ -126,7 +155,7 @@ export default function AssignmentUploadWidget({ studentId, capstoneProjectId, o
           </div>
         )}
         <p className="text-xs text-muted-foreground">
-          Accepted formats: PDF, DOC, DOCX, PPT, PPTX (Max 50MB)
+          {NON_MEDIA_FILE_HELP_TEXT}
         </p>
       </div>
 
