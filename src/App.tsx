@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./i18n/config";
 import { SuspensionDialog } from "@/components/SuspensionDialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const Index = lazy(() => import("./pages/Index"));
 const About = lazy(() => import("./pages/About"));
@@ -72,9 +74,10 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <SuspensionDialog />
-        <Suspense fallback={<LoadingSpinner />}>
-          <Routes>
+        <AuthProvider>
+          <SuspensionDialog />
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
@@ -82,7 +85,7 @@ const App = () => (
             <Route path="/signup" element={<SignUp />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/dashboard" element={<ProtectedRoute roles={["student"]}><StudentDashboard /></ProtectedRoute>} />
             <Route path="/student/chat" element={<StudentChat />} />
             <Route path="/student/schedule" element={<StudentSchedule />} />
             <Route path="/student/certificates" element={<StudentCertificates />} />
@@ -134,6 +137,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

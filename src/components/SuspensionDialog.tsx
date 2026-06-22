@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { fetchSuspensionStatus } from "@/lib/fetchProfile";
 
 export const SuspensionDialog = () => {
   const [open, setOpen] = useState(false);
   const [suspensionReason, setSuspensionReason] = useState("");
-  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     checkSuspensionStatus();
@@ -22,7 +22,9 @@ export const SuspensionDialog = () => {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        checkSuspensionStatus();
+        window.setTimeout(() => {
+          checkSuspensionStatus();
+        }, 100);
       } else {
         setOpen(false);
       }
@@ -40,9 +42,6 @@ export const SuspensionDialog = () => {
   }, []);
 
   const checkSuspensionStatus = async () => {
-    if (checking) return;
-    
-    setChecking(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -50,22 +49,12 @@ export const SuspensionDialog = () => {
         return;
       }
 
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("is_suspended, suspension_reason")
-        .eq("id", user.id)
-        .single();
+      const { data: profile, error } = await fetchSuspensionStatus(user.id);
 
       if (error) {
         console.error("Error checking suspension:", error);
         return;
       }
-
-      console.log("Suspension check:", { 
-        userId: user.id, 
-        isSuspended: profile?.is_suspended,
-        reason: profile?.suspension_reason 
-      });
 
       if (profile?.is_suspended) {
         setSuspensionReason(profile.suspension_reason || "No reason provided");
@@ -75,8 +64,6 @@ export const SuspensionDialog = () => {
       }
     } catch (error) {
       console.error("Error checking suspension:", error);
-    } finally {
-      setChecking(false);
     }
   };
 

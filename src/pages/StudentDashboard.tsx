@@ -10,20 +10,19 @@ import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StudentSidebar } from "@/components/StudentSidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import LoadingSpinner from "@/components/LoadingSpinner";
 import { GradesTable } from "@/components/GradesTable";
 import { useTranslation } from 'react-i18next';
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { JoinCohortDialog } from "@/components/JoinCohortDialog";
 import { CourseCard } from "@/components/CourseCard";
 import { useActivityTracker } from "@/hooks/useActivityTracker";
+import { useAppAuth } from "@/contexts/AuthContext";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(true);
+  const { user, profile } = useAppAuth();
   const [coursesLoading, setCoursesLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
   
   // Track user activity for online status
   useActivityTracker();
@@ -42,13 +41,8 @@ const StudentDashboard = () => {
   ];
 
   useEffect(() => {
-    const getStudentId = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setStudentId(user.id);
-    };
-    getStudentId();
-    checkUser();
-  }, []);
+    if (user) setStudentId(user.id);
+  }, [user]);
 
   useEffect(() => {
     if (profile) {
@@ -75,7 +69,6 @@ const StudentDashboard = () => {
 
   const fetchEnrolledCourses = async () => {
     setCoursesLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setCoursesLoading(false);
       return;
@@ -147,48 +140,6 @@ const StudentDashboard = () => {
       console.error("Error fetching announcements:", err);
     }
   };
-
-  const checkUser = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      const { data: profileData, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (error) throw error;
-
-      // Check if onboarding is completed
-      if (!profileData.onboarding_completed) {
-        toast.info("Please complete your profile setup");
-        navigate("/onboarding", { replace: true });
-        return;
-      }
-
-      if (profileData.role !== "student") {
-        navigate("/teacher/dashboard", { replace: true });
-        return;
-      }
-
-      setProfile(profileData);
-    } catch (error: any) {
-      toast.error(error.message);
-      navigate("/auth");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
 
   return (
     <SidebarProvider>
