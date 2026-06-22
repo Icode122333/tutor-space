@@ -25,6 +25,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const PAYMENT_GATEWAY = "xentripay" as const;
 
+/**
+ * Card payments require activation in the XentriPay merchant dashboard.
+ * Set VITE_CARD_PAYMENT_ENABLED=true in .env to re-enable once activated.
+ */
+const CARD_PAYMENT_ENABLED = import.meta.env.VITE_CARD_PAYMENT_ENABLED === "true";
+
 interface PurchaseDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -80,7 +86,7 @@ export function PurchaseDialog({
     const [error, setError] = useState<string | null>(null);
     const [pollCount, setPollCount] = useState(0);
 
-    const needsPhone = paymentMethod === "momo" || paymentMethod === "card";
+    const needsPhone = paymentMethod === "momo" || (paymentMethod === "card" && CARD_PAYMENT_ENABLED);
     const listPrice = fullPrice ?? item.price;
     const isInstalmentDeposit = mode === "purchase" && paymentTrack === "instalment";
     const chargeBase = isInstalmentDeposit
@@ -414,23 +420,41 @@ export function PurchaseDialog({
 
                                 <button
                                     type="button"
-                                    onClick={() => setPaymentMethod("card")}
-                                    className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${paymentMethod === "card"
-                                        ? "border-blue-500 bg-blue-50"
-                                        : "border-gray-200 hover:border-gray-300"
-                                        }`}
+                                    onClick={() => CARD_PAYMENT_ENABLED && setPaymentMethod("card")}
+                                    disabled={!CARD_PAYMENT_ENABLED}
+                                    className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
+                                        !CARD_PAYMENT_ENABLED
+                                            ? "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
+                                            : paymentMethod === "card"
+                                              ? "border-blue-500 bg-blue-50"
+                                              : "border-gray-200 hover:border-gray-300"
+                                    }`}
                                 >
                                     <div
-                                        className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "card" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-500"
-                                            }`}
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                            !CARD_PAYMENT_ENABLED
+                                                ? "bg-gray-100 text-gray-400"
+                                                : paymentMethod === "card"
+                                                  ? "bg-blue-500 text-white"
+                                                  : "bg-gray-100 text-gray-500"
+                                        }`}
                                     >
                                         <CreditCard className="h-5 w-5" />
                                     </div>
                                     <div className="text-left">
-                                        <p className="font-semibold">Card Payment</p>
-                                        <p className="text-xs text-gray-500">Visa, Mastercard via XentriPay</p>
+                                        <p className="font-semibold text-gray-500">Card Payment</p>
+                                        <p className="text-xs text-gray-400">
+                                            {CARD_PAYMENT_ENABLED
+                                                ? "Visa, Mastercard via XentriPay"
+                                                : "Coming soon — use MoMo for now"}
+                                        </p>
                                     </div>
-                                    {paymentMethod === "card" && (
+                                    {!CARD_PAYMENT_ENABLED && (
+                                        <span className="ml-auto text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                                            Soon
+                                        </span>
+                                    )}
+                                    {CARD_PAYMENT_ENABLED && paymentMethod === "card" && (
                                         <CheckCircle className="h-5 w-5 text-blue-500 ml-auto" />
                                     )}
                                 </button>

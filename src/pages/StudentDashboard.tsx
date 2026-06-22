@@ -16,14 +16,14 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { JoinCohortDialog } from "@/components/JoinCohortDialog";
 import { CourseCard } from "@/components/CourseCard";
 import { useActivityTracker } from "@/hooks/useActivityTracker";
+import { useAppAuth } from "@/contexts/AuthContext";
 import { AccountMenu } from "@/components/AccountMenu";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(true);
+  const { user, profile } = useAppAuth();
   const [coursesLoading, setCoursesLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
   
   // Track user activity for online status
   useActivityTracker();
@@ -42,13 +42,8 @@ const StudentDashboard = () => {
   ];
 
   useEffect(() => {
-    const getStudentId = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setStudentId(user.id);
-    };
-    getStudentId();
-    checkUser();
-  }, []);
+    if (user) setStudentId(user.id);
+  }, [user]);
 
   useEffect(() => {
     if (profile) {
@@ -75,7 +70,6 @@ const StudentDashboard = () => {
 
   const fetchEnrolledCourses = async () => {
     setCoursesLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setCoursesLoading(false);
       return;
@@ -107,7 +101,6 @@ const StudentDashboard = () => {
   };
 
   const fetchScheduledClasses = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     // Optimized: Use enrolled courses data we already have, or fetch in single query
@@ -129,7 +122,6 @@ const StudentDashboard = () => {
   };
 
   const fetchAnnouncements = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     try {
@@ -147,48 +139,6 @@ const StudentDashboard = () => {
       console.error("Error fetching announcements:", err);
     }
   };
-
-  const checkUser = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      const { data: profileData, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (error) throw error;
-
-      // Check if onboarding is completed
-      if (!profileData.onboarding_completed) {
-        toast.info("Please complete your profile setup");
-        navigate("/onboarding", { replace: true });
-        return;
-      }
-
-      if (profileData.role !== "student") {
-        navigate("/teacher/dashboard", { replace: true });
-        return;
-      }
-
-      setProfile(profileData);
-    } catch (error: any) {
-      toast.error(error.message);
-      navigate("/auth");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
 
   return (
     <SidebarProvider>
@@ -224,7 +174,6 @@ const StudentDashboard = () => {
                   profile={profile}
                   fallback="U"
                   className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-[#006D2C]"
-                  onProfileUpdated={setProfile}
                 />
               </div>
             </div>

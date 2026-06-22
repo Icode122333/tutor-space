@@ -429,7 +429,7 @@ async function handleXentriPayInitiate(res, ctx) {
         return res.status(400).json({ success: false, error: e.message });
     }
 
-    const pmethod = ctx.paymentMethod === 'card' ? 'card' : 'momo';
+    const pmethod = ctx.paymentMethod === 'card' ? 'cc' : 'momo';
 
     // Create pending payment record before calling gateway
     try {
@@ -440,7 +440,7 @@ async function handleXentriPayInitiate(res, ctx) {
             p_amount: ctx.pricing.amount,
             p_currency: ctx.pricing.currency,
             p_reference_id: ctx.referenceId,
-            p_payment_method: pmethod === 'momo' ? 'MTN_MOMO_RWA' : 'card',
+            p_payment_method: pmethod === 'momo' ? 'MTN_MOMO_RWA' : 'card_cc',
             p_payer_phone: ctx.phone || null,
             p_payer_email: ctx.email,
             p_payment_provider: 'xentripay',
@@ -454,7 +454,7 @@ async function handleXentriPayInitiate(res, ctx) {
     }
 
     const cfg = getXentriPayConfig();
-    const returnUrl = pmethod === 'card' ? buildXentriCardReturnUrl(ctx.referenceId) : undefined;
+    const returnUrl = pmethod === 'cc' ? buildXentriCardReturnUrl(ctx.referenceId) : undefined;
 
     const collectionBody = {
         email: ctx.email,
@@ -464,8 +464,8 @@ async function handleXentriPayInitiate(res, ctx) {
         msisdn: phones.msisdn,
         currency: 'RWF',
         pmethod,
-        chargesIncluded: cfg.chargesIncluded ? 'true' : 'false',
-        ...(returnUrl && { returnUrl, redirectUrl: returnUrl }),
+        chargesIncluded: cfg.chargesIncluded,
+        ...(returnUrl && { returl: returnUrl, redirecturl: returnUrl }),
     };
 
     let response;
@@ -481,7 +481,7 @@ async function handleXentriPayInitiate(res, ctx) {
     }
 
     const redirectUrl = response.url?.trim() || null;
-    if (pmethod === 'card' && !redirectUrl) {
+    if (pmethod === 'cc' && !redirectUrl) {
         return res.status(400).json({
             success: false,
             error: 'Card checkout is not available',
@@ -494,9 +494,9 @@ async function handleXentriPayInitiate(res, ctx) {
     });
 
     const confirmationMessage =
-        pmethod === 'momo'
-            ? 'A payment request was sent to your phone. Open MTN MoMo and approve the prompt to confirm your payment.'
-            : 'You will be redirected to complete your card payment. Enter your card details on the secure checkout page.';
+        pmethod === 'cc'
+            ? 'You will be redirected to complete your card payment. Enter your card details on the secure checkout page.'
+            : 'A payment request was sent to your phone. Open MTN MoMo and approve the prompt to confirm your payment.';
 
     return res.status(200).json({
         success: true,

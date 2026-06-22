@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,59 +9,75 @@ import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { useAppAuth } from "@/contexts/AuthContext";
 
 const AUTH_METHOD_KEY = "lastAuthMethod";
 
 const Auth = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
+  const { user, profile, loading: authLoading } = useAppAuth();
+  const [formLoading, setFormLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [lastAuthMethod, setLastAuthMethod] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check localStorage for last used auth method
-    const savedMethod = localStorage.getItem(AUTH_METHOD_KEY);
-    setLastAuthMethod(savedMethod);
+    setLastAuthMethod(localStorage.getItem(AUTH_METHOD_KEY));
   }, []);
+
+  /**
+   * When AuthContext finishes loading and both user + profile are present,
+   * navigate to the correct destination. This fires after handleSignIn triggers
+   * signInWithPassword → onAuthStateChange → scheduleProfileFetch → setProfile.
+   * We never fetch the profile manually here; the context owns that.
+   */
+  useEffect(() => {
+    if (authLoading || !user || !profile) return;
+
+    if (profile.role === "admin") {
+      toast.success(t('login.welcomeAdmin'));
+      navigate("/admin/dashboard", { replace: true });
+    } else if (!profile.onboarding_completed) {
+      toast.info("Please complete your profile setup");
+      navigate(
+        profile.role === "teacher" ? "/teacher/onboarding" : "/onboarding",
+        { replace: true },
+      );
+    } else {
+      toast.success(t('login.signedInSuccess'));
+      navigate(
+        profile.role === "teacher" ? "/teacher/dashboard" : "/student/dashboard",
+        { replace: true },
+      );
+    }
+  }, [authLoading, user, profile, navigate, t]);
 
   const handleGoogleAuth = async () => {
     try {
-      // Save auth method before redirect
       localStorage.setItem(AUTH_METHOD_KEY, "google");
-      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
+          queryParams: { access_type: 'offline', prompt: 'consent' },
         },
       });
-
-      if (error) {
-        toast.error(error.message);
-      }
+      if (error) toast.error(error.message);
     } catch (error: any) {
-      toast.error(error.message || "An error occurred with Google authentication");
+      toast.error(error.message || "Google authentication failed");
     }
   };
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
+    setFormLoading(true);
 
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
@@ -74,49 +90,21 @@ const Auth = () => {
         return;
       }
 
-      if (data.user && data.session) {
-        // Save auth method on successful login
-        localStorage.setItem(AUTH_METHOD_KEY, "email");
-        
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role, onboarding_completed")
-          .eq("id", data.user.id)
-          .single();
-
-        if (profileError) {
-          console.error("Profile fetch error:", profileError);
-          toast.error(t('login.errorLoadingProfile'));
-          return;
-        }
-
-        // Check if user is admin
-        console.log("🔍 Checking role:", profile.role);
-        if (profile.role === "admin") {
-          console.log("✅ Admin detected! Navigating to admin dashboard");
-          toast.success(t('login.welcomeAdmin'));
-          navigate("/admin/dashboard", { replace: true });
-          return;
-        }
-        console.log("❌ Not admin, role is:", profile.role);
-
-        // Check if onboarding is completed
-        if (!profile.onboarding_completed) {
-          toast.info("Please complete your profile setup");
-          navigate(profile.role === "teacher" ? "/teacher/onboarding" : "/onboarding");
-          return;
-        }
-
-        toast.success(t('login.signedInSuccess'));
-        navigate(profile.role === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
-      }
+      localStorage.setItem(AUTH_METHOD_KEY, "email");
+      // Sign-in succeeded. onAuthStateChange will fire SIGNED_IN → scheduleProfileFetch
+      // (deferred with setTimeout 0, outside Supabase's lock) → setProfile → setLoading(false).
+      // The useEffect above watching [user, profile] will then navigate automatically.
+      // Keep formLoading true so the button stays disabled until navigation.
     } catch (error: any) {
-      console.error("Signin error:", error);
+      console.error("Sign-in error:", error);
       toast.error(error.message || "An error occurred during sign in");
     } finally {
-      setLoading(false);
+      // Only clear formLoading on error paths; on success the component unmounts on navigate.
+      if (!user) setFormLoading(false);
     }
   };
+
+  const isLoading = formLoading || authLoading;
 
   return (
     <div className="min-h-screen flex">
@@ -125,9 +113,9 @@ const Auth = () => {
         <div className="w-full max-w-md space-y-4">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <img 
-              src="/images/dataplus_logggg-removebg-preview.png" 
-              alt="DataPlus Logo" 
+            <img
+              src="/images/dataplus_logggg-removebg-preview.png"
+              alt="DataPlus Logo"
               className="w-10 h-10 object-contain"
             />
           </div>
@@ -151,6 +139,7 @@ const Auth = () => {
               type="button"
               variant="outline"
               onClick={handleGoogleAuth}
+              disabled={isLoading}
               className={`w-full h-11 text-sm font-medium bg-white border hover:bg-gray-50 rounded-lg group ${
                 lastAuthMethod === "google" ? "border-[#006d2c] border-2" : "border-gray-300"
               }`}
@@ -194,6 +183,7 @@ const Auth = () => {
                 type="email"
                 placeholder={t('auth.email')}
                 required
+                disabled={isLoading}
                 className="h-11 px-4 border-gray-300 rounded-lg focus:border-black focus:ring-black"
               />
             </div>
@@ -219,6 +209,7 @@ const Auth = () => {
                   placeholder={t('auth.password')}
                   required
                   minLength={6}
+                  disabled={isLoading}
                   className="h-11 px-4 pr-12 border-gray-300 rounded-lg focus:border-black focus:ring-black"
                 />
                 <button
@@ -234,12 +225,12 @@ const Auth = () => {
             <div className="relative">
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={isLoading}
                 className={`w-full h-11 bg-black hover:bg-[#006d2c] text-white font-medium rounded-lg transition-colors duration-300 ${
                   lastAuthMethod === "email" ? "ring-2 ring-[#006d2c] ring-offset-2" : ""
                 }`}
               >
-                {loading ? `${t('auth.signIn')}...` : t('auth.signIn')}
+                {isLoading ? `${t('auth.signIn')}...` : t('auth.signIn')}
               </Button>
               {lastAuthMethod === "email" && (
                 <Badge className="absolute -top-2 -right-2 bg-[#006d2c] text-white text-xs px-2 py-0.5">
