@@ -178,15 +178,33 @@ async function xentriRequest(cfg, method, path, body) {
     try {
         data = text ? JSON.parse(text) : {};
     } catch {
+        console.error('[XentriPay] Non-JSON response:', { url, status: res.status, text });
         throw new Error('Invalid response from XentriPay');
     }
 
     if (!res.ok) {
-        throw new Error(data.message || `XentriPay error (${res.status})`);
+        const msg = data.message || `XentriPay error (${res.status})`;
+        console.error('[XentriPay] HTTP error:', {
+            url, method, status: res.status,
+            request: body ? { ...body, cnumber: body.cnumber ? '***' : undefined } : undefined,
+            response: data,
+        });
+        const err = new Error(msg);
+        err.xentriStatus = res.status;
+        err.xentriResponse = data;
+        throw err;
     }
 
     if (data.success === 0) {
-        throw new Error(data.reply || 'Payment initiation failed');
+        const msg = data.reply || data.message || 'Payment initiation failed';
+        console.error('[XentriPay] Gateway rejection:', {
+            url, method,
+            request: body ? { ...body, cnumber: body.cnumber ? '***' : undefined } : undefined,
+            response: data,
+        });
+        const err = new Error(msg);
+        err.xentriResponse = data;
+        throw err;
     }
 
     return data;
