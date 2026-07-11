@@ -267,10 +267,13 @@ export default async function handler(req, res) {
             cohortId: resolvedCohortId,
         });
     } catch (error) {
-        console.error('[payment-initiate] Error:', error);
+        console.error('[payment-initiate] Unhandled error:', {
+            message: error.message,
+            stack: error.stack,
+        });
         return res.status(500).json({
             success: false,
-            error: 'Payment initiation failed',
+            error: error.message || 'Payment initiation failed',
         });
     }
 }
@@ -476,19 +479,43 @@ async function handleXentriPayInitiate(res, ctx) {
     try {
         response = await initiateXentriCollection(collectionBody);
     } catch (e) {
-        return res.status(400).json({ success: false, error: e.message });
+        console.error('[payment-initiate] XentriPay rejected:', {
+            referenceId: ctx.referenceId,
+            pmethod,
+            amount: xentriAmount,
+            error: e.message,
+            xentriResponse: e.xentriResponse || null,
+        });
+        return res.status(400).json({
+            success: false,
+            error: e.message,
+            referenceId: ctx.referenceId,
+        });
     }
 
     const providerRefId = response.refid;
     if (!providerRefId) {
-        return res.status(500).json({ success: false, error: 'Payment gateway error' });
+        console.error('[payment-initiate] No refid in XentriPay response:', {
+            referenceId: ctx.referenceId,
+            response,
+        });
+        return res.status(500).json({
+            success: false,
+            error: 'Payment gateway did not return a reference. Please try again.',
+            referenceId: ctx.referenceId,
+        });
     }
 
     const redirectUrl = response.url?.trim() || null;
     if (pmethod === 'cc' && !redirectUrl) {
+        console.error('[payment-initiate] Card checkout URL missing:', {
+            referenceId: ctx.referenceId,
+            response,
+        });
         return res.status(400).json({
             success: false,
-            error: 'Card checkout is not available',
+            error: 'Card checkout URL was not returned by the gateway. Please try again.',
+            referenceId: ctx.referenceId,
         });
     }
 
