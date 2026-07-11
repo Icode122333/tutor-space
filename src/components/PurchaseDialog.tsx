@@ -233,6 +233,7 @@ export function PurchaseDialog({
                 }
             }
         } else {
+            if (result.referenceId) setReferenceId(result.referenceId);
             setStep("failed");
             setError(result.error || "Failed to initiate payment");
         }
@@ -578,8 +579,18 @@ export function PurchaseDialog({
                                 <XCircle className="h-10 w-10 text-red-600" />
                             </div>
                             <p className="font-semibold text-lg">Payment Failed</p>
-                            <p className="text-gray-500 text-sm">
-                                {error || "Something went wrong. Please try again."}
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-left space-y-1">
+                                <p className="text-sm text-red-700 font-medium">
+                                    {error || "Something went wrong. Please try again."}
+                                </p>
+                                {referenceId && (
+                                    <p className="text-xs text-red-500 font-mono">
+                                        Ref: {referenceId}
+                                    </p>
+                                )}
+                            </div>
+                            <p className="text-xs text-gray-400">
+                                If the problem persists, contact support with the reference above.
                             </p>
                             <div className="flex gap-2">
                                 <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
