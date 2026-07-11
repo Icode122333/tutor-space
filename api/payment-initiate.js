@@ -21,6 +21,7 @@ import {
     getXentriPayConfig,
     initiateXentriCollection,
     normalizeRwandaMomoPhones,
+    normalizeInternationalPhone,
     resolveXentriPayCollectionAmount,
     buildXentriCardReturnUrl,
     getSiteUrl,
@@ -415,9 +416,14 @@ async function handleXentriPayInitiate(res, ctx) {
         return res.status(500).json({ success: false, error: 'XentriPay not configured' });
     }
 
+    const pmethod = ctx.paymentMethod === 'card' ? 'cc' : 'momo';
+
     let phones;
     try {
-        phones = normalizeRwandaMomoPhones(ctx.phone);
+        // MoMo requires a valid Rwanda number; card accepts any international number.
+        phones = pmethod === 'momo'
+            ? normalizeRwandaMomoPhones(ctx.phone)
+            : normalizeInternationalPhone(ctx.phone);
     } catch (e) {
         return res.status(400).json({ success: false, error: e.message });
     }
@@ -428,8 +434,6 @@ async function handleXentriPayInitiate(res, ctx) {
     } catch (e) {
         return res.status(400).json({ success: false, error: e.message });
     }
-
-    const pmethod = ctx.paymentMethod === 'card' ? 'cc' : 'momo';
 
     // Create pending payment record before calling gateway
     try {

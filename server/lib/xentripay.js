@@ -65,6 +65,37 @@ export function normalizeRwandaMomoPhones(input) {
     };
 }
 
+/**
+ * Lenient normalization for international card payments.
+ * XentriPay requires cnumber (10 digits) and msisdn for all collections,
+ * but for card (pmethod=cc) the phone is used only for customer identification —
+ * the actual payment happens on Urubuto's hosted page.
+ * We strip non-digits and pad/trim to fit the expected format.
+ */
+export function normalizeInternationalPhone(input) {
+    if (!input || !input.trim()) {
+        throw new Error('Phone number is required');
+    }
+
+    const digits = input.replace(/\D/g, '');
+
+    if (digits.length < 7) {
+        throw new Error('Please enter a valid phone number');
+    }
+
+    // Try Rwanda normalization first
+    try {
+        return normalizeRwandaMomoPhones(input);
+    } catch {
+        // International number — build a synthetic cnumber/msisdn pair.
+        // Take the last 9 digits and prefix with 0 to satisfy XentriPay's 10-digit cnumber constraint.
+        const last9 = digits.slice(-9).padStart(9, '0');
+        const cnumber = `0${last9}`;
+        const msisdn = digits.length >= 10 ? digits : `250${last9}`;
+        return { cnumber, msisdn };
+    }
+}
+
 export const XENTRIPAY_MIN_AMOUNT_RWF = 100;
 
 /**

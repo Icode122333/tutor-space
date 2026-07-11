@@ -411,7 +411,7 @@ export function PurchaseDialog({
                                     </div>
                                     <div className="text-left">
                                         <p className="font-semibold">MTN Mobile Money</p>
-                                        <p className="text-xs text-gray-500">Pay with your MoMo account</p>
+                                        <p className="text-xs text-gray-500">Rwanda MoMo / Airtel (RWF only)</p>
                                     </div>
                                     {paymentMethod === "momo" && (
                                         <CheckCircle className="h-5 w-5 text-green-500 ml-auto" />
@@ -463,22 +463,23 @@ export function PurchaseDialog({
                             {needsPhone && (
                                 <div className="space-y-2">
                                     <Label htmlFor="phone" className="text-sm">
-                                        Phone Number
+                                        {paymentMethod === "momo" ? "MTN MoMo Phone Number" : "Phone Number"}
                                     </Label>
                                     <div className="relative">
                                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                         <Input
                                             id="phone"
                                             type="tel"
-                                            placeholder="0788123456"
+                                            placeholder={paymentMethod === "momo" ? "0788123456" : "+1 555 123 4567"}
                                             value={phone}
                                             onChange={(e) => setPhone(e.target.value)}
                                             className="pl-10"
                                         />
                                     </div>
                                     <p className="text-xs text-gray-500">
-                                        Rwanda format: 0788..., +250788..., etc.
-                                        {paymentMethod === "card" ? " Required for card checkout." : ""}
+                                        {paymentMethod === "momo"
+                                            ? "Rwanda MTN/Airtel number only (e.g. 0788123456 or +250788123456)"
+                                            : "Any phone number — local or international (e.g. +1 555 123 4567)"}
                                     </p>
                                 </div>
                             )}
