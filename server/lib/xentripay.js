@@ -67,10 +67,16 @@ export function normalizeRwandaMomoPhones(input) {
 
 /**
  * Lenient normalization for international card payments.
- * XentriPay requires cnumber (10 digits) and msisdn for all collections,
- * but for card (pmethod=cc) the phone is used only for customer identification —
- * the actual payment happens on Urubuto's hosted page.
- * We strip non-digits and pad/trim to fit the expected format.
+ * XentriPay requires cnumber (10 digits) and msisdn (≥12 digits) for all
+ * collections, but for card (pmethod=cc) these are only used for customer
+ * identification — the actual payment happens on Urubuto's hosted card page.
+ *
+ * XentriPay validation rules discovered empirically:
+ *   - cnumber: exactly 10 digits, must start with 0
+ *   - msisdn:  must be ≥ 12 digits (11-digit MSISDNs like US +1 are rejected)
+ *
+ * Strategy: try Rwanda normalization first; if that fails (international number)
+ * build synthetic cnumber/msisdn that always satisfy the above constraints.
  */
 export function normalizeInternationalPhone(input) {
     if (!input || !input.trim()) {
@@ -83,15 +89,20 @@ export function normalizeInternationalPhone(input) {
         throw new Error('Please enter a valid phone number');
     }
 
-    // Try Rwanda normalization first
+    // Try Rwanda normalization first (for local users entering Rwanda numbers).
     try {
         return normalizeRwandaMomoPhones(input);
     } catch {
-        // International number — build a synthetic cnumber/msisdn pair.
-        // Take the last 9 digits and prefix with 0 to satisfy XentriPay's 10-digit cnumber constraint.
-        const last9 = digits.slice(-9).padStart(9, '0');
-        const cnumber = `0${last9}`;
-        const msisdn = digits.length >= 10 ? digits : `250${last9}`;
+        // International number — build a synthetic pair that passes XentriPay's checks.
+        //
+        // XentriPay validates that msisdn begins with a valid Rwanda network prefix
+        // (250 + 07x or 250 + 08x). We take the last 8 digits of the input and force
+        // the prefix to '07', giving a deterministic but format-valid identifier.
+        // The actual card payment happens on Urubuto's hosted page — this phone is
+        // only used as a customer reference in XentriPay's system.
+        const last8 = digits.slice(-8).padStart(8, '0');
+        const cnumber = `07${last8}`;             // 10 digits, starts with 07 ✓
+        const msisdn  = `250${cnumber.slice(1)}`; // 12 digits: 250 + 9 digits starting with 7 ✓
         return { cnumber, msisdn };
     }
 }
